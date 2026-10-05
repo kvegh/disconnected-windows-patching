@@ -1,0 +1,75 @@
+{
+  "name": "Deploy Windows VM",
+  "description": "Role, version and hypervisor settings",
+  "spec": [
+    {
+      "question_name": "Server role",
+      "question_description": "",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "vm_role",
+      "choices": "managed\nwsus",
+      "default": "",
+      "min": 0,
+      "max": 1024,
+      "new_question": true
+    },
+    {
+      "question_name": "Windows Server version",
+      "question_description": "",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "windows_version",
+      "choices": "2022\n2025",
+      "default": "",
+      "min": 0,
+      "max": 1024,
+      "new_question": true
+    },
+    {
+      "question_name": "Boot mode",
+      "question_description": "",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "vm_boot_mode",
+      "choices": "bios\nuefi",
+      "default": "",
+      "min": 0,
+      "max": 1024,
+      "new_question": true
+    },
+    {
+      "question_name": "VM name",
+      "question_description": "",
+      "required": true,
+      "type": "text",
+      "variable": "vm_name",
+      "default": "",
+      "min": 1,
+      "max": 63,
+      "new_question": true
+    },
+    {
+      "question_name": "Libvirt network",
+      "question_description": "",
+      "required": true,
+      "type": "text",
+      "variable": "vm_network",
+      "default": "windows-isolated",
+      "min": 1,
+      "max": 63,
+      "new_question": true
+    },
+    {
+      "question_name": "Second network (internal WSUS only)",
+      "question_description": "Existing management LAN libvirt network name; leave empty for single-NIC VMs.",
+      "required": false,
+      "type": "text",
+      "variable": "vm_management_network",
+      "default": "",
+      "min": 0,
+      "max": 63,
+      "new_question": true
+    }
+  ]
+}

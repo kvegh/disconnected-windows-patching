@@ -1,13 +1,18 @@
 ---
-aap_vcpus: 4
-aap_memory_mb: 20480
-aap_disk_size: "60G"
-
-aap_version: "2.7-8"
-aap_version_short: "27"
-installer_extract_dir: "/opt/sources"
-
-golden_image_path: "/opt/images/goldimg-vm-1.disk.qcow2"
-
-vm_network: "internal"
-vm_dir: "/opt/vms"
+vm_dir: /opt/vms
+vm_network: windows-isolated
+# Set for internal WSUS only: existing 192.168.42.x libvirt network name.
+vm_management_network: ''
+# Initial Windows setup may need console interaction before a DHCP lease appears.
+wait_for_dhcp: false
+windows_images:
+  '2022': /opt/images/windows-server-2022.qcow2
+  '2025': /opt/images/windows-server-2025.qcow2
+windows_memory_mb:
+  managed: 2048
+  wsus: 4096
+# Override if the hypervisor's installed osinfo database uses different IDs.
+windows_osinfo:
+  '2022': win2k22
+  '2025': win2k25
+# Required launch inputs: vm_role, windows_version, vm_name, vm_boot_mode.

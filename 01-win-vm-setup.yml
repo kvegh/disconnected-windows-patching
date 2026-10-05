@@ -1,0 +1,169 @@
+---
+- name: Create a Windows VM from a sparse base image
+  hosts: hypervisor
+  become: true
+  vars_files:
+    - vars/main.yml
+  vars:
+    selected_image: "{{ windows_images[windows_version | string] }}"
+    selected_memory_mb: "{{ windows_memory_mb[vm_role] }}"
+    vm_disk_path: "{{ vm_dir }}/{{ vm_name }}.disk.qcow2"
+
+  tasks:
+    - name: Validate survey or extra variable inputs
+      ansible.builtin.assert:
+        that:
+          - vm_role | default('') in ['managed', 'wsus']
+          - windows_version | default('') | string in ['2022', '2025']
+          - vm_name | default('') is match('^[A-Za-z][A-Za-z0-9-]{0,62}$')
+          - vm_boot_mode | default('') in ['bios', 'uefi']
+          - vm_network is match('^[A-Za-z0-9_.-]+$')
+          - vm_management_network == '' or vm_management_network is match('^[A-Za-z0-9_.-]+$')
+          - vm_management_network == '' or vm_role == 'wsus'
+          - vm_management_network != vm_network
+        fail_msg: Supply vm_role (managed/wsus), windows_version (2022/2025), vm_name, vm_boot_mode (bios/uefi), and vm_network.
+
+    - name: Verify selected libvirt networks are active
+      ansible.builtin.command:
+        argv: [virsh, net-info, "{{ item }}"]
+      environment:
+        LC_ALL: C
+      loop: "{{ [vm_network] + ([vm_management_network] if vm_management_network | length > 0 else []) }}"
+      register: selected_network_info
+      changed_when: false
+      check_mode: false
+      failed_when: selected_network_info.rc != 0 or selected_network_info.stdout is not search('Active:\s+yes')
+
+    - name: List existing VM names
+      ansible.builtin.command:
+        argv: [virsh, list, --all, --name]
+      register: existing_vms
+      changed_when: false
+      check_mode: false
+
+    - name: Refuse to modify an existing VM
+      ansible.builtin.assert:
+        that: vm_name not in existing_vms.stdout_lines
+        fail_msg: "VM {{ vm_name }} already exists. Choose a new name; existing VMs are never modified."
+
+    - name: Inspect base image
+      ansible.builtin.command:
+        argv: [qemu-img, info, --output=json, "{{ selected_image }}"]
+      register: base_image_info
+      changed_when: false
+      check_mode: false
+
+    - name: Validate standalone qcow2 base image
+      ansible.builtin.assert:
+        that:
+          - (base_image_info.stdout | from_json).format == 'qcow2'
+          - "'backing-filename' not in (base_image_info.stdout | from_json)"
+
+    - name: Ensure VM disk directory exists
+      ansible.builtin.file:
+        path: "{{ vm_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Check destination disk
+      ansible.builtin.stat:
+        path: "{{ vm_disk_path }}"
+      register: destination_disk
+
+    - name: Refuse to reuse an existing disk
+      ansible.builtin.assert:
+        that: not destination_disk.stat.exists
+        fail_msg: "Disk {{ vm_disk_path }} already exists. Inspect it before retrying with this name."
+
+    - name: Create independent sparse qcow2 clone without resizing
+      ansible.builtin.command:
+        argv:
+          - qemu-img
+          - convert
+          - -f
+          - qcow2
+          - -O
+          - qcow2
+          - -S
+          - 4k
+          - "{{ selected_image }}"
+          - "{{ vm_disk_path }}"
+        creates: "{{ vm_disk_path }}"
+
+    - name: Verify cloned disk capacity
+      ansible.builtin.command:
+        argv: [qemu-img, info, --output=json, "{{ vm_disk_path }}"]
+      register: clone_info
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Confirm original capacity was preserved
+      ansible.builtin.assert:
+        that:
+          - (clone_info.stdout | from_json)['virtual-size'] == (base_image_info.stdout | from_json)['virtual-size']
+      when: not ansible_check_mode
+
+    - name: Build Windows VM deployment command
+      ansible.builtin.set_fact:
+        vm_install_argv: >-
+          {{ ['virt-install', '--name', vm_name, '--vcpus', '2',
+              '--memory', selected_memory_mb | string, '--import',
+              '--machine', 'q35', '--boot',
+              ('uefi' if vm_boot_mode == 'uefi' else 'hd'),
+              '--graphics', 'spice,listen=127.0.0.1', '--osinfo',
+              windows_osinfo[windows_version | string], '--disk',
+              'path=' ~ vm_disk_path ~ ',format=qcow2,bus=sata',
+              '--network', 'network=' ~ vm_network ~ ',model=e1000e']
+              + (['--network', 'network=' ~ vm_management_network ~ ',model=e1000e']
+                 if vm_management_network | length > 0 else [])
+              + ['--noautoconsole'] }}
+
+    - name: Create and start Windows VM
+      ansible.builtin.command:
+        argv: "{{ vm_install_argv }}"
+      changed_when: true
+
+    - name: Read VM network interface
+      ansible.builtin.command:
+        argv: [virsh, domiflist, "{{ vm_name }}"]
+      register: vm_interfaces
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Extract generated MAC address
+      ansible.builtin.set_fact:
+        vm_mac: "{{ vm_interfaces.stdout | regex_search('(?i)([0-9a-f]{2}:){5}[0-9a-f]{2}') }}"
+      when: not ansible_check_mode
+
+    - name: Validate discovered MAC address
+      ansible.builtin.assert:
+        that: vm_mac | default('', true) | length > 0
+      when: not ansible_check_mode
+
+    - name: Wait for DHCP lease by MAC address when requested
+      ansible.builtin.command:
+        argv: [virsh, net-dhcp-leases, "{{ vm_network }}", --mac, "{{ vm_mac }}"]
+      register: dhcp_leases
+      changed_when: false
+      until: dhcp_leases.stdout is search('([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]+')
+      retries: 60
+      delay: 5
+      when:
+        - not ansible_check_mode
+        - wait_for_dhcp | bool
+
+    - name: Report deployment details
+      ansible.builtin.debug:
+        msg:
+          name: "{{ vm_name }}"
+          role: "{{ vm_role }}"
+          windows_version: "{{ windows_version | string }}"
+          vcpus: 2
+          memory_mb: "{{ selected_memory_mb }}"
+          disk: "{{ vm_disk_path }}"
+          network: "{{ vm_network }}"
+          management_network: "{{ vm_management_network | default('') }}"
+          interfaces: "{{ vm_interfaces.stdout_lines | default([]) }}"
+          mac: "{{ vm_mac | default('not available in check mode') }}"
+          ipv4: "{{ dhcp_leases.stdout | default('') | regex_search('([0-9]{1,3}\\.){3}[0-9]{1,3}') | default('not discovered', true) }}"
+          note: VM creation only; Windows initial setup, management access and WSUS installation are separate steps.
