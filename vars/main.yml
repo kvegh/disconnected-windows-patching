@@ -1,0 +1,13 @@
+---
+aap_vcpus: 4
+aap_memory_mb: 20480
+aap_disk_size: "60G"
+
+aap_version: "2.7-8"
+aap_version_short: "27"
+installer_extract_dir: "/opt/sources"
+
+golden_image_path: "/opt/images/goldimg-vm-1.disk.qcow2"
+
+vm_network: "internal"
+vm_dir: "/opt/vms"
