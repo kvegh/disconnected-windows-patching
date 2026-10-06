@@ -320,3 +320,13 @@ with the built-in `SYSTEM` account. This keeps the background process independen
 of the WinRM login profile being unloaded when its launching session ends. AAP
 continues to authenticate with the configured administrator Machine credential.
 The status tasks use the same execution account to locate the correct async cache.
+
+### Teardown verification
+
+`verify_windows_teardown.yml` runs read-only through its own AAP job template.
+Supply `teardown_baseline` (pre-teardown domain XML/state and base-image file
+metadata) and the exact `windows_demo_vm_names` list as protected AAP inputs.
+It verifies only those four domains disappeared, their clone disks are absent,
+and other domain definitions/states and base-image size/inode/mtime are unchanged.
+This is a metadata comparison, not a full disk-content checksum.
+Keep environment-specific baseline values outside plaintext Git.

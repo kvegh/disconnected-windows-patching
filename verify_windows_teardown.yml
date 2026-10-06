@@ -1,0 +1,101 @@
+---
+- name: Verify Windows teardown without changing the hypervisor
+  hosts: hypervisor
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Require a pre-teardown baseline and exact target list
+      ansible.builtin.assert:
+        that:
+          - teardown_baseline is mapping
+          - teardown_baseline.domains is mapping
+          - teardown_baseline.images is mapping
+          - windows_demo_vm_names | length == 4
+          - windows_demo_vm_names | unique | length == 4
+          - windows_demo_vm_names | difference(teardown_baseline.domains.keys() | list) | length == 0
+      no_log: true
+
+    - name: Read remaining VM names
+      ansible.builtin.command:
+        argv: [virsh, list, --all, --name]
+      register: remaining_domains
+      changed_when: false
+      check_mode: false
+
+    - name: Confirm exactly the four approved domains were removed
+      ansible.builtin.assert:
+        that:
+          - remaining_domains.stdout.split() | sort == (teardown_baseline.domains.keys() | list | difference(windows_demo_vm_names) | sort)
+        fail_msg: Remaining domains differ from the pre-teardown baseline.
+      no_log: true
+
+    - name: Read preserved VM definitions
+      ansible.builtin.command:
+        argv: [virsh, dumpxml, "{{ item }}", --inactive]
+      loop: "{{ remaining_domains.stdout.split() }}"
+      register: preserved_definitions
+      changed_when: false
+      check_mode: false
+      no_log: true
+
+    - name: Verify preserved VM definitions are unchanged
+      ansible.builtin.assert:
+        that: item.stdout == teardown_baseline.domains[item.item].xml | trim
+        fail_msg: A preserved VM definition changed; inspect before redeployment.
+      loop: "{{ preserved_definitions.results }}"
+      no_log: true
+
+    - name: Read preserved VM states
+      ansible.builtin.command:
+        argv: [virsh, domstate, "{{ item }}"]
+      loop: "{{ remaining_domains.stdout.split() }}"
+      register: preserved_states
+      changed_when: false
+      check_mode: false
+
+    - name: Verify preserved VM states are unchanged
+      ansible.builtin.assert:
+        that: item.stdout | trim == teardown_baseline.domains[item.item].state
+        fail_msg: A preserved VM state changed; inspect before redeployment.
+      loop: "{{ preserved_states.results }}"
+      no_log: true
+
+    - name: Inspect original Windows base images
+      ansible.builtin.stat:
+        path: "{{ item }}"
+        follow: false
+        get_checksum: false
+        get_mime: false
+      loop: "{{ windows_images.values() | list }}"
+      register: preserved_images
+
+    - name: Verify original base images are unchanged
+      ansible.builtin.assert:
+        that:
+          - item.stat.isreg | default(false)
+          - item.stat.size == teardown_baseline.images[item.item].size
+          - item.stat.inode == teardown_baseline.images[item.item].inode
+          - (item.stat.mtime | float - (teardown_baseline.images[item.item].mtime_ns | float / 1000000000)) | abs < 0.001
+        fail_msg: A base image is missing or changed; inspect before redeployment.
+      loop: "{{ preserved_images.results }}"
+      no_log: true
+
+    - name: Inspect the four clone disk paths
+      ansible.builtin.stat:
+        path: "{{ vm_dir }}/win-{{ item }}-clone.disk.qcow2"
+        follow: false
+      loop: "{{ windows_demo_vm_names }}"
+      register: clone_files
+
+    - name: Verify all four clone disks are absent
+      ansible.builtin.assert:
+        that: not item.stat.exists
+        fail_msg: A Windows clone disk remains after teardown.
+      loop: "{{ clone_files.results }}"
+      no_log: true
+
+    - name: Report successful teardown verification
+      ansible.builtin.debug:
+        msg: All four Windows clones are absent; other VM definitions and states and original base image metadata match the baseline.
