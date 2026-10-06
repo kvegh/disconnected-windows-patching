@@ -211,7 +211,12 @@
           $Ansible.Changed = $false
           $setup = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup'
           $expected = [IO.Path]::Combine($ContentPath, 'WsusContent').TrimEnd('\')
-          if ($setup.ContentDir -and $setup.ContentDir.TrimEnd('\') -notin @($ContentPath.TrimEnd('\'), $expected)) {
+          $differentLocation = $setup.ContentDir -and
+              $setup.ContentDir.TrimEnd('\') -notin @($ContentPath.TrimEnd('\'), $expected)
+          $initialLocation = Join-Path $env:ProgramFiles 'Update Services'
+          $installerDefault = $setup.ContentDir -and
+              $setup.ContentDir.TrimEnd('\') -eq $initialLocation.TrimEnd('\')
+          if ($differentLocation -and -not $installerDefault) {
               throw 'Existing WSUS content location differs; move content explicitly before continuing.'
           }
           $ready = $false
@@ -222,6 +227,17 @@
               $ready = [bool]$setup.ContentDir
           } catch {
               $ready = $false
+          }
+          if ($differentLocation -and $ready) {
+              throw 'Initialized WSUS content location differs; move content explicitly before continuing.'
+          }
+          if ($differentLocation -and $installerDefault) {
+              $existingContent = Join-Path $initialLocation 'WsusContent'
+              if (Test-Path -LiteralPath $existingContent) {
+                  $files = Get-ChildItem -LiteralPath $existingContent -File -Recurse |
+                      Select-Object -First 1
+                  if ($files) { throw 'Installer default contains update files; inspect before reinitializing.' }
+              }
           }
           if (-not $ready) {
               $utility = Join-Path $env:ProgramFiles 'Update Services\Tools\WsusUtil.exe'
