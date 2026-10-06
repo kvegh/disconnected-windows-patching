@@ -83,8 +83,9 @@ isolation separately; this playbook does not create networks or firewall rules.
 ## Layout and validation
 
 - `01-win-vm-setup.yml`: VM deployment playbook.
-- `configure_wsus_environment.yml`: WSUS installation and client update policies.
-- `deploy_chocolatey_nexus.yml`: Nexus services, hosted feeds, and Chocolatey clients.
+- `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.
+- `setup_wsus.yml`: WSUS installation, initialization and client update policies.
+- `setup_chocolatey.yml`: Nexus services, hosted feeds, and Chocolatey clients.
 - `collections/requirements.yml`: pinned Ansible collection dependencies.
 - `docs/application-deployment.md`: application architecture, inputs, and remaining work.
 - `vars/main.yml`: base images and sizing configuration.
@@ -96,8 +97,8 @@ Install `ansible-core` in the execution environment. Validate without deployment
 ansible-playbook -i 'hypervisor,' 01-win-vm-setup.yml --syntax-check
 ```
 
-Use standard Ansible YAML formatting (two-space indentation). No Windows VM
-deployments or guest-level tests have been performed yet.
+Use standard Ansible YAML formatting (two-space indentation). VM creation, Windows basics and WSUS configuration have been exercised against
+the demo guests. Nexus/Chocolatey deployment still needs a live test.
 
 ## Network prerequisites
 
@@ -112,49 +113,55 @@ guest configuration with no default gateway, routing disabled, and firewall
 rules allowing the intended AAP and external WSUS traffic. Windows NIC addresses
 and these rules are separate from this VM deployment playbook.
 
-## Configure Windows and WSUS
+## Modular Windows configuration
 
-`configure_wsus_environment.yml` runs against Windows guests over WinRM. Supply
-an AAP Machine credential and inventory connection variables for NTLM over HTTPS
-(port 5986), with certificate trust or an explicitly chosen demo validation policy.
-The execution environment needs `pywinrm` and `collections/requirements.yml`.
+Run these job templates independently or through the deployment workflow:
 
-Required inventory groups: `wsus_external` (one host), `wsus_internal` (one host),
-and `windows_managed` (managed guests). Keep the groups disjoint. Supply sensitive
-environment values through AAP credentials/inventory or Vault-encrypted variables.
+| Stage | Playbook | AAP job template |
+| --- | --- | --- |
+| Windows basics | `configure_windows_server_basics.yml` | Disconnected Windows Patching - Configure Windows Server Basics |
+| WSUS | `setup_wsus.yml` | Disconnected Windows Patching - Setup WSUS |
+| Application repositories and clients | `setup_chocolatey.yml` | Disconnected Windows Patching - Setup Chocolatey |
 
-Required variables:
+The existing **Deploy Windows + WSUS environment** workflow creates four VMs in
+parallel, waits for all four creation jobs to succeed, then runs Windows basics,
+WSUS setup, and Chocolatey setup in sequence. Each transition requires success.
+Use an individual configuration template to reconfigure existing VMs; rerunning
+the deployment workflow attempts creation and its existing-VM guard will stop it.
 
-- `wsus_internal_url`: internal WSUS HTTP URL including port 8530, reachable by clients.
-  Store this and `wsus_client_sources` in `vars/wsus_environment_vault.yml`, encrypted
-  with Ansible Vault. The configuration playbook loads it in each play, including
-  localhost validation. Attach the matching Vault credential to the AAP job template;
-  keep these settings out of inventory and job extra variables.
-- `wsus_client_sources`: list of client addresses/subnets allowed by the added firewall rule.
-- Optional per-host `windows_hostname`: unique desired Windows name.
-- Optional `wsus_content_path`: defaults to `C:\WSUS`. A separate content volume
-  may be needed depending on the update set; the playbook does not resize disks.
+All configuration templates use WinRM and a Windows Machine credential. Their
+execution environment needs `pywinrm` and the pinned Ansible collections.
+Required disjoint inventory groups are `wsus_external`, `wsus_internal`, and
+`windows_managed`. Keep environment assignments protected and out of plaintext Git.
 
-The playbook checks WinRM, configures permanent NIC settings by MAC, reconnects
-at the permanent address, optionally renames/reboots guests, and installs WSUS with
-Windows Internal Database, initializes content storage, and selects manual
-synchronization. Both WSUS servers are standalone; internal WSUS receives offline
-imports. No synchronization is launched. Managed guests use internal WSUS with
-Internet update locations blocked and automatic updating disabled, leaving patch
-installation to AAP. Client web-service reachability is checked.
+`configure_windows_server_basics.yml` owns permanent NIC settings, DNS, forwarding,
+hostnames and their reboots. It validates MAC assignments before changes, uses an
+asynchronous local network task, and reconnects at each host's permanent address.
+Supply `windows_network_interfaces`, `windows_connection_address` and optional
+`windows_hostname` through protected per-host inventory variables. This playbook
+has no WSUS URL dependency and performs no WSUS or Chocolatey installation.
 
-AAP's execution node must reach both the initial DHCP and permanent guest addresses.
-The playbook configures static NIC addresses and removes unwanted default gateways. Internal WSUS needs routing disabled
-and no default gateway. The added client firewall rule does not narrow existing
-WSUS/IIS rules. Transfer access and network-level firewall isolation are configured separately.
+`setup_wsus.yml` installs WSUS with Windows Internal Database on the two repository
+servers, initializes local content storage, configures manual synchronization and
+internal client firewall access, and configures Windows Update policies on managed
+servers. It verifies the internal client web service from both managed servers.
+It does not change Windows networking or hostnames. `wsus_internal_url` and
+`wsus_client_sources` are loaded from `vars/wsus_environment_vault.yml`; attach the
+matching Vault credential to this template. Optional `wsus_content_path` defaults
+to `C:\WSUS`. Existing initialized content locations are protected against moves.
 
-Product/language/classification selection, synchronization, approval, export/import,
-content transfer, and patch installation are subsequent steps. Clones also need
-unique Windows Update client identities; this playbook does not reset them.
+Both WSUS servers are standalone and synchronization is manual. Managed guests
+use internal WSUS with Internet update locations blocked and automatic updating
+disabled, leaving patch installation to AAP. Product selection, synchronization,
+approvals, metadata export/import, update binary transfer and patch installation
+are separate work and are not implemented by these setup playbooks.
+
+Validate without executing against Windows:
 
 ```bash
-ansible-galaxy collection install -r collections/requirements.yml
-ansible-playbook -i inventory.ini configure_wsus_environment.yml --syntax-check
+ansible-playbook -i inventory.ini configure_windows_server_basics.yml --syntax-check
+ansible-playbook -i inventory.ini setup_wsus.yml --syntax-check --vault-password-file /path/to/vault-password
+ansible-playbook -i inventory.ini setup_chocolatey.yml --syntax-check
 ```
 
 ## Application repositories and Chocolatey
@@ -164,21 +171,23 @@ internal WSUS. External Nexus provides a staging feed; internal Nexus provides a
 released feed containing offline-ready application packages. Managed Windows
 servers use Chocolatey CLI, invoked by AAP over WinRM, to install selected versions.
 
-`deploy_chocolatey_nexus.yml` deploys both Nexus Windows services and hosted feeds,
+`setup_chocolatey.yml` deploys both Nexus Windows services and hosted feeds,
 and bootstraps the Chocolatey clients from an offline MSI. See
 [application deployment](docs/application-deployment.md) for installer inputs,
 credentials, resource requirements, package promotion, and pending live validation.
 
 The clients have only an isolated NIC. AAP still needs an execution node on that
 network or a restricted management route. Internal WSUS's second NIC does not
-provide a WinRM jump host automatically. The execution-node arrangement remains
-to be configured; this playbook does not change network isolation or VM sizing.
+provide a WinRM jump host automatically. The demo execution-node connectivity has been verified over WinRM; this playbook does not change network isolation or VM sizing.
 
 ## Implementation status
 
-The three deployment/configuration playbooks are written and syntax-checked.
-They have not been executed against the demo guests. VM creation remains separate
-from Windows/WSUS configuration and Nexus/Chocolatey setup.
+The four deployment/configuration playbooks are written and syntax-checked.
+VM creation, networking, DNS, hostnames, WSUS initialization and client policies
+have completed successfully in the demo. The split preserves those tasks; the
+new modular templates need their first separate live runs. Nexus/Chocolatey has
+not been deployed yet. Its template/workflow stage requires installer staging,
+checksums, feed configuration and protected credentials before launch.
 
 External-to-internal application promotion is intended to be AAP-controlled:
 retrieve selected `.nupkg` versions from external Nexus, verify their checksums,
@@ -197,7 +206,7 @@ per-host inventory variables. Each interface entry requires `mac`, `name`,
 `ipv4_address`, `prefix_length`, `gateway` (empty string for none), and `dns_servers`
 (an empty list for none). Supply every demo NIC, including both internal WSUS NICs.
 The connection address must match one configured NIC. Use actual deployed MACs;
-fixed MAC inputs in VM deployment are still pending implementation.
+fixed MAC inputs are supported by the VM deployment playbook.
 
 Initially, inventory `ansible_host` must be the discovered DHCP address. Do not
 supply `ansible_host` through launch extra variables: they would override the
@@ -277,13 +286,15 @@ DNS and registry configuration are outside the asynchronous network script.
 
 ### WSUS configuration logging survey
 
-The configuration job template prompts for `wsus_no_log`: `true` (default) hides
+The Windows basics job template prompts for `windows_no_log`: `true` (default) hides
 network task arguments and results, while `false` exposes them in AAP job output
 for troubleshooting. An external boolean variable is also accepted. If omitted,
 the playbook defaults to protection enabled. The survey definition is stored in
-`assets/wsus-setup-survey.json` for reuse on another controller.
+`assets/windows-basics-survey.json` for reuse on another controller. The WSUS
+template has its own `wsus_no_log` survey for content-path diagnostics, also
+defaulting to `true`, in `assets/wsus-setup-survey.json`.
 
-This toggle applies to network validation, asynchronous configuration/status,
+The Windows basics toggle applies to network validation, asynchronous configuration/status,
 connection-address switching and DNS tasks. Disabling it may reveal environment
 IPs, MACs, adapter names and error details to users who can read the job output.
 It does not disable logging protection in other playbooks, or print the Machine

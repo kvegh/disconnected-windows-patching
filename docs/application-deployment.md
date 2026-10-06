@@ -47,7 +47,7 @@ connectivity; no general client Internet access is needed.
 
 ## Deploy repository services and clients
 
-`deploy_chocolatey_nexus.yml` installs Nexus as a Windows service on both WSUS
+`setup_chocolatey.yml` installs Nexus as a Windows service on both WSUS
 servers, initializes its administrator password on first start, creates the
 hosted feeds, opens source-scoped TCP port 8081 rules, and installs Chocolatey CLI
 on managed guests from an offline MSI. It removes the default public Chocolatey
@@ -108,7 +108,7 @@ Dependencies:
 
 ```bash
 ansible-galaxy collection install -r collections/requirements.yml
-ansible-playbook -i inventory.ini deploy_chocolatey_nexus.yml --syntax-check
+ansible-playbook -i inventory.ini setup_chocolatey.yml --syntax-check
 ```
 
 The execution environment also needs `pywinrm` and ansible-core 2.18 or later
@@ -127,7 +127,7 @@ and client installation. Execution-node connectivity is a prerequisite.
   staging/released feeds, and offline Chocolatey CLI bootstrap on endnodes.
 - Validated locally: YAML and Ansible syntax, including Nexus task includes.
 - Pending: live Windows/Nexus/Chocolatey validation with the selected installers.
-- Pending: AAP execution-node connectivity to the single-NIC isolated endnodes.
+- Verified: WinRM connectivity from the AAP execution node to all Windows guests.
 - Pending: AAP-controlled package replication/promotion from external Nexus to
   internal Nexus. Retrieve selected `.nupkg` files, verify checksums, and upload
   the same versions to the released feed; include all offline dependencies.
@@ -137,9 +137,12 @@ and client installation. Execution-node connectivity is a prerequisite.
 - Pending: WSUS product selection, synchronization, approvals, update-content
   transfer, metadata export/import, and patch installation.
 
-The existing VM workflow only creates and starts the guests. The configuration
-playbooks have not yet been added as workflow steps or launched. Installing Nexus
-and creating feeds does not populate them or implement automatic replication.
+The deployment workflow creates the four VMs in parallel, then runs
+`configure_windows_server_basics.yml`, `setup_wsus.yml`, and `setup_chocolatey.yml`
+in sequence. Configuration stages are also separate AAP job templates for reruns
+on existing guests. Chocolatey setup requires the staged installers and protected
+inputs described above; it has not yet been executed. Installing Nexus and creating
+feeds does not populate them or implement automatic replication.
 
 References:
 

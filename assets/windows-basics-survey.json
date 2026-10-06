@@ -1,0 +1,17 @@
+{
+  "name": "Windows basics logging",
+  "description": "Control whether detailed Windows network task output is hidden.",
+  "spec": [
+    {
+      "question_name": "Hide detailed network task output (no_log)",
+      "question_description": "true hides IPs, MACs and network results; false reveals them for troubleshooting.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "windows_no_log",
+      "default": "true",
+      "choices": "true\nfalse",
+      "min": 0,
+      "max": 1024
+    }
+  ]
+}
