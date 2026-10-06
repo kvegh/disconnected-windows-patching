@@ -115,6 +115,23 @@
       when: not ansible_check_mode
       no_log: true
 
+    - name: Configure DNS with the Windows DNS client module
+      ansible.windows.win_dns_client:
+        adapter_names:
+          - "{{ item.name }}"
+        dns_servers: "{{ item.dns_servers }}"
+      loop: "{{ windows_network_interfaces }}"
+      no_log: true
+      when: not ansible_check_mode
+
+    - name: Disable IP routing on internal repository server
+      ansible.windows.win_regedit:
+        path: 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters'
+        name: IPEnableRouter
+        data: 0
+        type: dword
+      when: inventory_hostname in groups['wsus_internal']
+
     - name: Set unique Windows hostname when supplied
       ansible.windows.win_hostname:
         name: "{{ windows_hostname }}"

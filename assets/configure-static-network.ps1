@@ -1,3 +1,4 @@
+[CmdletBinding(SupportsShouldProcess)]
 param(
     [Parameter(Mandatory)][string]$ConfigurationJson,
     [bool]$DisableForwarding = $false,
@@ -23,11 +24,10 @@ foreach ($config in $configs) {
         $gateway = [Net.IPAddress]::Parse($config.gateway)
         if ($gateway.AddressFamily -ne [Net.Sockets.AddressFamily]::InterNetwork) { throw 'IPv4 gateway required.' }
     }
-    foreach ($dns in @($config.dns_servers)) { $null = [Net.IPAddress]::Parse($dns) }
     $resolved += @{ Config = $config; Index = $adapter.InterfaceIndex }
 }
 if (@($resolved.Index | Select-Object -Unique).Count -ne $resolved.Count) { throw 'Duplicate adapters in network configuration.' }
-if ($ValidateOnly) { return }
+if ($ValidateOnly -or $Ansible.CheckMode) { return }
 # Allow the async launcher to return before changing the address used by WinRM.
 Start-Sleep -Seconds 10
 foreach ($entry in $resolved) {
@@ -75,26 +75,11 @@ foreach ($entry in $resolved) {
             $Ansible.Changed = $true
         }
     }
-    $currentDns = @((Get-DnsClientServerAddress -InterfaceIndex $index -AddressFamily IPv4).ServerAddresses)
-    $desiredDns = @($config.dns_servers)
-    if (($currentDns -join ',') -ne ($desiredDns -join ',')) {
-        # An empty list on a DHCP-disabled NIC clears configured DNS servers.
-        if ($desiredDns.Count) {
-            Set-DnsClientServerAddress -InterfaceIndex $index -ServerAddresses $desiredDns
-        } else {
-            Set-DnsClientServerAddress -InterfaceIndex $index -ResetServerAddresses
-        }
-        $Ansible.Changed = $true
-    }
+
 }
 if ($DisableForwarding) {
     Get-NetIPInterface | Where-Object Forwarding -eq 'Enabled' | ForEach-Object {
         Set-NetIPInterface -InterfaceIndex $_.InterfaceIndex -AddressFamily $_.AddressFamily -Forwarding Disabled
-        $Ansible.Changed = $true
-    }
-    $path = 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters'
-    if ((Get-ItemProperty $path).IPEnableRouter -ne 0) {
-        Set-ItemProperty -Path $path -Name IPEnableRouter -Value 0
         $Ansible.Changed = $true
     }
 }

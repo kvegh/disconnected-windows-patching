@@ -259,3 +259,18 @@ Optional deployment variables `vm_mac` and `vm_management_mac` assign explicit
 primary/secondary NIC MACs. Supply actual assignments from the vaulted mapping
 through AAP workflow variables. The secondary MAC requires a secondary network.
 If omitted, libvirt generates the MAC.
+
+### Networking modules and remaining PowerShell
+
+DNS configuration uses `ansible.windows.win_dns_client`, the internal repository
+server's router registry flag uses `ansible.windows.win_regedit`, and hostnames
+use `ansible.windows.win_hostname`. These modules compare existing state before
+applying changes.
+
+`assets/configure-static-network.ps1` covers MAC-based NIC matching, NIC renaming,
+DHCP disabling, static IPv4 addresses, per-interface default routes, and forwarding.
+It validates every NIC before applying changes, skips matching settings, and reports
+changes through `$Ansible.Changed`. Validation and check mode make no changes.
+The installed `win_route` module cannot select an interface or manage DHCP default
+routes in active and persistent stores, so these routes remain in the script.
+DNS and registry configuration are outside the asynchronous network script.
