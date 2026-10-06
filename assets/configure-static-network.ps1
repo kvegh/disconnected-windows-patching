@@ -8,12 +8,13 @@ $ErrorActionPreference = 'Stop'
 $Ansible.Changed = $false
 $configs = @($ConfigurationJson | ConvertFrom-Json)
 $adapters = @(Get-NetAdapter)
+$Ansible.Result = @{ Adapters = @($adapters | Select-Object Name, MacAddress, InterfaceIndex) }
 $resolved = @()
 # Validate every interface before changing any networking.
 foreach ($config in $configs) {
     $mac = $config.mac -replace '[:-]', ''
     $matches = @($adapters | Where-Object { ($_.MacAddress -replace '[:-]', '') -eq $mac })
-    if ($matches.Count -ne 1) { throw 'A configured MAC must match exactly one Windows adapter.' }
+    if ($matches.Count -ne 1) { throw "Configured MAC $($config.mac) matched $($matches.Count) visible adapters; expected exactly one." }
     $adapter = $matches[0]
     $collision = @($adapters | Where-Object { $_.Name -eq $config.name -and $_.InterfaceIndex -ne $adapter.InterfaceIndex })
     if ($collision.Count) { throw 'A desired adapter name belongs to another NIC.' }

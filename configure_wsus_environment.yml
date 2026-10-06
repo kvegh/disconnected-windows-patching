@@ -99,17 +99,17 @@
       when: not ansible_check_mode
 
     - name: Confirm background network configuration completed successfully
-      ansible.windows.async_status:
+      ansible.builtin.async_status:
         jid: "{{ windows_network_job.ansible_job_id }}"
       register: windows_network_result
-      until: windows_network_result.finished | bool
+      until: windows_network_result.finished | default(false) | bool or windows_network_result.failed | default(false) | bool
       retries: 30
       delay: 5
       when: not ansible_check_mode
       no_log: "{{ wsus_no_log | default(true) | bool }}"
 
     - name: Clean up completed asynchronous job status
-      ansible.windows.async_status:
+      ansible.builtin.async_status:
         jid: "{{ windows_network_job.ansible_job_id }}"
         mode: cleanup
       when: not ansible_check_mode
