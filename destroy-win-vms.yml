@@ -1,0 +1,118 @@
+---
+- name: Destroy one explicitly allowed Windows demo clone
+  hosts: hypervisor
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars/main.yml
+  vars:
+    vm_disk_path: "{{ vm_dir }}/win-{{ vm_name }}-clone.disk.qcow2"
+  tasks:
+    - name: Require exact VM allowlist and cloned disk naming
+      ansible.builtin.assert:
+        that:
+          - vm_name | default('') is match('^[A-Za-z][A-Za-z0-9-]{0,62}$')
+          - windows_demo_vm_names | default([]) is sequence
+          - windows_demo_vm_names | default([]) is not string
+          - windows_demo_vm_names | default([]) | length > 0
+          - vm_name in (windows_demo_vm_names | default([]))
+          - vm_dir == '/opt/vms'
+          - vm_disk_path == '/opt/vms/win-' ~ vm_name ~ '-clone.disk.qcow2'
+          - vm_disk_path is match('^/opt/vms/win-[A-Za-z][A-Za-z0-9-]{0,62}-clone\.disk\.qcow2$')
+          - vm_disk_path not in windows_images.values()
+        fail_msg: Refusing teardown without an exact approved VM name and its expected Windows clone disk.
+      no_log: true
+
+    - name: Inspect domain ownership and every disk reference before stopping
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ domain_inspection_script }}", "{{ vm_name }}", "{{ vm_disk_path }}"]
+      vars:
+        domain_inspection_script: |
+          import json, subprocess, sys, xml.etree.ElementTree as ET
+          name, disk = sys.argv[1:]
+          def xml(domain):
+              return ET.fromstring(subprocess.check_output(['virsh', 'dumpxml', domain, '--inactive'], text=True))
+          root = xml(name)
+          disks = root.findall('./devices/disk')
+          writable = [d.find('source').get('file') if d.find('source') is not None else None
+                      for d in disks if d.get('device') == 'disk' and d.find('readonly') is None]
+          others = []
+          for domain in subprocess.check_output(['virsh', 'list', '--all', '--name'], text=True).splitlines():
+              if domain and domain != name:
+                  if any(s.get('file') == disk for s in xml(domain).findall('./devices/disk/source')):
+                      others.append(domain)
+          print(json.dumps({'name': root.findtext('name'), 'marker': root.findtext('description'),
+                            'writable_disks': writable, 'shared_with': others,
+                            'nvram': root.findtext('./os/nvram')}))
+      register: domain_inspection
+      changed_when: false
+      check_mode: false
+      no_log: true
+
+    - name: Verify this is a marked Windows clone with no shared disk
+      ansible.builtin.assert:
+        that:
+          - inspected_domain.name == vm_name
+          - inspected_domain.marker == 'aap-disconnected-windows-clone'
+          - inspected_domain.writable_disks == [vm_disk_path]
+          - inspected_domain.shared_with | length == 0
+          - >-
+            not inspected_domain.nvram or
+            inspected_domain.nvram in [
+              '/var/lib/libvirt/qemu/nvram/' ~ vm_name ~ '_VARS.fd',
+              '/var/lib/libvirt/qemu/nvram/' ~ vm_name ~ '_VARS.qcow2']
+        fail_msg: Refusing teardown of an unmarked domain, unexpected/shared disks, or nonstandard NVRAM.
+      vars:
+        inspected_domain: "{{ domain_inspection.stdout | from_json }}"
+      no_log: true
+
+    - name: Inspect clone disk without following symlinks
+      ansible.builtin.stat:
+        path: "{{ vm_disk_path }}"
+        follow: false
+      register: clone_disk
+
+    - name: Refuse missing or symlinked clone disks
+      ansible.builtin.assert:
+        that:
+          - clone_disk.stat.isreg | default(false)
+          - not clone_disk.stat.islnk | default(false)
+        fail_msg: Expected a regular standalone clone disk; inspect this VM manually.
+
+    - name: Inspect active domains
+      ansible.builtin.command:
+        argv: [virsh, list, --name]
+      register: active_domains
+      changed_when: false
+      check_mode: false
+
+    - name: Force stop only the validated domain
+      ansible.builtin.command:
+        argv: [virsh, destroy, "{{ vm_name }}"]
+      when: vm_name in active_domains.stdout_lines
+      changed_when: true
+
+    - name: Verify standalone qcow2 clone after stopping
+      ansible.builtin.command:
+        argv: [qemu-img, info, --output=json, "{{ vm_disk_path }}"]
+      register: stopped_clone_info
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Refuse backing-image dependencies before removing storage
+      ansible.builtin.assert:
+        that:
+          - (stopped_clone_info.stdout | from_json).format == 'qcow2'
+          - "'backing-filename' not in (stopped_clone_info.stdout | from_json)"
+      when: not ansible_check_mode
+
+    - name: Undefine the validated domain and its standard UEFI NVRAM if present
+      ansible.builtin.command:
+        argv: "{{ ['virsh', 'undefine', vm_name] + (['--nvram'] if (domain_inspection.stdout | from_json).nvram else []) }}"
+      changed_when: true
+
+    - name: Delete only the validated Windows clone disk
+      ansible.builtin.file:
+        path: "{{ vm_disk_path }}"
+        state: absent
+      when: not ansible_check_mode

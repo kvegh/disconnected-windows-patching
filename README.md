@@ -225,3 +225,28 @@ The existing `wsus` deployment role and `wsus_external` / `wsus_internal` invent
 groups remain compatible with the playbooks; they identify WSUS-capable repository
 servers, not dedicated WSUS-only guests. Existing AAP workflow launch inputs still
 need to follow the renamed identities before deployment.
+
+## Destroy a Windows demo clone
+
+`destroy-win-vms.yml` tears down one VM per launch. Supply `vm_name` and the exact
+`windows_demo_vm_names` allowlist through AAP or protected variables. Wildcards
+are not accepted as authorization. Both repository servers and managed Windows
+VMs belong in that list; actual VM names stay in the vaulted network mapping.
+
+New deployment disks use `/opt/vms/win-<vm-name>-clone.disk.qcow2`, and new domain
+definitions carry the `aap-disconnected-windows-clone` description marker. Teardown
+checks the exact domain name, marker, sole writable disk, absence of references
+from other domains, regular nonsymlink file, and standard per-domain NVRAM location
+before proceeding. It force-stops the validated domain, checks standalone qcow2
+format, undefines the domain (removing UEFI NVRAM when present), and deletes only
+its expected clone disk. Base images and shared networks are preserved.
+
+Older unmarked VMs or disks using the earlier naming scheme are refused and need
+manual review. A missing domain also fails rather than deleting an orphan disk.
+Additional writable disks, unusual NVRAM paths, snapshots that prevent undefining,
+or other libvirt errors stop teardown. Check mode performs inspection and does
+not stop, undefine, or delete anything. No teardown has been live-tested or run.
+
+```bash
+ansible-playbook -i inventory.ini destroy-win-vms.yml --syntax-check
+```

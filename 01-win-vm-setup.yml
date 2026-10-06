@@ -8,7 +8,7 @@
     selected_image: "{{ windows_images[windows_version | string] }}"
     selected_memory_mb: "{{ windows_memory_mb[vm_role] }}"
     vm_boot_mode: "{{ windows_boot_modes[windows_version | string] }}"
-    vm_disk_path: "{{ vm_dir }}/{{ vm_name }}.disk.qcow2"
+    vm_disk_path: "{{ vm_dir }}/win-{{ vm_name }}-clone.disk.qcow2"
 
   tasks:
     - name: Validate survey or extra variable inputs
@@ -17,6 +17,7 @@
           - vm_role | default('') in ['managed', 'wsus']
           - windows_version | default('') | string in ['2022', '2025']
           - vm_name | default('') is match('^[A-Za-z][A-Za-z0-9-]{0,62}$')
+          - vm_disk_path == vm_dir ~ '/win-' ~ vm_name ~ '-clone.disk.qcow2'
           - vm_network is match('^[A-Za-z0-9_.-]+$')
           - vm_management_network == '' or vm_management_network is match('^[A-Za-z0-9_.-]+$')
           - vm_management_network == '' or vm_role == 'wsus'
@@ -112,6 +113,7 @@
         vm_install_argv: >-
           {{ ['virt-install', '--name', vm_name, '--vcpus', '2',
               '--memory', selected_memory_mb | string, '--import',
+              '--metadata', 'description=aap-disconnected-windows-clone',
               '--machine', 'q35', '--boot',
               ('uefi' if vm_boot_mode == 'uefi' else 'hd'),
               '--graphics', 'spice,listen=127.0.0.1', '--osinfo',
