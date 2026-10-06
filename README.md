@@ -250,3 +250,8 @@ not stop, undefine, or delete anything. No teardown has been live-tested or run.
 ```bash
 ansible-playbook -i inventory.ini destroy-win-vms.yml --syntax-check
 ```
+
+Optional deployment variables `vm_mac` and `vm_management_mac` assign explicit
+primary/secondary NIC MACs. Supply actual assignments from the vaulted mapping
+through AAP workflow variables. The secondary MAC requires a secondary network.
+If omitted, libvirt generates the MAC.

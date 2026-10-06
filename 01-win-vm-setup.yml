@@ -22,6 +22,10 @@
           - vm_management_network == '' or vm_management_network is match('^[A-Za-z0-9_.-]+$')
           - vm_management_network == '' or vm_role == 'wsus'
           - vm_management_network != vm_network
+          - vm_mac | default('') == '' or vm_mac is match('(?i)^([0-9a-f]{2}:){5}[0-9a-f]{2}$')
+          - vm_management_mac | default('') == '' or vm_management_mac is match('(?i)^([0-9a-f]{2}:){5}[0-9a-f]{2}$')
+          - vm_management_mac | default('') == '' or vm_management_network | length > 0
+          - vm_management_mac | default('') == '' or vm_management_mac | lower != vm_mac | default('') | lower
         fail_msg: Supply vm_role (managed/wsus), windows_version (2022/2025), vm_name, and vm_network.
 
     - name: Validate selected image boot mode
@@ -119,8 +123,10 @@
               '--graphics', 'spice,listen=127.0.0.1', '--osinfo',
               windows_osinfo[windows_version | string], '--disk',
               'path=' ~ vm_disk_path ~ ',format=qcow2,bus=sata',
-              '--network', 'network=' ~ vm_network ~ ',model=e1000e']
-              + (['--network', 'network=' ~ vm_management_network ~ ',model=e1000e']
+              '--network', 'network=' ~ vm_network ~ ',model=e1000e'
+              ~ (',mac=' ~ vm_mac if vm_mac | default('') | length > 0 else '')]
+              + (['--network', 'network=' ~ vm_management_network ~ ',model=e1000e'
+                 ~ (',mac=' ~ vm_management_mac if vm_management_mac | default('') | length > 0 else '')]
                  if vm_management_network | length > 0 else [])
               + ['--noautoconsole'] }}
 
