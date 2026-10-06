@@ -6,7 +6,9 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $Ansible.Changed = $false
-$configs = @($ConfigurationJson | ConvertFrom-Json)
+# Do not wrap the pipeline output: Windows PowerShell returns the JSON array
+# as one object, and an outer @() would create a nested array.
+$configs = $ConfigurationJson | ConvertFrom-Json
 $adapters = @(Get-NetAdapter)
 $Ansible.Result = @{ Adapters = @($adapters | Select-Object Name, MacAddress, InterfaceIndex) }
 $resolved = @()

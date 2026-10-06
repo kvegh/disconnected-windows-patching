@@ -70,6 +70,9 @@
       no_log: "{{ wsus_no_log | default(true) | bool }}"
 
     - name: Apply permanent network settings asynchronously
+      become: true
+      become_method: runas
+      become_user: SYSTEM
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/configure-static-network.ps1') }}"
         error_action: stop
@@ -99,6 +102,9 @@
       when: not ansible_check_mode
 
     - name: Confirm background network configuration completed successfully
+      become: true
+      become_method: runas
+      become_user: SYSTEM
       ansible.builtin.async_status:
         jid: "{{ windows_network_job.ansible_job_id }}"
       register: windows_network_result
@@ -109,6 +115,9 @@
       no_log: "{{ wsus_no_log | default(true) | bool }}"
 
     - name: Clean up completed asynchronous job status
+      become: true
+      become_method: runas
+      become_user: SYSTEM
       ansible.builtin.async_status:
         jid: "{{ windows_network_job.ansible_job_id }}"
         mode: cleanup

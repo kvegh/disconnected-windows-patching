@@ -289,3 +289,9 @@ IPs, MACs, adapter names and error details to users who can read the job output.
 It does not disable logging protection in other playbooks, or print the Machine
 or Vault credential values. A completed job's hidden results cannot be recovered
 by changing the toggle; launch a new run to obtain diagnostic output.
+
+The asynchronous network task and its status/cleanup tasks use Windows `runas`
+with the built-in `SYSTEM` account. This keeps the background process independent
+of the WinRM login profile being unloaded when its launching session ends. AAP
+continues to authenticate with the configured administrator Machine credential.
+The status tasks use the same execution account to locate the correct async cache.
