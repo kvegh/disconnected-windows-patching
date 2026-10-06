@@ -1,0 +1,42 @@
+---
+- name: Count network task polling attempts
+  ansible.builtin.set_fact:
+    windows_network_poll_attempt: "{{ windows_network_poll_attempt | int + 1 }}"
+
+- name: Inspect scheduled network task while allowing an expected connection interruption
+  community.windows.win_scheduled_task_stat:
+    name: "{{ windows_network_task_name }}"
+  register: windows_network_task_status
+  # The task may still be changing another NIC after the first WinRM reconnect.
+  # Only transport loss is recoverable here; module and script failures still fail.
+  ignore_unreachable: true
+  no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+
+- name: Reconnect if network configuration interrupted the status request
+  ansible.builtin.wait_for_connection:
+    delay: 5
+    timeout: 180
+  when: windows_network_task_status.unreachable | default(false) | bool
+
+- name: Record whether the scheduled network task completed
+  ansible.builtin.set_fact:
+    windows_network_task_complete: >-
+      {{ not (windows_network_task_status.unreachable | default(false) | bool)
+         and (windows_network_task_status.task_exists | default(false) | bool)
+         and windows_network_task_status.state.status | default('TASK_STATE_RUNNING') != 'TASK_STATE_RUNNING'
+         and windows_network_task_status.state.last_task_result | default(267011) != 267011 }}
+  no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+
+- name: Require completion within the polling limit
+  ansible.builtin.assert:
+    that: windows_network_task_complete | bool or windows_network_poll_attempt | int < 36
+    fail_msg: Network task did not finish; retain the task and protected result files for inspection.
+
+- name: Wait between network status requests
+  ansible.builtin.pause:
+    seconds: 5
+  when: not windows_network_task_complete | bool
+
+- name: Repeat network task polling after reconnection or while the task runs
+  ansible.builtin.include_tasks: wait_for_network_task.yml
+  when: not windows_network_task_complete | bool

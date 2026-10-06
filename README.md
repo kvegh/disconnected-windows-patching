@@ -332,7 +332,10 @@ The network task uses `community.windows.win_scheduled_task` with the built-in
 `SYSTEM` service account and a delayed registration trigger. This avoids the
 `runas` process-token creation failure observed on Windows Server 2025 (error 367),
 and keeps the task independent of the WinRM login profile. Native task inspection
-checks completion and exit code; a small local runner records script errors and
+checks completion and exit code. Status polling explicitly reconnects after a
+WinRM transport interruption while another NIC is still being changed; a
+bounded 36-attempt loop still fails on persistent connection loss or task errors.
+A small local runner records script errors and
 change status in an atomic JSON result. Its working directory is restricted to
 administrators and SYSTEM. The task and files are removed after success; failures
 retain the result for diagnostics. Windows security and execution policies are
@@ -350,3 +353,8 @@ It verifies only those four domains disappeared, their clone disks are absent,
 and other domain definitions/states and base-image size/inode/mtime are unchanged.
 This is a metadata comparison, not a full disk-content checksum.
 Keep environment-specific baseline values outside plaintext Git.
+
+`inspect_windows_network.yml` provides a read-only diagnostic JT for the saved
+network result, scheduled-task status, current adapters, addresses and routes.
+It accepts a host limit and uses the Windows Machine credential. Diagnostic
+output includes network details and stays in AAP, outside Git.

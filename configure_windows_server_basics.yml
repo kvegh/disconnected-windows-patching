@@ -157,16 +157,20 @@
         timeout: 300
       when: not ansible_check_mode
 
-    - name: Wait for the scheduled network task to finish
-      community.windows.win_scheduled_task_stat:
-        name: "{{ windows_network_task_name }}"
-      register: windows_network_task_status
-      until: >-
-        windows_network_task_status.state.status | default('') != 'TASK_STATE_RUNNING' and
-        windows_network_task_status.task_exists | default(false) and
-        windows_network_task_status.state.last_task_result | default(267011) != 267011
-      retries: 36
-      delay: 5
+    - name: Initialize bounded network task polling
+      ansible.builtin.set_fact:
+        windows_network_poll_attempt: 0
+        windows_network_task_complete: false
+      when: not ansible_check_mode
+
+    - name: Wait for the scheduled network task with WinRM reconnection
+      ansible.builtin.include_tasks: tasks/wait_for_network_task.yml
+      when: not ansible_check_mode
+
+    - name: Require successful task completion after network polling
+      ansible.builtin.assert:
+        that: windows_network_task_complete | bool
+        fail_msg: Network task did not complete within the bounded polling period.
       when: not ansible_check_mode
       no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
 
