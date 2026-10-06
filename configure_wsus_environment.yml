@@ -2,6 +2,8 @@
 - name: Validate Windows demo inventory
   hosts: localhost
   gather_facts: false
+  vars_files:
+    - vars/wsus_environment_vault.yml
   tasks:
     - name: Require both WSUS servers and managed clients
       ansible.builtin.assert:
@@ -20,6 +22,8 @@
 - name: Configure permanent Windows networking and guest identity
   hosts: wsus_external:wsus_internal:windows_managed
   gather_facts: false
+  vars_files:
+    - vars/wsus_environment_vault.yml
   tasks:
     - name: Wait for WinRM
       ansible.builtin.wait_for_connection:
@@ -125,6 +129,8 @@
 - name: Install and initialize WSUS servers
   hosts: wsus_external:wsus_internal
   gather_facts: false
+  vars_files:
+    - vars/wsus_environment_vault.yml
   vars:
     wsus_content_path: 'C:\WSUS'
   tasks:
@@ -223,6 +229,8 @@
 - name: Configure managed servers to use internal WSUS
   hosts: windows_managed
   gather_facts: false
+  vars_files:
+    - vars/wsus_environment_vault.yml
   tasks:
     - name: Set local Windows Update policies
       ansible.windows.win_regedit:

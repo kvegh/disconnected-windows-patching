@@ -126,6 +126,10 @@ environment values through AAP credentials/inventory or Vault-encrypted variable
 Required variables:
 
 - `wsus_internal_url`: internal WSUS HTTP URL including port 8530, reachable by clients.
+  Store this and `wsus_client_sources` in `vars/wsus_environment_vault.yml`, encrypted
+  with Ansible Vault. The configuration playbook loads it in each play, including
+  localhost validation. Attach the matching Vault credential to the AAP job template;
+  keep these settings out of inventory and job extra variables.
 - `wsus_client_sources`: list of client addresses/subnets allowed by the added firewall rule.
 - Optional per-host `windows_hostname`: unique desired Windows name.
 - Optional `wsus_content_path`: defaults to `C:\WSUS`. A separate content volume

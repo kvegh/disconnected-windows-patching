@@ -120,7 +120,7 @@
               '--metadata', 'description=aap-disconnected-windows-clone',
               '--machine', 'q35', '--boot',
               ('uefi' if vm_boot_mode == 'uefi' else 'hd'),
-              '--graphics', 'spice,listen=127.0.0.1', '--osinfo',
+              '--graphics', 'vnc,listen=127.0.0.1', '--osinfo',
               windows_osinfo[windows_version | string], '--disk',
               'path=' ~ vm_disk_path ~ ',format=qcow2,bus=sata',
               '--network', 'network=' ~ vm_network ~ ',model=e1000e'
