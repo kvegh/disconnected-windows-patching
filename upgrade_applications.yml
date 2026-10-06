@@ -1,0 +1,30 @@
+---
+- name: Switch to the current feed and upgrade Windows applications
+  hosts: windows_managed
+  gather_facts: false
+  vars_files:
+    - vars/chocolatey_packages.yml
+    - vars/wsus_environment_vault.yml
+  tasks:
+    - name: Require existing baseline or current versions before upgrading
+      chocolatey.chocolatey.win_chocolatey_facts:
+        filter: [packages]
+      no_log: true
+
+    - name: Verify each selected application is already installed
+      ansible.builtin.assert:
+        that:
+          - matching | length == 1
+          - matching[0].version in permitted_versions
+        fail_msg: Install the baseline first; unexpected installed versions need explicit review.
+      vars:
+        matching: "{{ ansible_chocolatey.packages | selectattr('package', 'equalto', item) | list }}"
+        permitted_versions: "{{ chocolatey_packages | selectattr('id', 'equalto', item) | map(attribute='version') | list }}"
+      loop: "{{ chocolatey_packages | map(attribute='id') | unique | list }}"
+      no_log: true
+
+    - name: Select current packages and upgrade
+      ansible.builtin.include_tasks: tasks/deploy_chocolatey_release.yml
+      vars:
+        application_release_track: current
+        application_source_url: "{{ chocolatey_current_source_url }}"

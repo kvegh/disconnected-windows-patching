@@ -1,0 +1,120 @@
+---
+- name: Synchronize selected offline packages into external Chocolatey Nexus
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - vars/chocolatey_packages.yml
+    - vars/wsus_environment_vault.yml
+  vars:
+    nexus_external_host: "{{ groups['wsus_external'][0] }}"
+    nexus_external_url: "http://{{ hostvars[nexus_external_host].ansible_host }}:8081"
+    nexus_external_admin_username: "{{ nexus_server_settings[nexus_external_host].admin_username }}"
+    nexus_external_admin_password: "{{ nexus_server_settings[nexus_external_host].admin_password }}"
+  tasks:
+    - name: Require one external server and a bounded package manifest
+      ansible.builtin.assert:
+        that:
+          - groups.get('wsus_external', []) | length == 1
+          - chocolatey_packages | length > 0
+          - chocolatey_packages | length <= 10
+          - chocolatey_external_feed_name is match('^[A-Za-z0-9][A-Za-z0-9._-]*$')
+      no_log: true
+
+    - name: Validate pinned vendor installer inputs
+      ansible.builtin.assert:
+        that:
+          - item.id is match('^[a-z0-9][a-z0-9.-]*$')
+          - item.version is match('^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$')
+          - item.installer_url is match('^https://github.com/(ip7z/7zip|git-for-windows/git)/releases/download/')
+          - item.installer_sha256 is match('^[a-f0-9]{64}$')
+          - item.installer_filename is match('^[A-Za-z0-9][A-Za-z0-9._-]*\.(exe|msi)$')
+          - item.installer_type in ['msi', 'exe']
+      loop: "{{ chocolatey_packages }}"
+      loop_control:
+        label: "{{ item.id }} {{ item.version }}"
+
+    - name: Require one baseline and current version for every selected application
+      ansible.builtin.assert:
+        that:
+          - baseline_versions | length == 1
+          - item.version is version(baseline_versions[0], '>')
+        fail_msg: Each application needs one older baseline and one newer current release.
+      vars:
+        baseline_versions: "{{ chocolatey_packages | selectattr('id', 'equalto', item.id) | selectattr('track', 'equalto', 'baseline') | map(attribute='version') | list }}"
+      loop: "{{ chocolatey_packages | selectattr('track', 'equalto', 'current') | list }}"
+      loop_control:
+        label: "{{ item.id }}"
+
+    - name: Require the existing immutable external NuGet feed
+      ansible.builtin.uri:
+        url: "{{ nexus_external_url }}/service/rest/v1/repositories/nuget/hosted/{{ chocolatey_external_feed_name | urlencode }}"
+        url_username: "{{ nexus_external_admin_username }}"
+        url_password: "{{ nexus_external_admin_password }}"
+        force_basic_auth: true
+        return_content: true
+        unredirected_headers: [Authorization]
+      register: external_feed
+      changed_when: false
+      no_log: true
+
+    - name: Refuse a mutable feed
+      ansible.builtin.assert:
+        that: external_feed.json.storage.writePolicy == 'ALLOW_ONCE'
+        fail_msg: External feed must prohibit overwriting existing package versions.
+      no_log: true
+
+    - name: Create this job's package cache
+      ansible.builtin.file:
+        path: "{{ chocolatey_package_directory }}"
+        state: directory
+        mode: '0750'
+
+    - name: Download selected vendor installers with published checksums
+      ansible.builtin.get_url:
+        url: "{{ item.installer_url }}"
+        dest: "{{ chocolatey_package_directory }}/{{ item.installer_filename }}"
+        checksum: "sha256:{{ item.installer_sha256 }}"
+        mode: '0640'
+        timeout: 120
+        validate_certs: true
+      loop: "{{ chocolatey_packages }}"
+      loop_control:
+        label: "{{ item.id }} {{ item.version }}"
+      register: vendor_download
+      retries: 3
+      delay: 10
+      until: vendor_download is succeeded
+
+    - name: Build deterministic self-contained packages
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - "{{ playbook_dir }}/assets/build-offline-chocolatey-package.py"
+          - --directory
+          - "{{ chocolatey_package_directory }}"
+        stdin: "{{ item | to_json }}"
+      loop: "{{ chocolatey_packages }}"
+      loop_control:
+        label: "{{ item.id }} {{ item.version }}"
+      register: built_packages
+      changed_when: (built_packages.stdout | from_json).changed
+
+    - name: Publish and verify each immutable package version
+      ansible.builtin.include_tasks: tasks/publish_chocolatey_package.yml
+      loop: "{{ built_packages.results }}"
+      loop_control:
+        loop_var: built_package
+        label: "{{ built_package.item.id }} {{ built_package.item.version }}"
+      vars:
+        package_artifact: "{{ built_package.stdout | from_json }}"
+        package_definition: "{{ built_package.item }}"
+
+    - name: Pass verified package hashes to the export stage
+      ansible.builtin.set_stats:
+        data:
+          synchronized_chocolatey_packages: "{{ built_packages.results | map(attribute='stdout') | map('from_json') | list }}"
+        per_host: false
+
+    - name: Report the synchronized package selection
+      ansible.builtin.debug:
+        msg: "{{ chocolatey_packages | map(attribute='id') | unique | list }}: {{ chocolatey_packages | length }} pinned offline package versions verified in external Nexus."

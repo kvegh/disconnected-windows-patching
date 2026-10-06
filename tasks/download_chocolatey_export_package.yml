@@ -1,0 +1,41 @@
+---
+- name: Validate the synchronized artifact identifier
+  ansible.builtin.assert:
+    that:
+      - synchronized_artifact.package | basename is match('^[a-z0-9][a-z0-9.-]*\.nupkg$')
+      - synchronized_artifact.sha256 is match('^[a-f0-9]{64}$')
+      - synchronized_artifact.id is match('^[a-z0-9][a-z0-9.-]*$')
+      - synchronized_artifact.version is match('^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$')
+
+- name: Locate the exact synchronized Nexus asset
+  ansible.builtin.uri:
+    url: "{{ nexus_external_url }}/service/rest/v1/search/assets?repository={{ chocolatey_external_feed_name | urlencode }}&name={{ synchronized_artifact.id | urlencode }}&version={{ synchronized_artifact.version | urlencode }}"
+    url_username: "{{ nexus_external_admin_username }}"
+    url_password: "{{ nexus_external_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+    unredirected_headers: [Authorization]
+  register: selected_asset
+  changed_when: false
+  no_log: true
+
+- name: Require a unique asset on the intended external server
+  ansible.builtin.assert:
+    that:
+      - selected_asset.json.continuationToken | default(none) == none
+      - selected_asset.json['items'] | length == 1
+      - selected_asset.json['items'][0].downloadUrl.startswith(nexus_external_url ~ '/repository/' ~ chocolatey_external_feed_name ~ '/')
+  no_log: true
+
+- name: Download the exact synchronized artifact from external Nexus
+  ansible.builtin.get_url:
+    url: "{{ selected_asset.json['items'][0].downloadUrl }}"
+    dest: "{{ chocolatey_package_directory }}/{{ synchronized_artifact.package | basename }}"
+    url_username: "{{ nexus_external_admin_username }}"
+    url_password: "{{ nexus_external_admin_password }}"
+    force_basic_auth: true
+    checksum: "sha256:{{ synchronized_artifact.sha256 }}"
+    mode: '0640'
+    timeout: 300
+    unredirected_headers: [Authorization]
+  no_log: true

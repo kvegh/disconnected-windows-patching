@@ -30,16 +30,21 @@ flowchart TD
   R --> S[Sync external WSUS and wait for files]
   S --> E[Export metadata and publish files]
   E --> I[Replicate and import internal WSUS]
+  C --> CS[Synchronize selected external application packages]
+  CS --> CE[Export and share application archive]
+  CE --> CI[Internal application pull and import]
+  CI --> CB[Install baseline applications]
+  CB --> CU[Switch feed and upgrade applications]
 ```
 
 All arrows are success transitions. The two setup branches run concurrently after
 the preparation stage finishes feature/MSI installation and all required reboots.
 This avoids one job rebooting a guest while the other configures it. The preparation
-playbook requires the offline Chocolatey MSI path and checksum. The Chocolatey
-branch also requires the Nexus ZIP, distribution directory, hashes, feed URL and
-protected credentials described in [application deployment](application-deployment.md).
-Those installers and application inputs still need staging before the full workflow
-can run. Population jobs do not require Nexus or Chocolatey installers and can run
+playbook downloads and verifies the pinned Chocolatey MSI automatically. The
+Chocolatey branch also downloads its pinned Nexus ZIP and loads protected
+credentials from Vault. Its selected-package synchronization, HTTP export,
+internal pull/import and application upgrade stages are described in
+[application deployment](application-deployment.md). Population jobs do not require Nexus or Chocolatey installers and can run
 individually against the existing WSUS environment.
 
 Standalone `setup_wsus.yml` and `setup_chocolatey.yml` retain their feature/MSI

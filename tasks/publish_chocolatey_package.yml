@@ -1,0 +1,76 @@
+---
+- name: Search the external feed for this exact package version
+  ansible.builtin.uri:
+    url: "{{ nexus_external_url }}/service/rest/v1/search/assets?repository={{ chocolatey_external_feed_name | urlencode }}&name={{ package_definition.id | urlencode }}&version={{ package_definition.version | urlencode }}"
+    url_username: "{{ nexus_external_admin_username }}"
+    url_password: "{{ nexus_external_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+    unredirected_headers: [Authorization]
+  register: existing_package
+  changed_when: false
+  no_log: true
+
+- name: Refuse ambiguous package search results
+  ansible.builtin.assert:
+    that:
+      - existing_package.json.continuationToken | default(none) == none
+      - existing_package.json['items'] | length <= 1
+    fail_msg: Package search returned ambiguous assets; inspect the repository.
+  no_log: true
+
+- name: Upload only a missing package version using the native Nexus Components API
+  ansible.builtin.uri:
+    url: "{{ nexus_external_url }}/service/rest/v1/components?repository={{ chocolatey_external_feed_name | urlencode }}"
+    method: POST
+    url_username: "{{ nexus_external_admin_username }}"
+    url_password: "{{ nexus_external_admin_password }}"
+    force_basic_auth: true
+    src: "{{ package_artifact.multipart }}"
+    headers:
+      Content-Type: "multipart/form-data; boundary={{ package_artifact.boundary }}"
+    status_code: 204
+    timeout: 300
+    follow_redirects: none
+    unredirected_headers: [Authorization]
+  when: existing_package.json['items'] | length == 0
+  changed_when: true
+  no_log: true
+
+- name: Read the exact published package asset
+  ansible.builtin.uri:
+    url: "{{ nexus_external_url }}/service/rest/v1/search/assets?repository={{ chocolatey_external_feed_name | urlencode }}&name={{ package_definition.id | urlencode }}&version={{ package_definition.version | urlencode }}"
+    url_username: "{{ nexus_external_admin_username }}"
+    url_password: "{{ nexus_external_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+    unredirected_headers: [Authorization]
+  register: published_package
+  until: published_package.json['items'] | default([]) | length == 1
+  retries: 12
+  delay: 5
+  changed_when: false
+  no_log: true
+
+- name: Require a same-server download URL and unambiguous asset
+  ansible.builtin.assert:
+    that:
+      - published_package.json.continuationToken | default(none) == none
+      - published_package.json['items'] | length == 1
+      - published_package.json['items'][0].downloadUrl.startswith(nexus_external_url ~ '/repository/' ~ chocolatey_external_feed_name ~ '/')
+    fail_msg: Unexpected package asset URL or ambiguous repository result.
+  no_log: true
+
+- name: Verify the published package bytes match the local offline artifact
+  ansible.builtin.get_url:
+    url: "{{ published_package.json['items'][0].downloadUrl }}"
+    dest: "{{ chocolatey_package_directory }}/verified-{{ package_definition.id }}.{{ package_definition.version }}.nupkg"
+    url_username: "{{ nexus_external_admin_username }}"
+    url_password: "{{ nexus_external_admin_password }}"
+    force_basic_auth: true
+    force: true
+    checksum: "sha256:{{ package_artifact.sha256 }}"
+    mode: '0640'
+    timeout: 300
+    unredirected_headers: [Authorization]
+  no_log: true

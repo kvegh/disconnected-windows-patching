@@ -1,183 +1,219 @@
 # Disconnected application deployment
 
-Windows patching uses WSUS. Application deployment uses Chocolatey CLI on managed
-Windows guests and Nexus Repository Community Edition on both repository guests.
-Chocolatey CLI is invoked by AAP over WinRM; it is not a polling management service.
+AAP invokes Chocolatey CLI over WinRM on the managed Windows endnodes. Chocolatey
+is an installation tool, not a polling agent service. Both repository guests host
+WSUS and Nexus Repository Community Edition. Windows updates use WSUS; application
+packages use Nexus hosted NuGet feeds.
 
-| Location | Components | Purpose |
-|---|---|---|
-| External repository guest | WSUS, Nexus, hosted `chocolatey-staging` feed | Connected update acquisition and application package staging |
-| Internal repository guest | WSUS, Nexus, hosted `chocolatey-released` feed | Imported updates and released application packages |
-| Managed Windows guests | Windows Update client, Chocolatey CLI | Install updates and specific application versions under AAP control |
-| AAP execution environment | WinRM dependencies and Windows/Chocolatey collections | Run configuration and deployment jobs |
+## Modular stages
 
-Packages must contain installers and dependencies, or reference binaries hosted
-inside isolation. A public Chocolatey package may contain an Internet download
-script; copying that wrapper alone is insufficient. The intended workflow is to
-prepare packages externally, test them, transfer exact versions to internal Nexus,
-and deploy a versioned package manifest through AAP. The two feeds provide staging
-and release separation; they do not automatically create Satellite content views.
-Hosted feeds prohibit overwriting an existing version (`ALLOW_ONCE`).
+Each stage has its own playbook and AAP job template. The application branch starts
+after repository preparation and Chocolatey setup; the WSUS branch runs separately.
 
-## AAP connectivity to isolated endnodes
+| Stage | Playbook | AAP job template suffix |
+| --- | --- | --- |
+| Services and clients | `setup_chocolatey.yml` | Setup Chocolatey |
+| Acquire selected software | `synchronize_external_chocolatey_repo.yml` | Synchronize External Chocolatey Repo |
+| Export and HTTP sharing | `export_external_chocolatey_repo.yml` | Export External Chocolatey Repo |
+| Internal pull and import | `replicate_and_import_chocolatey.yml` | Replicate and Import Chocolatey |
+| Install older versions | `deploy_baseline_applications.yml` | Deploy Baseline Applications |
+| Switch feed and upgrade | `upgrade_applications.yml` | Upgrade Applications |
 
-The managed guests have one NIC on an isolated libvirt network. Internal WSUS has
-a second NIC on the management LAN, but neither Ansible nor WinRM automatically
-uses it as a jump host. AAP's execution node, where the job actually runs, needs
-network access to each guest's WinRM HTTPS port. The current VM deployment does
-not establish that path.
+Template names have the prefix **Disconnected Windows Patching -**.
 
-Two possible arrangements preserve the clients' single isolated NIC:
+```mermaid
+flowchart TD
+    V[Four VM deployment jobs] --> B[Configure Windows server basics]
+    B --> P[Prepare features, Chocolatey MSI and reboots]
+    P --> W[Setup WSUS]
+    P --> C[Setup Chocolatey and Nexus]
+    W --> WP[WSUS readiness, sync, export and import]
+    C --> S[Synchronize external Chocolatey repo]
+    S --> E[Export packages and share ZIP through external Nexus HTTP]
+    E --> I[Internal server pulls, verifies and imports archive]
+    I --> O[Deploy applications from baseline feed]
+    O --> U[Switch to current feed and upgrade applications]
+```
 
-- Run an AAP execution node with management connectivity and access to the isolated
-  network. The hypervisor already has an interface on the isolated bridge and is
-  a candidate, subject to validating execution-node deployment and container
-  network access. Restrict client Internet access and do not enable network
-  forwarding merely because the node is connected to both networks.
-- Provide an explicit, restricted management route through the hypervisor, with
-  a return route and firewall rules permitting only required management traffic.
-  This entails routing configuration, which the demo has not selected.
+Every edge requires success. Four VM jobs converge before Windows basics. WSUS and
+Chocolatey setup run in parallel after the feature/MSI/reboot preparation barrier.
+The workflow deploys new clones; use individual configuration templates for
+existing VMs. Application stages do not patch Windows through WSUS.
 
-An execution node on the isolated side fits the current preference to avoid
-setting up a router. Registering that node, assigning an AAP instance group, and
-verifying WinRM connectivity are outstanding work, not changes made by this
-playbook. Clients retrieve packages from internal Nexus directly over the isolated
-network. Transfers and server configuration use the WSUS guests' management
-connectivity; no general client Internet access is needed.
+## Targeted content
 
-## Deploy repository services and clients
+`vars/chocolatey_packages.yml` is the public, versioned package selection.
 
-`setup_chocolatey.yml` installs Nexus as a Windows service on both WSUS
-servers, initializes its administrator password on first start, creates the
-hosted feeds, opens source-scoped TCP port 8081 rules, and installs Chocolatey CLI
-on managed guests from an offline MSI. It removes the default public Chocolatey
-source and configures the authenticated internal NuGet v2 source.
+| Application | Package ID | Baseline package / vendor version | Current package / vendor version |
+| --- | --- | --- | --- |
+| 7-Zip x64 MSI | `7zip.install` | `26.3.0` / `26.03` | `26.4.0` / `26.04` |
+| Git for Windows x64 | `git.install` | `2.55.0.5` / `2.55.0.windows.5` | `2.56.0.2` / `2.56.0.windows.2` |
 
-This is an initial-install playbook. It refuses to reuse a Nexus service pointing
-to a different distribution, does not upgrade an existing Chocolatey installation,
-and does not build packages, transfer repository contents, or install applications.
-Unexpected enabled Chocolatey sources cause failure for explicit review. Source
-passwords are set when the source is created; credential rotation is separate.
-Existing Windows/IIS rules are not narrowed by the added firewall rule.
+These are locally maintained demo packages built from official vendor installers,
+not copied Chocolatey community wrappers. Vendor GitHub release asset SHA-256
+checksums are pinned. Packages embed their installers, an installation hook that
+checks the embedded installer hash, and public verification information. They have
+no package dependencies or Internet downloads during installation. The executable
+installers include their vendor license notices. Only the four selected versions
+are acquired; the public Chocolatey repository is not mirrored.
 
-Installers download at deployment time inside the execution environment to
-`/tmp/aap-installers`. `vars/application_installers.yml` pins Nexus 3.96.4-01
-(Windows ZIP, approximately 512 MB) and Chocolatey 2.7.4 (MSI, approximately
-6.7 MB), with vendor-published SHA-256 checksums. Native `get_url` verifies each
-download; transferred installers are checked again on Windows. Preparation
-downloads the MSI; application setup downloads both installers. Separate AAP
-jobs have separate temporary storage and may download the MSI again.
-Do not commit installer binaries or environment-specific variables.
+7-Zip provides a small installation/upgrade example; Git provides a useful server
+administration tool and a larger installer. Both make the version change visible.
+Nexus feeds provide release separation; they do not implement Satellite content
+views. The four-version export ZIP is approximately 135 MB with these pins.
 
-`vars/wsus_environment_vault.yml` contains separate administrator passwords for
-the two Nexus services, a dedicated internal package reader password, the internal
-feed URL and firewall source restrictions. Passwords are generated once during
-configuration and reused on redeployment. The playbook initializes new Nexus
-administrators, disables anonymous access, and creates a repository-scoped read
-role and account using REST calls. The AAP Chocolatey template has the existing
-Vault credential attached. Credential tasks always use `no_log`.
+## Setup remains setup
 
-Use the same disjoint inventory groups as WSUS configuration: `wsus_external`,
-`wsus_internal`, and `windows_managed`, as children of the `windows` parent group.
-Use AAP Machine credentials for WinRM. Store Nexus passwords and client source
-credentials in AAP custom credentials or Vault-encrypted variables; secret-bearing
-tasks suppress their output.
+`setup_chocolatey.yml` downloads and verifies the pinned Nexus Windows ZIP and
+Chocolatey MSI. It installs Nexus services with bundled Java, initializes vaulted
+administrator passwords, disables anonymous repository access, configures scoped
+HTTP firewall rules, and creates empty hosted feeds. External Nexus gets
+`chocolatey-staging`; internal Nexus gets `chocolatey-baseline` and
+`chocolatey-current`. A dedicated package-reader account can read both internal
+feeds.
 
-| Input | Scope | Meaning |
-|---|---|---|
-| `nexus_windows_archive` | Job | Execution-environment path to official Windows ZIP, version 3.87 or later with bundled Java |
-| `nexus_archive_sha256` | Job | Verified archive SHA-256 |
-| `nexus_distribution_directory` | Job | Exact `nexus-...` directory name within the ZIP |
-| `chocolatey_msi` | Job | Execution-environment path to official Chocolatey CLI MSI, version 2 or later |
-| `chocolatey_msi_sha256` | Job | Verified MSI SHA-256 |
-| `nexus_admin_username`, `nexus_admin_password` | Each WSUS host | Nexus credentials; first-start bootstrap uses the built-in admin account |
-| `nexus_allowed_sources` | Each WSUS host | Allowed client/AAP/transfer source addresses or subnets |
-| `chocolatey_internal_source_url` | Managed group/job | Internal Nexus NuGet v2 URL, ending in `/repository/chocolatey-released/` |
-| `chocolatey_source_username`, `chocolatey_source_password` | Managed group | Dedicated internal repository read credentials from Vault |
+Managed guests receive Chocolatey CLI, have the public community source removed,
+and use the authenticated internal baseline feed. Setup does not fill repositories
+or install 7-Zip/Git. The shared preparation stage already bootstraps Chocolatey
+and handles reboots before parallel setup, and standalone setup checks it again.
+Installers are downloaded to each job's execution-environment temporary directory;
+there is no manually staged artifact prerequisite or installer binary in Git.
 
-Optional job extra variables: `nexus_install_root` (default `C:\Nexus`),
-`nexus_data_directory` (default `C:\NexusData`), and per-server host variable
-`nexus_feed_name`. Port 8081 is fixed for this initial deployment. Client
-traffic uses HTTP for this demo; HTTPS termination and production repository
-access controls are separate configuration. Administrative API calls run locally
-on each WSUS host, with their responses protected by `no_log`.
+`vars/application_installers.yml` pins Nexus 3.96.4-01 (approximately 512 MB ZIP)
+and Chocolatey 2.7.4 (approximately 6.7 MB MSI). Per-server administrator passwords,
+reader credentials, allowed source addresses and complete private feed URLs are
+in `vars/wsus_environment_vault.yml`. Redeployment reuses these generated passwords.
+Attach the existing Vault credential; tasks carrying credentials always use
+`no_log`, independent of the WSUS diagnostic toggle.
 
-The script uses Sonatype's service installer and Chocolatey's MSI bootstrap.
-It does not change PowerShell execution policy or disable security controls.
+## Synchronization and export
 
-## Resources and pending validation
+Synchronization runs in the AAP execution environment. Native Ansible modules
+verify the existing immutable external feed, download the selected vendor
+installers and publish only missing package versions through the Nexus Components
+API. A small Python helper builds deterministic NuGet-compatible package ZIPs;
+there is no Ansible package-creation module. Existing versions are verified against
+the exact local artifact hash. Different existing bytes fail rather than being
+overwritten. The external feed uses `ALLOW_ONCE`.
 
-Both WSUS/Nexus guests use 2 vCPUs and 8 GiB RAM for this demo; managed guests
-retain 2 vCPUs and 2 GiB RAM. These are demo allocations below the published Nexus
-repository guide's 4-core/16-GB sizing. Validate service startup and shared WSUS/Nexus
-memory use under the demo workload. Review the chosen Nexus release's JVM defaults
-before deployment. The VM deployment sizing applies to newly created guests;
-existing VMs are not resized by these playbooks. Disk capacity must cover
-Windows, WSUS content, Nexus data,
-and free space; Nexus requires at least 4 GB free to avoid database read-only mode.
+Synchronization publishes `synchronized_chocolatey_packages` through `set_stats`.
+The following export job consumes these trusted hashes, downloads those exact
+Nexus assets and validates the embedded vendor installers and maintained install
+hooks. It creates a deterministic ZIP containing `manifest.json` and
+`packages/*.nupkg`.
 
-Dependencies:
+External Nexus creates an immutable raw `chocolatey-exports` feed and serves the
+ZIP over its existing HTTP port 8081. There is no additional webserver. The archive
+URL ends with its SHA-256 digest and `.zip`; publishing identical content is safe
+to repeat. A separate vaulted transfer account has read access only to this export
+feed. The export job verifies the shared archive using that reader and passes
+`chocolatey_export_descriptor` (URL, archive hash, manifest hash and package count)
+to the internal import job through AAP workflow artifacts. No password is placed
+in workflow artifacts.
+
+Export is a selected-content export, not a Nexus database or blob-store backup.
+
+## Internal pull, import and two release URLs
+
+`replicate_and_import_chocolatey.yml` targets the internal repository server.
+That server downloads the archive directly from external Nexus across the shared
+management network; AAP does not relay the archive through WinRM. It requires the
+trusted AAP descriptor and the exact expected external-server URL, prevents HTTP
+redirects, and verifies the archive checksum. Before extraction it checks the
+manifest hash, package selection, package hashes, duplicate entries and safe ZIP
+paths. Native `win_unzip` extracts the verified content.
+
+Each package goes to its manifest track's immutable hosted NuGet feed:
+
+| Track | Internal URL path | Content |
+| --- | --- | --- |
+| Baseline | `/repository/chocolatey-baseline/` | Older pinned 7-Zip and Git packages |
+| Current | `/repository/chocolatey-current/` | Newer pinned 7-Zip and Git packages |
+
+The full URLs are vaulted as `chocolatey_baseline_source_url` and
+`chocolatey_current_source_url`. Nexus serves both feeds on port 8081. Endnodes
+reach internal Nexus over isolation; internal Nexus reaches external Nexus through
+its management NIC. AAP's execution node reaches the single-NIC clients through
+its own isolated-network NIC, while retaining its management default route.
+Neither dual-connected host forwards general client traffic to the Internet.
+
+Native modules handle download, hashing, extraction, repository/account settings
+and result verification. The Windows `win_uri` module cannot upload a binary file;
+`upload-nexus-package.ps1` supplies just that missing multipart upload to local
+Nexus. It runs only for a missing version, rechecks the package hash, uses a
+sensitive `PSCredential` parameter and refuses HTTP redirects. Imports validate
+the published package bytes using the endnode reader credential. Existing
+versions are never overwritten.
+
+## Baseline deployment and upgrade
+
+`deploy_baseline_applications.yml` requires the already installed Chocolatey CLI,
+selects the baseline feed as `internal-nexus`, checks it is the only enabled source,
+and installs both exact baseline versions with `win_chocolatey`. It does not
+bootstrap from the Internet or silently downgrade an unexpected installed version.
+
+`upgrade_applications.yml` first requires both packages to be installed at a known
+baseline or current version. It switches that same source to the current URL and
+uses native `win_chocolatey` upgrade operations with exact pinned versions. A
+successful rerun at current versions makes no application changes. Both jobs
+reboot only if required, check the final installed Chocolatey package versions and
+selected source, and report the verified application versions.
+
+The feeds have different URLs; there is no mutable alias that silently changes
+what an older deployment installs.
+
+## Standalone launches and validation
+
+Synchronization can run independently once external Nexus is ready. A standalone
+export launch needs `synchronized_chocolatey_packages` from the synchronization
+job's artifacts. A standalone import launch needs `chocolatey_export_descriptor`
+from the export job. These templates allow launch variables, and workflow edges
+pass artifacts automatically. Relaunching a previous successful export or import
+retains that run's inputs. Baseline and upgrade templates load their private URLs
+and credentials directly from Vault.
 
 ```bash
 ansible-galaxy collection install -r collections/requirements.yml
-ansible-playbook -i inventory.ini setup_chocolatey.yml --syntax-check
+ansible-playbook -i inventory.ini setup_chocolatey.yml --syntax-check --vault-password-file /path/to/vault-password
+ansible-playbook -i inventory.ini synchronize_external_chocolatey_repo.yml --syntax-check --vault-password-file /path/to/vault-password
+python3 -m unittest discover -s tests -v
 ```
 
-The execution environment also needs `pywinrm` and ansible-core 2.18 or later
-for the pinned Chocolatey collection. Install/data directories must not contain
-spaces. Local syntax checks used ansible-core 2.16 and reported the Chocolatey
-collection compatibility warning; the deployment EE must meet the 2.18 requirement.
-No Windows guest execution or
-live Nexus API test has been performed. First deployment must validate the chosen
-archive layout, service installation, startup, password bootstrap, feed access,
-and client installation. Execution-node connectivity is a prerequisite.
+The EE needs `pywinrm`, Python 3.8 or later, and ansible-core 2.18 or later for the
+pinned Chocolatey collection. Package/export helpers use the Python standard
+library. Nine local tests cover binary upload integrity, repeatable artifacts,
+offline hooks, checksum mismatch and modified-hook refusal. All four real vendor
+installers were downloaded and their pinned hashes verified; deterministic
+packages and the approximately 135 MB export archive were exercised with them.
+Local syntax checking passed for setup and all five application stages.
 
-## Implementation status and remaining work
+Live Nexus import and endnode upgrades remain unvalidated. The latest complete
+environment deployment stopped during Windows 2025 network configuration before
+WSUS/Chocolatey setup; correct Windows basics before executing these stages. VM
+creation succeeded. Historical WinRM connectivity and WSUS configuration were
+validated before the teardown/redeployment.
 
-- Implemented: WSUS configuration and managed-client Windows Update policies.
-- Implemented: Nexus Windows service installation on both WSUS guests, hosted
-  staging/released feeds, and offline Chocolatey CLI bootstrap on endnodes.
-- Validated locally: YAML and Ansible syntax, including Nexus task includes.
-- Pending: live Windows/Nexus/Chocolatey validation with the selected installers.
-- Verified: WinRM connectivity from the AAP execution node to all Windows guests.
-- Pending: AAP-controlled package replication/promotion from external Nexus to
-  internal Nexus. Retrieve selected `.nupkg` files, verify checksums, and upload
-  the same versions to the released feed; include all offline dependencies.
-- Pending: package preparation and an AAP application deployment playbook driven
-  by a versioned manifest. A hosted NuGet feed is the Nexus repository format;
-  no separate NuGet server or Chocolatey.Server installation is required.
-- Pending: WSUS product selection, synchronization, approvals, update-content
-  transfer, metadata export/import, and patch installation.
+Both repository guests retain the requested demo allocation of 2 vCPUs and 8 GiB
+RAM; endnodes retain 2 vCPUs and 2 GiB RAM. Disk sizing stays unchanged. Check shared
+WSUS/Nexus memory and disk capacity during live validation. This initial setup
+refuses implicit Nexus distribution upgrades and does not automatically remove
+old export archives or release content.
 
-The deployment workflow creates the four VMs in parallel, then runs
-`configure_windows_server_basics.yml`, `setup_wsus.yml`, and `setup_chocolatey.yml`
-with preparation before parallel WSUS and Chocolatey setup. Configuration stages are also separate AAP job templates for reruns
-on existing guests. Chocolatey setup downloads the pinned installers and loads the vaulted
-inputs described above; it has not yet been executed. Installing Nexus and creating
-feeds does not populate them or implement automatic replication.
+## Remaining work
+
+- Validate Nexus startup, upload/import APIs and both application upgrades live.
+- Resolve the Windows 2025 basics failure and resume modular setup on existing VMs.
+- Add WSUS client approvals and Windows patch installation as separate stages.
+- Decide retention for old application archives and repository releases.
+- Implement a broader package/dependency selection only if the demo needs it.
 
 References:
 
 - [Nexus Windows service installation](https://help.sonatype.com/en/run-as-a-service.html)
 - [Nexus distribution downloads](https://help.sonatype.com/en/download.html)
-- [Nexus sizing and storage requirements](https://help.sonatype.com/en/sonatype-nexus-repository-system-requirements.html)
-- [Nexus REST API](https://help.sonatype.com/en/api-reference.html)
-- [Chocolatey MSI and offline installation](https://docs.chocolatey.org/en-us/choco/setup/)
-- [Offline application packaging](https://docs.chocolatey.org/en-us/guides/create/recompile-packages/)
-
-## Repository server naming
-
-Both repository guests provide WSUS and a Nexus feed for Chocolatey. Their VM names
-and planned Windows hostnames are stored in the umbrella's vaulted network mapping,
-with both services explicitly recorded. Apply those names through `vm_name` and
-`windows_hostname`; actual assignments remain outside plaintext documentation.
-Keep the existing WSUS inventory groups and role selector for playbook compatibility.
-
-## Parallel setup workflow
-
-Windows basics is followed by `prepare_repository_servers.yml`, which installs
-repository Windows features and bootstraps the offline Chocolatey MSI on clients,
-finishing all required reboots. `setup_wsus.yml` and `setup_chocolatey.yml` then run
-in parallel. Their standalone templates retain the shared bootstrap tasks.
-Both templates download the installers they need; application credentials are vaulted. The WSUS branch proceeds independently through sync, export
-and import; see [WSUS data flow](wsus-data-flow.md).
+- [Nexus Components API](https://help.sonatype.com/en/components-api.html)
+- [Nexus NuGet repositories](https://help.sonatype.com/en/nuget-repositories.html)
+- [Chocolatey MSI setup](https://docs.chocolatey.org/en-us/choco/setup/)
+- [Offline Chocolatey packages](https://docs.chocolatey.org/en-us/guides/create/recompile-packages/)
+- [NuGet package format](https://learn.microsoft.com/en-us/nuget/create-packages/creating-a-package)
+- [Git for Windows silent installation](https://github.com/git-for-windows/git-for-windows.github.io/blob/main/content/silent-or-unattended-installation.md)

@@ -1,0 +1,91 @@
+---
+- name: Pull and import an external Chocolatey export on internal Nexus
+  hosts: wsus_internal
+  gather_facts: false
+  vars_files:
+    - vars/chocolatey_packages.yml
+    - vars/wsus_environment_vault.yml
+  vars:
+    nexus_admin_username: "{{ nexus_server_settings[inventory_hostname].admin_username }}"
+    nexus_admin_password: "{{ nexus_server_settings[inventory_hostname].admin_password }}"
+    nexus_api_url: http://localhost:8081/service/rest
+    nexus_external_host: "{{ groups['wsus_external'][0] }}"
+    expected_export_base_url: "http://{{ hostvars[nexus_external_host].ansible_host }}:8081/repository/{{ chocolatey_export_feed_name }}/"
+    archive_path: "{{ chocolatey_transfer_directory }}\\{{ chocolatey_export_descriptor.sha256 }}.zip"
+    extraction_directory: "{{ chocolatey_transfer_directory }}\\{{ chocolatey_export_descriptor.sha256 }}"
+  tasks:
+    - name: Require a trusted descriptor from the external export job
+      ansible.builtin.assert:
+        that:
+          - chocolatey_export_descriptor is defined
+          - chocolatey_export_descriptor.sha256 is match('^[a-f0-9]{64}$')
+          - chocolatey_export_descriptor.manifest_sha256 is match('^[a-f0-9]{64}$')
+          - chocolatey_export_descriptor.url == expected_export_base_url ~ chocolatey_export_descriptor.sha256 ~ '.zip'
+          - chocolatey_export_descriptor.package_count | int == chocolatey_packages | length
+          - chocolatey_transfer_directory is match('^[A-Za-z]:\\[A-Za-z0-9_.\\-]+$')
+        fail_msg: Supply the trusted export descriptor; only the external Nexus export URL is accepted.
+      no_log: true
+
+    - name: Create the internal transfer directory
+      ansible.windows.win_file:
+        path: "{{ chocolatey_transfer_directory }}"
+        state: directory
+
+    - name: Pull the archive directly across the shared management network
+      ansible.windows.win_get_url:
+        url: "{{ chocolatey_export_descriptor.url }}"
+        dest: "{{ archive_path }}"
+        url_username: "{{ chocolatey_transfer_username }}"
+        url_password: "{{ chocolatey_transfer_password }}"
+        force_basic_auth: true
+        checksum: "{{ chocolatey_export_descriptor.sha256 }}"
+        checksum_algorithm: sha256
+        timeout: 300
+        force: false
+        maximum_redirection: 0
+      no_log: true
+
+    - name: Verify the manifest, package hashes and safe archive paths before extraction
+      ansible.windows.win_powershell:
+        path: assets/validate-chocolatey-export.ps1
+        error_action: stop
+        depth: 8
+        parameters:
+          ArchivePath: "{{ archive_path }}"
+          ManifestSha256: "{{ chocolatey_export_descriptor.manifest_sha256 }}"
+          ExpectedPackagesJson: "{{ chocolatey_packages | to_json }}"
+      register: validated_export
+
+    - name: Extract the verified offline packages
+      community.windows.win_unzip:
+        src: "{{ archive_path }}"
+        dest: "{{ extraction_directory }}"
+        creates: "{{ extraction_directory }}\\manifest.json"
+
+    - name: Prepare separate immutable baseline and current feeds
+      ansible.builtin.include_tasks: tasks/ensure_nexus_nuget_feed.yml
+      loop: "{{ [chocolatey_baseline_feed_name, chocolatey_current_feed_name] }}"
+      loop_control:
+        loop_var: nexus_repository_name
+
+    - name: Scope package-reader access to both release feeds
+      ansible.builtin.include_tasks: tasks/configure_nexus_reader.yml
+      vars:
+        nexus_reader_privileges:
+          - "nx-repository-view-nuget-{{ chocolatey_baseline_feed_name }}-browse"
+          - "nx-repository-view-nuget-{{ chocolatey_baseline_feed_name }}-read"
+          - "nx-repository-view-nuget-{{ chocolatey_current_feed_name }}-browse"
+          - "nx-repository-view-nuget-{{ chocolatey_current_feed_name }}-read"
+
+    - name: Import each verified package into its matching release feed
+      ansible.builtin.include_tasks: tasks/import_chocolatey_package.yml
+      loop: "{{ validated_export.result.Manifest.packages }}"
+      loop_control:
+        loop_var: imported_package
+        label: "{{ imported_package.id }} {{ imported_package.version }} ({{ imported_package.track }})"
+      vars:
+        destination_feed: "{{ chocolatey_baseline_feed_name if imported_package.track == 'baseline' else chocolatey_current_feed_name }}"
+
+    - name: Report available release feeds
+      ansible.builtin.debug:
+        msg: "Baseline and current feeds each contain the pinned versions of 7-Zip and Git; authenticated HTTP access is ready for endnodes."

@@ -86,6 +86,11 @@ isolation separately; this playbook does not create networks or firewall rules.
 - `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.
 - `setup_wsus.yml`: WSUS installation, initialization and client update policies.
 - `setup_chocolatey.yml`: Nexus services, hosted feeds, and Chocolatey clients.
+- `synchronize_external_chocolatey_repo.yml`: four pinned offline packages (two 7-Zip and two Git versions).
+- `export_external_chocolatey_repo.yml`: verified ZIP export served through external Nexus HTTP.
+- `replicate_and_import_chocolatey.yml`: internal-server pull/import into baseline and current feeds.
+- `deploy_baseline_applications.yml`: install older pinned versions on endnodes.
+- `upgrade_applications.yml`: switch feeds and upgrade to newer pinned versions.
 - `prepare_repository_servers.yml`: feature/MSI installation and reboot barrier before parallel setup.
 - `check_wsus_prerequisites.yml`: read-only external WSUS readiness and PowerShell syntax checks.
 - `sync_external_wsus.yml`: Microsoft metadata synchronization and selected file downloads.
@@ -133,7 +138,9 @@ Run these job templates independently or through the deployment workflow:
 The existing **Deploy Windows + WSUS environment** workflow creates four VMs in
 parallel and waits for all four to succeed before Windows basics. A preparation
 stage completes feature/MSI installation and reboots. WSUS setup and Chocolatey/Nexus
-setup then run in parallel. The WSUS branch continues through prerequisite checks,
+setup then run in parallel. The Chocolatey branch proceeds through external package
+synchronization, HTTP export, internal import, baseline installation and upgrade.
+The WSUS branch continues through prerequisite checks,
 synchronization, export, and replication/import. Each transition requires success.
 See [WSUS data flow](docs/wsus-data-flow.md) for the full graph and inputs.
 Use an individual configuration template to reconfigure existing VMs; rerunning
@@ -172,14 +179,14 @@ Validate without executing against Windows:
 ```bash
 ansible-playbook -i inventory.ini configure_windows_server_basics.yml --syntax-check
 ansible-playbook -i inventory.ini setup_wsus.yml --syntax-check --vault-password-file /path/to/vault-password
-ansible-playbook -i inventory.ini setup_chocolatey.yml --syntax-check
+ansible-playbook -i inventory.ini setup_chocolatey.yml --syntax-check --vault-password-file /path/to/vault-password
 ```
 
 ## Application repositories and Chocolatey
 
 The expanded demo co-hosts Nexus Repository Community Edition on external and
 internal WSUS. External Nexus provides a staging feed; internal Nexus provides a
-released feed containing offline-ready application packages. Managed Windows
+baseline and current feeds containing older and newer offline-ready application packages. Managed Windows
 servers use Chocolatey CLI, invoked by AAP over WinRM, to install selected versions.
 
 `setup_chocolatey.yml` deploys both Nexus Windows services and hosted feeds,
@@ -203,11 +210,14 @@ their first live runs. Nexus/Chocolatey has
 not been deployed yet. Installers download automatically with pinned checksums;
 Nexus administrator and package-reader credentials are in the existing encrypted vault.
 
-External-to-internal application promotion is intended to be AAP-controlled:
-retrieve selected `.nupkg` versions from external Nexus, verify their checksums,
-and upload them to internal Nexus. The replication playbook is not implemented;
-Nexus does not automatically mirror the two feeds in this setup. Package building,
-application deployment, and release manifests also remain to be implemented.
+AAP-controlled application synchronization, export, internal import, baseline
+installation and upgrade are implemented as separate playbooks/job templates.
+The targeted content is 7-Zip and Git with two pinned versions each. Native modules
+handle normal configuration and installation; small helpers build deterministic
+packages/exports, inspect archive integrity and upload binary packages on Windows.
+The full flow still needs live Nexus and endnode validation. The latest environment
+workflow stopped during Windows 2025 basics before service setup; its four VM
+creation jobs succeeded. See [application deployment](docs/application-deployment.md).
 
 AAP execution-node access to the isolated endnodes is required. Installer downloads
 and vaulted application credentials are configured for deployment. See the detailed

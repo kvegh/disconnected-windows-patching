@@ -30,6 +30,8 @@
 - Run and validate the new sync, export and import stages with current Microsoft updates.
 - Validate applicability and prerequisite/checkpoint coverage on both older base images.
 - Add internal client approval and patch installation stages.
-- Stage Nexus/Chocolatey artifacts and protected inputs for the parallel setup workflow.
+- Validate the pinned Nexus/Chocolatey downloads and vaulted inputs in live service setup.
+- Resolve the Windows 2025 network-configuration failure before resuming modular setup.
+- Exercise the five application stages: sync, export, import, baseline deployment and upgrade.
 - Add metadata snapshot/import-log retention without deleting active transfer files.
 - Migrate pinned community IIS modules to microsoft.iis before their upstream removal.

@@ -1,0 +1,171 @@
+---
+- name: Prepare HTTP export hosting on external Nexus
+  hosts: wsus_external
+  gather_facts: false
+  vars_files:
+    - vars/chocolatey_packages.yml
+    - vars/wsus_environment_vault.yml
+  vars:
+    nexus_admin_username: "{{ nexus_server_settings[inventory_hostname].admin_username }}"
+    nexus_admin_password: "{{ nexus_server_settings[inventory_hostname].admin_password }}"
+    nexus_api_url: http://localhost:8081/service/rest
+  tasks:
+    - name: Require the raw export repository name
+      ansible.builtin.assert:
+        that: chocolatey_export_feed_name is match('^[A-Za-z0-9][A-Za-z0-9._-]*$')
+
+    - name: Read the raw HTTP export feed
+      ansible.windows.win_uri:
+        url: "{{ nexus_api_url }}/v1/repositories/raw/hosted/{{ chocolatey_export_feed_name }}"
+        url_username: "{{ nexus_admin_username }}"
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        status_code: [200, 404]
+        return_content: true
+      register: export_feed
+      changed_when: false
+      no_log: true
+
+    - name: Create a missing immutable raw export feed
+      ansible.windows.win_uri:
+        url: "{{ nexus_api_url }}/v1/repositories/raw/hosted"
+        method: POST
+        url_username: "{{ nexus_admin_username }}"
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        content_type: application/json
+        body: "{{ definition | to_json }}"
+        status_code: 201
+      vars:
+        definition:
+          name: "{{ chocolatey_export_feed_name }}"
+          online: true
+          storage:
+            blobStoreName: default
+            strictContentTypeValidation: true
+            writePolicy: ALLOW_ONCE
+      when: export_feed.status_code == 404
+      changed_when: true
+      no_log: true
+
+    - name: Refuse a mutable existing export feed
+      ansible.builtin.assert:
+        that: export_feed.json.storage.writePolicy == 'ALLOW_ONCE'
+      when: export_feed.status_code == 200
+      no_log: true
+
+    - name: Configure a vaulted read-only archive transfer account
+      ansible.builtin.include_tasks: tasks/configure_nexus_reader.yml
+      vars:
+        chocolatey_source_username: "{{ chocolatey_transfer_username }}"
+        chocolatey_source_password: "{{ chocolatey_transfer_password }}"
+        nexus_reader_privileges:
+          - "nx-repository-view-raw-{{ chocolatey_export_feed_name }}-browse"
+          - "nx-repository-view-raw-{{ chocolatey_export_feed_name }}-read"
+
+- name: Export the exact synchronized package versions and share the archive
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - vars/chocolatey_packages.yml
+    - vars/wsus_environment_vault.yml
+  vars:
+    nexus_external_host: "{{ groups['wsus_external'][0] }}"
+    nexus_external_url: "http://{{ hostvars[nexus_external_host].ansible_host }}:8081"
+    nexus_external_admin_username: "{{ nexus_server_settings[nexus_external_host].admin_username }}"
+    nexus_external_admin_password: "{{ nexus_server_settings[nexus_external_host].admin_password }}"
+  tasks:
+    - name: Require synchronization hashes from the preceding AAP job
+      ansible.builtin.assert:
+        that:
+          - synchronized_chocolatey_packages is defined
+          - synchronized_chocolatey_packages | length == chocolatey_packages | length
+        fail_msg: Run synchronization first and supply its synchronized_chocolatey_packages artifact.
+
+    - name: Create this job's export directory
+      ansible.builtin.file:
+        path: "{{ chocolatey_package_directory }}"
+        state: directory
+        mode: '0750'
+
+    - name: Download each synchronized Nexus package with its trusted checksum
+      ansible.builtin.include_tasks: tasks/download_chocolatey_export_package.yml
+      loop: "{{ synchronized_chocolatey_packages }}"
+      loop_control:
+        loop_var: synchronized_artifact
+        label: "{{ synchronized_artifact.package | basename }}"
+
+    - name: Build a verified selected-package archive
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_playbook_python }}"
+          - "{{ playbook_dir }}/assets/create-chocolatey-export.py"
+          - --directory
+          - "{{ chocolatey_package_directory }}"
+        stdin: "{{ {'packages': chocolatey_packages, 'artifacts': synchronized_chocolatey_packages} | to_json }}"
+      register: chocolatey_export
+      changed_when: (chocolatey_export.stdout | from_json).changed
+
+    - name: Read archive metadata
+      ansible.builtin.set_fact:
+        export_archive: "{{ chocolatey_export.stdout | from_json }}"
+
+    - name: Check whether this immutable archive is already shared
+      ansible.builtin.uri:
+        url: "{{ nexus_external_url }}/repository/{{ chocolatey_export_feed_name }}/{{ export_archive.sha256 }}.zip"
+        method: HEAD
+        url_username: "{{ nexus_external_admin_username }}"
+        url_password: "{{ nexus_external_admin_password }}"
+        force_basic_auth: true
+        status_code: [200, 404]
+        unredirected_headers: [Authorization]
+      register: shared_archive
+      changed_when: false
+      no_log: true
+
+    - name: Share only a missing archive through Nexus HTTP
+      ansible.builtin.uri:
+        url: "{{ nexus_external_url }}/repository/{{ chocolatey_export_feed_name }}/{{ export_archive.sha256 }}.zip"
+        method: PUT
+        src: "{{ export_archive.archive }}"
+        headers:
+          Content-Type: application/zip
+        url_username: "{{ nexus_external_admin_username }}"
+        url_password: "{{ nexus_external_admin_password }}"
+        force_basic_auth: true
+        status_code: [200, 201, 204]
+        timeout: 300
+        follow_redirects: none
+        unredirected_headers: [Authorization]
+      when: shared_archive.status == 404
+      changed_when: true
+      no_log: true
+
+    - name: Verify the shared archive using the read-only transfer credential
+      ansible.builtin.get_url:
+        url: "{{ nexus_external_url }}/repository/{{ chocolatey_export_feed_name }}/{{ export_archive.sha256 }}.zip"
+        dest: "{{ chocolatey_package_directory }}/verified-{{ export_archive.sha256 }}.zip"
+        url_username: "{{ chocolatey_transfer_username }}"
+        url_password: "{{ chocolatey_transfer_password }}"
+        force_basic_auth: true
+        force: true
+        checksum: "sha256:{{ export_archive.sha256 }}"
+        mode: '0640'
+        timeout: 300
+        unredirected_headers: [Authorization]
+      no_log: true
+
+    - name: Pass the trusted archive descriptor to internal import
+      ansible.builtin.set_stats:
+        data:
+          chocolatey_export_descriptor:
+            url: "{{ nexus_external_url }}/repository/{{ chocolatey_export_feed_name }}/{{ export_archive.sha256 }}.zip"
+            sha256: "{{ export_archive.sha256 }}"
+            manifest_sha256: "{{ export_archive.manifest_sha256 }}"
+            package_count: "{{ export_archive.package_count }}"
+        per_host: false
+      no_log: true
+
+    - name: Report the published archive
+      ansible.builtin.debug:
+        msg: "Verified archive with {{ export_archive.package_count }} package versions is served by external Nexus HTTP."

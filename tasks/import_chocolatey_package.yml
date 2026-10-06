@@ -1,0 +1,79 @@
+---
+- name: Verify the extracted package still matches the export manifest
+  ansible.windows.win_stat:
+    path: "{{ extraction_directory }}\\packages\\{{ imported_package.filename }}"
+    checksum_algorithm: sha256
+    get_checksum: true
+  register: extracted_package
+
+- name: Require the verified package bytes
+  ansible.builtin.assert:
+    that: extracted_package.stat.checksum == imported_package.sha256
+
+- name: Read the exact destination package version
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/search/assets?repository={{ destination_feed | urlencode }}&name={{ imported_package.id | urlencode }}&version={{ imported_package.version | urlencode }}"
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: existing_import
+  changed_when: false
+  no_log: true
+
+- name: Reject ambiguous existing destination assets
+  ansible.builtin.assert:
+    that:
+      - existing_import.json.continuationToken | default(none) == none
+      - existing_import.json['items'] | length <= 1
+  no_log: true
+
+- name: Upload only a missing version to local Nexus
+  ansible.windows.win_powershell:
+    path: assets/upload-nexus-package.ps1
+    error_action: stop
+    parameters:
+      PackagePath: "{{ extraction_directory }}\\packages\\{{ imported_package.filename }}"
+      ExpectedSha256: "{{ imported_package.sha256 }}"
+      Repository: "{{ destination_feed }}"
+    sensitive_parameters:
+      - name: Credential
+        username: "{{ nexus_admin_username }}"
+        password: "{{ nexus_admin_password }}"
+  when: existing_import.json['items'] | length == 0
+  no_log: true
+
+- name: Locate the published destination asset
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/search/assets?repository={{ destination_feed | urlencode }}&name={{ imported_package.id | urlencode }}&version={{ imported_package.version | urlencode }}"
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: published_import
+  until: published_import.json['items'] | default([]) | length == 1
+  retries: 12
+  delay: 5
+  changed_when: false
+  no_log: true
+
+- name: Require a same-server destination URL
+  ansible.builtin.assert:
+    that:
+      - published_import.json.continuationToken | default(none) == none
+      - published_import.json['items'] | length == 1
+      - published_import.json['items'][0].downloadUrl.startswith('http://localhost:8081/repository/' ~ destination_feed ~ '/')
+  no_log: true
+
+- name: Verify published package bytes using the endnode reader credential
+  ansible.windows.win_get_url:
+    url: "{{ published_import.json['items'][0].downloadUrl }}"
+    dest: "{{ extraction_directory }}\\verified-{{ imported_package.filename }}"
+    url_username: "{{ chocolatey_source_username }}"
+    url_password: "{{ chocolatey_source_password }}"
+    force_basic_auth: true
+    checksum: "{{ imported_package.sha256 }}"
+    checksum_algorithm: sha256
+    timeout: 300
+    maximum_redirection: 0
+  no_log: true

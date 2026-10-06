@@ -27,9 +27,7 @@
       id: aap-chocolatey-read
       name: Chocolatey package reader
       description: Read packages from the internal demo feed
-      privileges:
-        - "nx-repository-view-nuget-{{ nexus_repository_name }}-browse"
-        - "nx-repository-view-nuget-{{ nexus_repository_name }}-read"
+      privileges: "{{ nexus_reader_privileges }}"
       roles: []
   when: not role_exists or (matching_roles[0].privileges | sort != role_definition.privileges | sort) or matching_roles[0].roles | length > 0
   changed_when: true
@@ -77,7 +75,7 @@
     url_password: "{{ nexus_admin_password }}"
     force_basic_auth: true
     content_type: application/json
-    body: "{{ item | combine({'roles': ['aap-chocolatey-read'], 'status': 'active'}) | to_json }}"
+    body: "{{ {'userId': item.userId, 'firstName': item.firstName, 'lastName': item.lastName, 'emailAddress': item.emailAddress, 'roles': ['aap-chocolatey-read'], 'status': 'active'} | to_json }}"
     status_code: [200, 204]
   loop: "{{ nexus_users.json | selectattr('userId', 'equalto', chocolatey_source_username) | list }}"
   when: item.status != 'active' or item.roles | sort != ['aap-chocolatey-read']
@@ -86,11 +84,11 @@
 
 - name: Check the vaulted reader password
   ansible.windows.win_uri:
-    url: "http://localhost:{{ nexus_port }}/repository/{{ nexus_repository_name }}/"
+    url: "{{ nexus_reader_auth_url | default(nexus_api_url ~ '/v1/security/users') }}"
     url_username: "{{ chocolatey_source_username }}"
     url_password: "{{ chocolatey_source_password }}"
     force_basic_auth: true
-    status_code: [200, 401]
+    status_code: [200, 401, 403]
   register: nexus_reader_auth
   changed_when: false
   no_log: true

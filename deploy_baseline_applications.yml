@@ -1,0 +1,13 @@
+---
+- name: Deploy baseline offline applications to Windows endnodes
+  hosts: windows_managed
+  gather_facts: false
+  vars_files:
+    - vars/chocolatey_packages.yml
+    - vars/wsus_environment_vault.yml
+  tasks:
+    - name: Select baseline packages
+      ansible.builtin.include_tasks: tasks/deploy_chocolatey_release.yml
+      vars:
+        application_release_track: baseline
+        application_source_url: "{{ chocolatey_baseline_source_url }}"

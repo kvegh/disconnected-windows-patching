@@ -1,0 +1,116 @@
+---
+- name: Require exactly one release of each selected application
+  ansible.builtin.assert:
+    that:
+      - application_release_track in ['baseline', 'current']
+      - selected_packages | length == chocolatey_packages | map(attribute='id') | unique | list | length
+      - selected_packages | map(attribute='id') | unique | list | length == selected_packages | length
+  vars:
+    selected_packages: "{{ chocolatey_packages | selectattr('track', 'equalto', application_release_track) | list }}"
+
+- name: Read the installed Chocolatey root
+  ansible.windows.win_reg_stat:
+    path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+    name: ChocolateyInstall
+  register: application_chocolatey_root
+
+- name: Require the Chocolatey CLI prepared by setup
+  ansible.windows.win_stat:
+    path: "{{ application_chocolatey_root.value | default(chocolatey_default_root, true) }}\\bin\\choco.exe"
+    get_checksum: false
+  register: application_chocolatey_cli
+
+- name: Refuse implicit Internet bootstrap during application deployment
+  ansible.builtin.assert:
+    that: application_chocolatey_cli.stat.isreg | default(false)
+    fail_msg: Run repository preparation and Chocolatey setup before application deployment.
+
+- name: Remove the public Chocolatey source
+  chocolatey.chocolatey.win_chocolatey_source:
+    name: chocolatey
+    state: absent
+
+- name: Switch the configured source to the selected release feed
+  chocolatey.chocolatey.win_chocolatey_source:
+    name: internal-nexus
+    source: "{{ application_source_url }}"
+    source_username: "{{ chocolatey_source_username }}"
+    source_password: "{{ chocolatey_source_password }}"
+    update_password: on_create
+    priority: 1
+    state: present
+  no_log: true
+
+- name: Verify authenticated access to the selected feed
+  ansible.windows.win_uri:
+    url: "{{ application_source_url }}"
+    url_username: "{{ chocolatey_source_username }}"
+    url_password: "{{ chocolatey_source_password }}"
+    force_basic_auth: true
+  changed_when: false
+  no_log: true
+
+- name: Read configured sources before installation
+  chocolatey.chocolatey.win_chocolatey_facts:
+    filter: [sources]
+  no_log: true
+
+- name: Require the selected internal feed as the only enabled source
+  ansible.builtin.assert:
+    that:
+      - enabled_sources | length == 1
+      - enabled_sources[0].name == 'internal-nexus'
+      - enabled_sources[0].source == application_source_url
+  vars:
+    enabled_sources: "{{ ansible_chocolatey.sources | rejectattr('disabled') | list }}"
+  no_log: true
+
+- name: Install the pinned selected versions from internal Nexus
+  chocolatey.chocolatey.win_chocolatey:
+    name: "{{ item.id }}"
+    version: "{{ item.version }}"
+    state: "{{ 'upgrade' if application_release_track == 'current' else 'present' }}"
+    source: internal-nexus
+    timeout: 1800
+  loop: "{{ chocolatey_packages | selectattr('track', 'equalto', application_release_track) | list }}"
+  loop_control:
+    label: "{{ item.id }} {{ item.version }}"
+  register: installed_applications
+  no_log: true
+
+- name: Reboot only if an application installer requires it
+  ansible.windows.win_reboot:
+  when: installed_applications.results | selectattr('rc', 'defined') | selectattr('rc', 'in', [1641, 3010]) | list | length > 0
+
+- name: Read installed package versions and configured sources
+  chocolatey.chocolatey.win_chocolatey_facts:
+    filter: [packages, sources]
+  no_log: true
+
+- name: Verify each installed application version
+  ansible.builtin.assert:
+    that:
+      - matching | length == 1
+      - matching[0].version == item.version
+    fail_msg: Installed application version differs from the selected release.
+  vars:
+    matching: "{{ ansible_chocolatey.packages | selectattr('package', 'equalto', item.id) | list }}"
+  loop: "{{ chocolatey_packages | selectattr('track', 'equalto', application_release_track) | list }}"
+  no_log: true
+
+- name: Verify only the selected internal source is enabled
+  ansible.builtin.assert:
+    that:
+      - enabled_sources | length == 1
+      - enabled_sources[0].name == 'internal-nexus'
+      - enabled_sources[0].source == application_source_url
+  vars:
+    enabled_sources: "{{ ansible_chocolatey.sources | rejectattr('disabled') | list }}"
+  no_log: true
+
+- name: Report verified application versions
+  ansible.builtin.debug:
+    msg: "{{ item.title }} {{ item.vendor_version }} installed from the {{ application_release_track }} feed."
+  loop: "{{ chocolatey_packages | selectattr('track', 'equalto', application_release_track) | list }}"
+  loop_control:
+    label: "{{ item.id }}"

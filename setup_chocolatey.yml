@@ -5,6 +5,7 @@
   tags: [installer_download]
   vars_files:
     - vars/application_installers.yml
+    - vars/chocolatey_packages.yml
     - vars/wsus_environment_vault.yml
   tasks:
     - name: Require repository servers and managed clients
@@ -62,6 +63,7 @@
   gather_facts: false
   vars_files:
     - vars/application_installers.yml
+    - vars/chocolatey_packages.yml
     - vars/wsus_environment_vault.yml
   vars:
     nexus_admin_username: "{{ nexus_server_settings[inventory_hostname].admin_username }}"
@@ -74,7 +76,7 @@
     nexus_service_name: SonatypeNexusRepository
     nexus_port: 8081
     nexus_api_url: "http://localhost:{{ nexus_port }}/service/rest"
-    nexus_repository_name: "{{ nexus_feed_name | default('chocolatey-staging' if inventory_hostname in groups['wsus_external'] else 'chocolatey-released') }}"
+    nexus_repository_names: "{{ [chocolatey_external_feed_name] if inventory_hostname in groups['wsus_external'] else [chocolatey_baseline_feed_name, chocolatey_current_feed_name] }}"
   pre_tasks:
     - name: Require credentials and scoped repository access
       ansible.builtin.assert:
@@ -82,7 +84,7 @@
           - nexus_admin_username | default('') | length > 0
           - nexus_admin_password | default('') | length > 0
           - nexus_allowed_sources | default([]) | length > 0
-          - nexus_repository_name is match('^[A-Za-z0-9][A-Za-z0-9._-]*$')
+          - nexus_repository_names | length > 0
           - nexus_port | int == 8081
           - nexus_install_root is match('^[A-Za-z]:\\[A-Za-z0-9_.\\-]+$')
           - nexus_data_directory is match('^[A-Za-z]:\\[A-Za-z0-9_.\\-]+$')
@@ -222,53 +224,20 @@
       changed_when: true
       no_log: true
 
-    - name: Read hosted repositories
-      ansible.windows.win_uri:
-        url: "{{ nexus_api_url }}/v1/repositories"
-        url_username: "{{ nexus_admin_username }}"
-        url_password: "{{ nexus_admin_password }}"
-        force_basic_auth: true
-        return_content: true
-      register: nexus_repositories
-      changed_when: false
-      no_log: true
-
-    - name: Check an existing feed has the expected format and type
-      ansible.builtin.assert:
-        that:
-          - item.format == 'nuget'
-          - item.type == 'hosted'
-        fail_msg: Existing repository name belongs to a different format or type.
-      loop: "{{ nexus_repositories.json | selectattr('name', 'equalto', nexus_repository_name) | list }}"
-      no_log: true
-
-    - name: Create hosted NuGet feed with immutable package versions
-      ansible.windows.win_uri:
-        url: "{{ nexus_api_url }}/v1/repositories/nuget/hosted"
-        method: POST
-        url_username: "{{ nexus_admin_username }}"
-        url_password: "{{ nexus_admin_password }}"
-        force_basic_auth: true
-        content_type: application/json
-        body: "{{ nexus_repository_definition | to_json }}"
-        status_code: 201
-      changed_when: true
-      vars:
-        nexus_repository_definition:
-          name: "{{ nexus_repository_name }}"
-          online: true
-          storage:
-            blobStoreName: default
-            strictContentTypeValidation: true
-            writePolicy: ALLOW_ONCE
-      when: nexus_repository_name not in (nexus_repositories.json | map(attribute='name') | list)
-      no_log: true
-
-    - name: Enforce immutable versions on an existing feed
-      ansible.builtin.include_tasks: tasks/configure_nexus_feed.yml
+    - name: Configure empty immutable hosted NuGet feeds
+      ansible.builtin.include_tasks: tasks/ensure_nexus_nuget_feed.yml
+      loop: "{{ nexus_repository_names }}"
+      loop_control:
+        loop_var: nexus_repository_name
 
     - name: Configure the internal package read account from Vault
       ansible.builtin.include_tasks: tasks/configure_nexus_reader.yml
+      vars:
+        nexus_reader_privileges:
+          - "nx-repository-view-nuget-{{ chocolatey_baseline_feed_name }}-browse"
+          - "nx-repository-view-nuget-{{ chocolatey_baseline_feed_name }}-read"
+          - "nx-repository-view-nuget-{{ chocolatey_current_feed_name }}-browse"
+          - "nx-repository-view-nuget-{{ chocolatey_current_feed_name }}-read"
       when: inventory_hostname in groups['wsus_internal']
 
 - name: Install Chocolatey CLI on managed Windows nodes
@@ -276,6 +245,7 @@
   gather_facts: false
   vars_files:
     - vars/application_installers.yml
+    - vars/chocolatey_packages.yml
     - vars/wsus_environment_vault.yml
   vars:
     chocolatey_staging_directory: 'C:\ProgramData\AAP\Installers'
