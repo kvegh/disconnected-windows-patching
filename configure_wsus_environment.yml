@@ -159,11 +159,12 @@
     - vars/wsus_environment_vault.yml
   vars:
     wsus_content_path: 'C:\WSUS'
+    wsus_content_path_pattern: '^[A-Za-z]:\\[^\r\n"]+$'
   tasks:
     - name: Validate content path
       ansible.builtin.assert:
         that:
-          - wsus_content_path is match('^[A-Za-z]:\\[^\r\n"]+$')
+          - wsus_content_path is match(wsus_content_path_pattern)
 
     - name: Install WSUS with Windows Internal Database
       ansible.windows.win_feature:
