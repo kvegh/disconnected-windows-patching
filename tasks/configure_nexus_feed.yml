@@ -1,0 +1,36 @@
+---
+- name: Read hosted feed settings
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/repositories/nuget/hosted/{{ nexus_repository_name }}"
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: nexus_feed
+  changed_when: false
+  no_log: true
+
+- name: Enable feed and prevent package version overwrites
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/repositories/nuget/hosted/{{ nexus_repository_name }}"
+    method: PUT
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    content_type: application/json
+    body: "{{ nexus_feed_definition | to_json }}"
+    status_code: 204
+  changed_when: true
+  vars:
+    nexus_feed_definition:
+      name: "{{ nexus_repository_name }}"
+      online: true
+      storage:
+        blobStoreName: "{{ nexus_feed.json.storage.blobStoreName }}"
+        strictContentTypeValidation: true
+        writePolicy: ALLOW_ONCE
+  when: >-
+    not nexus_feed.json.online or
+    nexus_feed.json.storage.writePolicy != 'ALLOW_ONCE' or
+    not nexus_feed.json.storage.strictContentTypeValidation
+  no_log: true

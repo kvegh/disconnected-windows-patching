@@ -1,7 +1,7 @@
 ---
 vm_dir: /opt/vms
 vm_network: windows-isolated
-# Set to internal for internal WSUS only (192.168.42.0/24 management LAN).
+# Set to the management libvirt network for internal WSUS only.
 vm_management_network: ''
 # Initial Windows setup may need console interaction before a DHCP lease appears.
 wait_for_dhcp: false
@@ -10,12 +10,12 @@ windows_images:
   '2025': /opt/images/windows-server-2025.qcow2
 windows_memory_mb:
   managed: 2048
-  wsus: 4096
+  wsus: 8192
 # Override if the hypervisor's installed osinfo database uses different IDs.
 windows_osinfo:
   '2022': win2k22
   '2025': win2k25
-# Verified boot layout of these specific Microsoft images on hactar.
+# Verified boot layout of these specific Microsoft base images.
 windows_boot_modes:
   '2022': bios
   '2025': uefi

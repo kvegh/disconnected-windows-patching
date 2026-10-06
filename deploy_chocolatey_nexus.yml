@@ -1,0 +1,323 @@
+---
+- name: Validate application repository deployment inputs
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Require repository servers and managed clients
+      ansible.builtin.assert:
+        that:
+          - groups.get('wsus_external', []) | length == 1
+          - groups.get('wsus_internal', []) | length == 1
+          - groups.get('windows_managed', []) | length > 0
+          - groups['wsus_external'] | intersect(groups['wsus_internal']) | length == 0
+          - (groups['wsus_external'] + groups['wsus_internal']) | intersect(groups['windows_managed']) | length == 0
+          - nexus_windows_archive | default('') | length > 0
+          - nexus_archive_sha256 | default('') is match('^[A-Fa-f0-9]{64}$')
+          - nexus_distribution_directory | default('') is match('^nexus-[A-Za-z0-9._-]+$')
+          - chocolatey_msi | default('') | length > 0
+          - chocolatey_msi_sha256 | default('') is match('^[A-Fa-f0-9]{64}$')
+          - chocolatey_internal_source_url | default('') is match('^https?://[^/\s]+/repository/[A-Za-z0-9._-]+/?$')
+        fail_msg: Supply inventory groups, pinned Windows Nexus ZIP and Chocolatey MSI paths/checksums, and the internal NuGet v2 feed URL.
+
+    - name: Check execution environment installer files
+      ansible.builtin.stat:
+        path: "{{ item.path }}"
+        checksum_algorithm: sha256
+        get_checksum: true
+      loop:
+        - path: "{{ nexus_windows_archive }}"
+          checksum: "{{ nexus_archive_sha256 | lower }}"
+        - path: "{{ chocolatey_msi }}"
+          checksum: "{{ chocolatey_msi_sha256 | lower }}"
+      register: installer_files
+
+    - name: Verify installers match supplied checksums
+      ansible.builtin.assert:
+        that:
+          - item.stat.isreg | default(false)
+          - item.stat.checksum | default('') == item.item.checksum
+        fail_msg: Installer missing or checksum mismatch; stage verified installers in the execution environment.
+      loop: "{{ installer_files.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
+
+- name: Deploy Windows Nexus services and hosted Chocolatey feeds
+  hosts: wsus_external:wsus_internal
+  gather_facts: false
+  vars:
+    nexus_install_root: 'C:\Nexus'
+    nexus_data_directory: 'C:\NexusData'
+    nexus_staging_directory: 'C:\ProgramData\AAP\Installers'
+    nexus_install_directory: "{{ nexus_install_root }}\\{{ nexus_distribution_directory }}"
+    nexus_service_name: SonatypeNexusRepository
+    nexus_port: 8081
+    nexus_api_url: "http://localhost:{{ nexus_port }}/service/rest"
+    nexus_repository_name: "{{ nexus_feed_name | default('chocolatey-staging' if inventory_hostname in groups['wsus_external'] else 'chocolatey-released') }}"
+  pre_tasks:
+    - name: Require credentials and scoped repository access
+      ansible.builtin.assert:
+        that:
+          - nexus_admin_username | default('') | length > 0
+          - nexus_admin_password | default('') | length > 0
+          - nexus_allowed_sources | default([]) | length > 0
+          - nexus_repository_name is match('^[A-Za-z0-9][A-Za-z0-9._-]*$')
+          - nexus_port | int == 8081
+          - nexus_install_root is match('^[A-Za-z]:\\[A-Za-z0-9_.\\-]+$')
+          - nexus_data_directory is match('^[A-Za-z]:\\[A-Za-z0-9_.\\-]+$')
+        fail_msg: Supply per-server Nexus credentials and allowed source addresses; this initial deployment uses port 8081.
+      no_log: true
+
+    - name: Wait for Windows management
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
+  tasks:
+    - name: Create installation and data directories
+      ansible.windows.win_file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ nexus_install_root }}"
+        - "{{ nexus_data_directory }}"
+        - "{{ nexus_staging_directory }}"
+
+    - name: Copy verified Windows Nexus distribution
+      ansible.windows.win_copy:
+        src: "{{ nexus_windows_archive }}"
+        dest: "{{ nexus_staging_directory }}\\nexus-windows.zip"
+
+    - name: Verify Nexus archive on the server
+      ansible.windows.win_stat:
+        path: "{{ nexus_staging_directory }}\\nexus-windows.zip"
+        checksum_algorithm: sha256
+        get_checksum: true
+      register: nexus_archive
+
+    - name: Check transferred archive checksum
+      ansible.builtin.assert:
+        that: nexus_archive.stat.checksum == nexus_archive_sha256 | lower
+
+    - name: Extract Nexus Windows distribution with bundled Java
+      community.windows.win_unzip:
+        src: "{{ nexus_staging_directory }}\\nexus-windows.zip"
+        dest: "{{ nexus_install_root }}"
+        creates: "{{ nexus_install_directory }}\\bin\\install-nexus-service.bat"
+
+    - name: Validate modern Windows distribution and existing service
+      ansible.windows.win_powershell:
+        error_action: stop
+        parameters:
+          InstallDirectory: "{{ nexus_install_directory }}"
+          ServiceName: "{{ nexus_service_name }}"
+        script: |
+          param([string]$InstallDirectory, [string]$ServiceName)
+          $Ansible.Changed = $false
+          if (-not (Test-Path "$InstallDirectory\bin\install-nexus-service.bat")) {
+              throw 'Expected modern Nexus Windows distribution with service installer.'
+          }
+          $service = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'"
+          if ($service -and $service.PathName -notlike "*$InstallDirectory*") {
+              throw 'Existing Nexus service uses a different distribution. Upgrade explicitly.'
+          }
+          $Ansible.Result = @{ Installed = [bool]$service }
+      register: nexus_service
+
+    - name: Register Nexus service using vendor installer
+      ansible.windows.win_command:
+        argv:
+          - cmd.exe
+          - /c
+          - "{{ nexus_install_directory }}\\bin\\install-nexus-service.bat"
+          - "{{ nexus_data_directory }}"
+        chdir: "{{ nexus_install_directory }}\\bin"
+      when: not nexus_service.result.Installed
+
+    - name: Start Nexus service at boot
+      ansible.windows.win_service:
+        name: "{{ nexus_service_name }}"
+        start_mode: auto
+        state: started
+
+    - name: Allow scoped Nexus HTTP access
+      community.windows.win_firewall_rule:
+        name: Demo Nexus repository access
+        direction: in
+        action: allow
+        protocol: tcp
+        localport: "{{ nexus_port }}"
+        remoteip: "{{ nexus_allowed_sources | join(',') }}"
+        profiles: domain,private,public
+        enabled: true
+        state: present
+
+    - name: Wait for Nexus API readiness
+      ansible.windows.win_uri:
+        url: "{{ nexus_api_url }}/v1/status"
+        status_code: [200, 503]
+      register: nexus_ready
+      until: nexus_ready.status_code | default(0) == 200
+      retries: 120
+      delay: 10
+      changed_when: false
+
+    - name: Check configured Nexus administrator credentials
+      ansible.windows.win_uri:
+        url: "{{ nexus_api_url }}/v1/security/users"
+        url_username: "{{ nexus_admin_username }}"
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        status_code: [200, 401]
+      register: nexus_auth
+      changed_when: false
+      no_log: true
+
+    - name: Initialize administrator password on a new Nexus installation
+      ansible.builtin.include_tasks: tasks/initialize_nexus_password.yml
+      when: nexus_auth.status_code == 401
+
+    - name: Read hosted repositories
+      ansible.windows.win_uri:
+        url: "{{ nexus_api_url }}/v1/repositories"
+        url_username: "{{ nexus_admin_username }}"
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        return_content: true
+      register: nexus_repositories
+      changed_when: false
+      no_log: true
+
+    - name: Check an existing feed has the expected format and type
+      ansible.builtin.assert:
+        that:
+          - item.format == 'nuget'
+          - item.type == 'hosted'
+        fail_msg: Existing repository name belongs to a different format or type.
+      loop: "{{ nexus_repositories.json | selectattr('name', 'equalto', nexus_repository_name) | list }}"
+      no_log: true
+
+    - name: Create hosted NuGet feed with immutable package versions
+      ansible.windows.win_uri:
+        url: "{{ nexus_api_url }}/v1/repositories/nuget/hosted"
+        method: POST
+        url_username: "{{ nexus_admin_username }}"
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        content_type: application/json
+        body: "{{ nexus_repository_definition | to_json }}"
+        status_code: 201
+      changed_when: true
+      vars:
+        nexus_repository_definition:
+          name: "{{ nexus_repository_name }}"
+          online: true
+          storage:
+            blobStoreName: default
+            strictContentTypeValidation: true
+            writePolicy: ALLOW_ONCE
+      when: nexus_repository_name not in (nexus_repositories.json | map(attribute='name') | list)
+      no_log: true
+
+    - name: Enforce immutable versions on an existing feed
+      ansible.builtin.include_tasks: tasks/configure_nexus_feed.yml
+
+- name: Install Chocolatey CLI on managed Windows nodes
+  hosts: windows_managed
+  gather_facts: false
+  vars:
+    chocolatey_staging_directory: 'C:\ProgramData\AAP\Installers'
+  pre_tasks:
+    - name: Require internal repository credentials
+      ansible.builtin.assert:
+        that:
+          - chocolatey_source_username | default('') | length > 0
+          - chocolatey_source_password | default('') | length > 0
+        fail_msg: Supply internal Nexus package read credentials through AAP or Vault.
+      no_log: true
+
+    - name: Wait for Windows management
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
+  tasks:
+    - name: Create installer staging directory
+      ansible.windows.win_file:
+        path: "{{ chocolatey_staging_directory }}"
+        state: directory
+
+    - name: Copy offline Chocolatey MSI
+      ansible.windows.win_copy:
+        src: "{{ chocolatey_msi }}"
+        dest: "{{ chocolatey_staging_directory }}\\chocolatey.msi"
+
+    - name: Check transferred Chocolatey MSI
+      ansible.windows.win_stat:
+        path: "{{ chocolatey_staging_directory }}\\chocolatey.msi"
+        checksum_algorithm: sha256
+        get_checksum: true
+      register: chocolatey_installer
+
+    - name: Verify Chocolatey MSI checksum
+      ansible.builtin.assert:
+        that: chocolatey_installer.stat.checksum == chocolatey_msi_sha256 | lower
+
+    - name: Detect existing Chocolatey CLI
+      ansible.windows.win_powershell:
+        script: |
+          $Ansible.Changed = $false
+          $Ansible.Result = [bool](Get-Command choco.exe -ErrorAction SilentlyContinue)
+      register: chocolatey_existing
+
+    - name: Bootstrap Chocolatey from offline MSI
+      ansible.windows.win_package:
+        path: "{{ chocolatey_staging_directory }}\\chocolatey.msi"
+        state: present
+      register: chocolatey_install
+      when: not chocolatey_existing.result
+
+    - name: Reboot if MSI installation requires it
+      ansible.windows.win_reboot:
+      when: chocolatey_install.reboot_required | default(false)
+
+    - name: Refresh connection after initial Chocolatey installation
+      ansible.builtin.meta: reset_connection
+      when: chocolatey_install.changed | default(false)
+
+    - name: Remove public Chocolatey community source
+      chocolatey.chocolatey.win_chocolatey_source:
+        name: chocolatey
+        state: absent
+
+    - name: Configure internal Nexus NuGet v2 source
+      chocolatey.chocolatey.win_chocolatey_source:
+        name: internal-nexus
+        source: "{{ chocolatey_internal_source_url }}"
+        source_username: "{{ chocolatey_source_username }}"
+        source_password: "{{ chocolatey_source_password }}"
+        update_password: on_create
+        priority: 1
+        state: present
+      no_log: true
+
+    - name: Verify only the intended feed is enabled
+      ansible.windows.win_powershell:
+        error_action: stop
+        script: |
+          $Ansible.Changed = $false
+          $root = [Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
+          if (-not $root) { throw 'Chocolatey machine installation path is not defined.' }
+          [xml]$config = Get-Content "$root\config\chocolatey.config"
+          $otherSources = @($config.chocolatey.sources.source | Where-Object {
+              $_.disabled -ne 'true' -and $_.id -ne 'internal-nexus'
+          })
+          if ($otherSources.Count -gt 0) {
+              throw 'Unexpected enabled Chocolatey sources; review them explicitly before deployment.'
+          }
+
+    - name: Verify authenticated internal feed access
+      ansible.windows.win_uri:
+        url: "{{ chocolatey_internal_source_url }}"
+        url_username: "{{ chocolatey_source_username }}"
+        url_password: "{{ chocolatey_source_password }}"
+        force_basic_auth: true
+      changed_when: false
+      no_log: true

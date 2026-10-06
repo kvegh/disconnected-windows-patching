@@ -1,0 +1,189 @@
+---
+- name: Validate Windows demo inventory
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Require both WSUS servers and managed clients
+      ansible.builtin.assert:
+        that:
+          - groups.get('wsus_external', []) | length == 1
+          - groups.get('wsus_internal', []) | length == 1
+          - groups.get('windows_managed', []) | length >= 1
+          - groups['wsus_external'] | intersect(groups['wsus_internal']) | length == 0
+          - (groups['wsus_external'] + groups['wsus_internal']) | intersect(groups['windows_managed']) | length == 0
+          - wsus_internal_url | default('') is match('^http://[^/\s]+:8530/?$')
+          - wsus_client_sources | default([]) | length > 0
+        fail_msg: >-
+          Supply disjoint wsus_external, wsus_internal and windows_managed groups,
+          wsus_internal_url (HTTP port 8530), and wsus_client_sources (allowed client addresses/subnets).
+
+- name: Verify Windows management and optionally rename guests
+  hosts: wsus_external:wsus_internal:windows_managed
+  gather_facts: false
+  tasks:
+    - name: Wait for WinRM
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
+    - name: Check Ansible Windows execution
+      ansible.windows.win_ping:
+
+    - name: Set unique Windows hostname when supplied
+      ansible.windows.win_hostname:
+        name: "{{ windows_hostname }}"
+      register: hostname_result
+      when: windows_hostname is defined
+
+    - name: Reboot after hostname change
+      ansible.windows.win_reboot:
+        reboot_timeout: 900
+      when: hostname_result.reboot_required | default(false)
+
+- name: Install and initialize WSUS servers
+  hosts: wsus_external:wsus_internal
+  gather_facts: false
+  vars:
+    wsus_content_path: 'C:\WSUS'
+  tasks:
+    - name: Validate content path
+      ansible.builtin.assert:
+        that:
+          - wsus_content_path is match('^[A-Za-z]:\\[^\r\n"]+$')
+
+    - name: Install WSUS with Windows Internal Database
+      ansible.windows.win_feature:
+        name:
+          - UpdateServices-Services
+          - UpdateServices-WidDB
+        include_management_tools: true
+        state: present
+      register: wsus_features
+
+    - name: Reboot when WSUS installation requires it
+      ansible.windows.win_reboot:
+        reboot_timeout: 1200
+      when: wsus_features.reboot_required
+
+    - name: Create update content directory
+      ansible.windows.win_file:
+        path: "{{ wsus_content_path }}"
+        state: directory
+
+    - name: Initialize WSUS database and content location
+      ansible.windows.win_powershell:
+        error_action: stop
+        parameters:
+          ContentPath: "{{ wsus_content_path }}"
+        script: |
+          param([string]$ContentPath)
+          $Ansible.Changed = $false
+          $setup = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup'
+          $expected = [IO.Path]::Combine($ContentPath, 'WsusContent').TrimEnd('\')
+          if ($setup.ContentDir -and $setup.ContentDir.TrimEnd('\') -notin @($ContentPath.TrimEnd('\'), $expected)) {
+              throw 'Existing WSUS content location differs; move content explicitly before continuing.'
+          }
+          $ready = $false
+          try {
+              Import-Module UpdateServices
+              $server = Get-WsusServer
+              $null = $server.GetConfiguration()
+              $ready = [bool]$setup.ContentDir
+          } catch {
+              $ready = $false
+          }
+          if (-not $ready) {
+              $utility = Join-Path $env:ProgramFiles 'Update Services\Tools\WsusUtil.exe'
+              & $utility postinstall "CONTENT_DIR=$ContentPath"
+              if ($LASTEXITCODE -ne 0) { throw "WSUS postinstall failed: $LASTEXITCODE" }
+              $Ansible.Changed = $true
+          }
+
+    - name: Configure manual synchronization and local update storage
+      ansible.windows.win_powershell:
+        error_action: stop
+        script: |
+          $Ansible.Changed = $false
+          Import-Module UpdateServices
+          $server = Get-WsusServer
+          $config = $server.GetConfiguration()
+          # Both servers are standalone. Internal WSUS is populated by offline import,
+          # never by starting a synchronization to Microsoft or external WSUS.
+          if (-not $config.SyncFromMicrosoftUpdate -or $config.IsReplicaServer -or
+              $config.HostBinariesOnMicrosoftUpdate) {
+              $config.SyncFromMicrosoftUpdate = $true
+              $config.IsReplicaServer = $false
+              $config.HostBinariesOnMicrosoftUpdate = $false
+              $config.Save()
+              $Ansible.Changed = $true
+          }
+          $subscription = $server.GetSubscription()
+          if ($subscription.SynchronizeAutomatically) {
+              $subscription.SynchronizeAutomatically = $false
+              $subscription.Save()
+              $Ansible.Changed = $true
+          }
+          $Ansible.Result = @{ Synchronization = 'Manual'; Content = 'Local' }
+
+    - name: Allow clients to reach internal WSUS
+      community.windows.win_firewall_rule:
+        name: Demo WSUS client access
+        direction: in
+        action: allow
+        protocol: tcp
+        localport: '8530,8531'
+        remoteip: "{{ wsus_client_sources | join(',') }}"
+        profiles: domain,private,public
+        enabled: true
+        state: present
+      when: inventory_hostname in groups['wsus_internal']
+
+- name: Configure managed servers to use internal WSUS
+  hosts: windows_managed
+  gather_facts: false
+  tasks:
+    - name: Set local Windows Update policies
+      ansible.windows.win_regedit:
+        path: "{{ item.path }}"
+        name: "{{ item.name }}"
+        data: "{{ item.data }}"
+        type: "{{ item.type }}"
+      loop:
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+          name: WUServer
+          data: "{{ wsus_internal_url | regex_replace('/$', '') }}"
+          type: string
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+          name: WUStatusServer
+          data: "{{ wsus_internal_url | regex_replace('/$', '') }}"
+          type: string
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+          name: DoNotConnectToWindowsUpdateInternetLocations
+          data: 1
+          type: dword
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+          name: UseWUServer
+          data: 1
+          type: dword
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+          name: NoAutoUpdate
+          data: 1
+          type: dword
+      register: update_policy
+
+    - name: Restart Windows Update after policy changes
+      ansible.windows.win_service:
+        name: wuauserv
+        state: restarted
+      when: update_policy.changed
+
+    - name: Ensure Windows Update service is available for Ansible patch jobs
+      ansible.windows.win_service:
+        name: wuauserv
+        start_mode: manual
+        state: started
+
+    - name: Verify internal WSUS client web service is reachable
+      ansible.windows.win_uri:
+        url: "{{ wsus_internal_url | regex_replace('/$', '') }}/ClientWebService/client.asmx"
+        status_code: 200
+      changed_when: false
