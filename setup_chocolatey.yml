@@ -86,8 +86,8 @@
           - nexus_allowed_sources | default([]) | length > 0
           - nexus_repository_names | length > 0
           - nexus_port | int == 8081
-          - nexus_install_root is match('^[A-Za-z]:\\[A-Za-z0-9_.\\-]+$')
-          - nexus_data_directory is match('^[A-Za-z]:\\[A-Za-z0-9_.\\-]+$')
+          - nexus_install_root is regex('^[A-Za-z]:\\\\[A-Za-z0-9_.\\\\-]+$', match_type='fullmatch')
+          - nexus_data_directory is regex('^[A-Za-z]:\\\\[A-Za-z0-9_.\\\\-]+$', match_type='fullmatch')
         fail_msg: Supply per-server Nexus credentials and allowed source addresses; this initial deployment uses port 8081.
       no_log: true
 

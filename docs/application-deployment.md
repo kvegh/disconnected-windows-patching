@@ -181,8 +181,12 @@ python3 -m unittest discover -s tests -v
 
 The EE needs `pywinrm`, Python 3.8 or later, and ansible-core 2.18 or later for the
 pinned Chocolatey collection. Package/export helpers use the Python standard
-library. Nine local tests cover binary upload integrity, repeatable artifacts,
-offline hooks, checksum mismatch and modified-hook refusal. All four real vendor
+library. Ten local tests cover binary upload integrity, repeatable artifacts,
+offline hooks, checksum mismatch, modified-hook refusal and Windows path
+validation through Ansible's actual conditional parser. Run the suite with a
+Python interpreter that has ansible-core and PyYAML installed. The Nexus path
+checks use full matching and correctly escaped Windows separators; this fixes
+the setup assertion that incorrectly rejected its default directories. All four real vendor
 installers were downloaded and their pinned hashes verified; deterministic
 packages and the approximately 135 MB export archive were exercised with them.
 Local syntax checking passed for setup and all five application stages.
