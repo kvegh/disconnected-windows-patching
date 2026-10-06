@@ -1,0 +1,48 @@
+---
+- name: Capture a read-only baseline before guarded Windows teardown
+  hosts: hypervisor
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Read VM definitions, states and original image metadata
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ baseline_script }}", "{{ windows_images.values() | list | to_json }}"]
+      vars:
+        baseline_script: |
+          import json, os, subprocess, sys
+          def virsh(*args):
+              return subprocess.check_output(['virsh', *args], text=True).strip()
+          domains = {name: {'xml': virsh('dumpxml', name, '--inactive'),
+                            'state': virsh('domstate', name)}
+                     for name in virsh('list', '--all', '--name').split()}
+          images = {}
+          for path in json.loads(sys.argv[1]):
+              stat = os.stat(path, follow_symlinks=False)
+              images[path] = {'size': stat.st_size, 'inode': stat.st_ino,
+                              'mtime_ns': stat.st_mtime_ns}
+          print(json.dumps({'domains': domains, 'images': images}))
+      register: windows_teardown_baseline
+      changed_when: false
+      check_mode: false
+      no_log: true
+
+    - name: Require all four intended Windows domains in the baseline
+      ansible.builtin.assert:
+        that:
+          - windows_demo_vm_names | default([]) | length == 4
+          - windows_demo_vm_names | unique | length == 4
+          - windows_demo_vm_names | difference((windows_teardown_baseline.stdout | from_json).domains.keys() | list) | length == 0
+      no_log: true
+
+    - name: Store the baseline as protected AAP job artifacts
+      ansible.builtin.set_stats:
+        data:
+          teardown_baseline: "{{ windows_teardown_baseline.stdout | from_json }}"
+        per_host: false
+      no_log: true
+
+    - name: Report baseline capture
+      ansible.builtin.debug:
+        msg: Captured current VM definitions and states and Windows base-image metadata without changing the hypervisor.
