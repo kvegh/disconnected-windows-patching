@@ -48,10 +48,10 @@ Required inputs:
 For the four-VM demo, launch the template four times (or chain these launches in
 an AAP workflow), supplying the appropriate networks:
 
-| VM name | Role | Windows version | Primary NIC | Second NIC |
+| VM purpose | Deployment role | Windows version | Primary NIC | Second NIC |
 |---|---|---|---|---|
-| `wsus-external` | `wsus` | `2022` | `internal` | None |
-| `wsus-internal` | `wsus` | `2022` | `windows-isolated` | `internal` |
+| External repository server | `wsus` | `2022` | `internal` | None |
+| Internal repository server | `wsus` | `2022` | `windows-isolated` | `internal` |
 | `win2022-managed` | `managed` | `2022` | `windows-isolated` | None |
 | `win2025-managed` | `managed` | `2025` | `windows-isolated` | None |
 
@@ -131,17 +131,18 @@ Required variables:
 - Optional `wsus_content_path`: defaults to `C:\WSUS`. A separate content volume
   may be needed depending on the update set; the playbook does not resize disks.
 
-The playbook checks WinRM, optionally renames/reboots guests, installs WSUS with
+The playbook checks WinRM, configures permanent NIC settings by MAC, reconnects
+at the permanent address, optionally renames/reboots guests, and installs WSUS with
 Windows Internal Database, initializes content storage, and selects manual
 synchronization. Both WSUS servers are standalone; internal WSUS receives offline
 imports. No synchronization is launched. Managed guests use internal WSUS with
 Internet update locations blocked and automatic updating disabled, leaving patch
 installation to AAP. Client web-service reachability is checked.
 
-NIC addresses, routing, and network isolation must already be configured. AAP's
-execution node must reach the isolated guests. Internal WSUS needs routing disabled
+AAP's execution node must reach both the initial DHCP and permanent guest addresses.
+The playbook configures static NIC addresses and removes unwanted default gateways. Internal WSUS needs routing disabled
 and no default gateway. The added client firewall rule does not narrow existing
-WSUS/IIS rules. This playbook does not configure NICs or transfer access.
+WSUS/IIS rules. Transfer access and network-level firewall isolation are configured separately.
 
 Product/language/classification selection, synchronization, approval, export/import,
 content transfer, and patch installation are subsequent steps. Clones also need
@@ -184,3 +185,43 @@ application deployment, and release manifests also remain to be implemented.
 Before live deployment, stage verified installers, supply credentials, and establish
 AAP execution-node access to the isolated endnodes. See the detailed
 [implementation status and remaining work](docs/application-deployment.md#implementation-status-and-remaining-work).
+
+### Permanent Windows NIC configuration
+
+Provide `windows_network_interfaces` and `windows_connection_address` as protected
+per-host inventory variables. Each interface entry requires `mac`, `name`,
+`ipv4_address`, `prefix_length`, `gateway` (empty string for none), and `dns_servers`
+(an empty list for none). Supply every demo NIC, including both internal WSUS NICs.
+The connection address must match one configured NIC. Use actual deployed MACs;
+fixed MAC inputs in VM deployment are still pending implementation.
+
+Initially, inventory `ansible_host` must be the discovered DHCP address. Do not
+supply `ansible_host` through launch extra variables: they would override the
+playbook's switch to the permanent address. The bootstrap script validates all
+MAC matches before applying changes, runs asynchronously through the connection
+interruption, and verifies completion after reconnecting. It owns the configured
+NICs' IPv4 addresses and replaces other IPv4 assignments on those NICs.
+
+Only external WSUS may have an IPv4 gateway or DNS servers. Internal WSUS has
+forwarding disabled as well. The script changes neither WinRM security settings
+nor PowerShell execution policy. Existing WinRM firewall/certificate configuration
+must permit connections at the permanent address from the AAP execution node.
+
+`ansible_host` is updated for the current job, not persisted to the AAP database.
+Update the AAP host's inventory variables to the permanent address after a
+successful bootstrap, before future jobs. The vaulted umbrella network record is
+reference data and is not automatically loaded or converted into these host vars.
+This change is syntax-checked; Windows network switching and reboot persistence
+still require a live test. Console access is needed to recover a misconfigured NIC.
+
+### Repository server identities
+
+The external and internal repository servers each host both WSUS and Nexus for
+Chocolatey packages. Their planned VM names and Windows hostnames are recorded in
+the umbrella project's vaulted network inventory. Use those values for `vm_name`
+at deployment and `windows_hostname` during guest configuration.
+
+The existing `wsus` deployment role and `wsus_external` / `wsus_internal` inventory
+groups remain compatible with the playbooks; they identify WSUS-capable repository
+servers, not dedicated WSUS-only guests. Existing AAP workflow launch inputs still
+need to follow the renamed identities before deployment.

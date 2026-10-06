@@ -1,13 +1,13 @@
 # Disconnected application deployment
 
 Windows patching uses WSUS. Application deployment uses Chocolatey CLI on managed
-Windows guests and Nexus Repository Community Edition on both WSUS guests.
+Windows guests and Nexus Repository Community Edition on both repository guests.
 Chocolatey CLI is invoked by AAP over WinRM; it is not a polling management service.
 
 | Location | Components | Purpose |
 |---|---|---|
-| External WSUS guest | WSUS, Nexus, hosted `chocolatey-staging` feed | Connected update acquisition and application package staging |
-| Internal WSUS guest | WSUS, Nexus, hosted `chocolatey-released` feed | Imported updates and released application packages |
+| External repository guest | WSUS, Nexus, hosted `chocolatey-staging` feed | Connected update acquisition and application package staging |
+| Internal repository guest | WSUS, Nexus, hosted `chocolatey-released` feed | Imported updates and released application packages |
 | Managed Windows guests | Windows Update client, Chocolatey CLI | Install updates and specific application versions under AAP control |
 | AAP execution environment | WinRM dependencies and Windows/Chocolatey collections | Run configuration and deployment jobs |
 
@@ -149,3 +149,11 @@ References:
 - [Nexus REST API](https://help.sonatype.com/en/api-reference.html)
 - [Chocolatey MSI and offline installation](https://docs.chocolatey.org/en-us/choco/setup/)
 - [Offline application packaging](https://docs.chocolatey.org/en-us/guides/create/recompile-packages/)
+
+## Repository server naming
+
+Both repository guests provide WSUS and a Nexus feed for Chocolatey. Their VM names
+and planned Windows hostnames are stored in the umbrella's vaulted network mapping,
+with both services explicitly recorded. Apply those names through `vm_name` and
+`windows_hostname`; actual assignments remain outside plaintext documentation.
+Keep the existing WSUS inventory groups and role selector for playbook compatibility.
