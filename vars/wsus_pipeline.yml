@@ -1,0 +1,24 @@
+---
+# Generic defaults only. Network addresses and transfer URLs belong in Vault.
+wsus_products:
+  - Microsoft Server operating system-21H2
+  - Microsoft Server operating system-24H2
+wsus_classifications:
+  - Security Updates
+  - Critical Updates
+wsus_languages:
+  - en
+wsus_update_age_days: 180
+wsus_max_selected_updates: 30
+wsus_minimum_free_gb: 8
+wsus_download_reserve_gb: 4
+wsus_download_timeout: 21600
+wsus_sync_timeout: 7200
+wsus_transfer_timeout: 21600
+wsus_transfer_port: 8085
+wsus_export_root: 'C:\WSUS-Exports'
+wsus_import_root: 'C:\WSUS-Import'
+wsus_state_root: 'C:\ProgramData\AAP\WSUS'
+wsus_download_group: AAP-DownloadOnly
+wsus_no_log: true
+wsus_path_separator: '\'

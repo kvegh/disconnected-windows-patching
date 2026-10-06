@@ -1,0 +1,25 @@
+---
+# The caller supplies wsus_operation and wsus_operation_timeout.
+# Match the account used to start the asynchronous Windows task.
+- name: Wait for the Windows operation
+  ansible.builtin.async_status:
+    jid: "{{ wsus_operation.ansible_job_id }}"
+  become: true
+  become_method: runas
+  become_user: SYSTEM
+  register: wsus_operation_status
+  until: >-
+    (wsus_operation_status.finished | default(false) | bool) or
+    (wsus_operation_status.failed | default(false) | bool)
+  retries: "{{ ((wsus_operation_timeout | int) / 30) | round(0, 'ceil') | int }}"
+  delay: 30
+  no_log: "{{ wsus_no_log | bool }}"
+
+- name: Remove the completed Windows async result
+  ansible.builtin.async_status:
+    jid: "{{ wsus_operation.ansible_job_id }}"
+    mode: cleanup
+  become: true
+  become_method: runas
+  become_user: SYSTEM
+  no_log: "{{ wsus_no_log | bool }}"

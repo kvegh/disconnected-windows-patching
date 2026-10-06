@@ -1,0 +1,16 @@
+---
+- name: Install WSUS database, services and IIS static transfer features
+  ansible.windows.win_feature:
+    name:
+      - UpdateServices-Services
+      - UpdateServices-WidDB
+      - Web-Static-Content
+      - Web-Scripting-Tools
+    include_management_tools: true
+    state: present
+  register: wsus_features
+
+- name: Complete required feature installation reboot
+  ansible.windows.win_reboot:
+    reboot_timeout: 1200
+  when: wsus_features.reboot_required

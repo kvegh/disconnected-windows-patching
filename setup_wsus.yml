@@ -37,19 +37,8 @@
         that:
           - wsus_content_path is match(wsus_content_path_pattern)
 
-    - name: Install WSUS with Windows Internal Database
-      ansible.windows.win_feature:
-        name:
-          - UpdateServices-Services
-          - UpdateServices-WidDB
-        include_management_tools: true
-        state: present
-      register: wsus_features
-
-    - name: Reboot when WSUS installation requires it
-      ansible.windows.win_reboot:
-        reboot_timeout: 1200
-      when: wsus_features.reboot_required
+    - name: Ensure repository Windows features and required reboots are complete
+      ansible.builtin.include_tasks: tasks/prepare_wsus_features.yml
 
     - name: Create update content directory
       ansible.windows.win_file:

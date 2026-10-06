@@ -24,3 +24,12 @@
   Keep actual hostnames, IPs, MAC assignments, and credentials out of plaintext Git.
 - Fixed MAC deployment inputs are implemented. Automate DHCP reservations to
   match those inputs; libvirt generates MACs when explicit inputs are omitted.
+
+## WSUS population follow-up
+
+- Run and validate the new sync, export and import stages with current Microsoft updates.
+- Validate applicability and prerequisite/checkpoint coverage on both older base images.
+- Add internal client approval and patch installation stages.
+- Stage Nexus/Chocolatey artifacts and protected inputs for the parallel setup workflow.
+- Add metadata snapshot/import-log retention without deleting active transfer files.
+- Migrate pinned community IIS modules to microsoft.iis before their upstream removal.

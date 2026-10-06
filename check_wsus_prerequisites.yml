@@ -55,3 +55,22 @@
     - name: Report external WSUS readiness
       ansible.builtin.debug:
         var: wsus_prerequisites.result
+
+    - name: Validate pipeline scripts with the Windows PowerShell parser
+      ansible.windows.win_powershell:
+        error_action: stop
+        parameters:
+          Source: "{{ lookup('ansible.builtin.file', item) }}"
+        script: |
+          param([string]$Source)
+          $Ansible.Changed = $false
+          $tokens = $null
+          $parseErrors = $null
+          $null = [Management.Automation.Language.Parser]::ParseInput($Source, [ref]$tokens, [ref]$parseErrors)
+          if ($parseErrors.Count -gt 0) { throw ($parseErrors.Message -join '; ') }
+          $Ansible.Result = 'PowerShell syntax valid'
+      loop:
+        - assets/sync-external-wsus.ps1
+        - assets/export-external-wsus.ps1
+        - assets/prepare-wsus-import.ps1
+        - assets/import-wsus-metadata.ps1

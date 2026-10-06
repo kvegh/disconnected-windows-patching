@@ -1,0 +1,17 @@
+{
+  "name": "WSUS pipeline diagnostics",
+  "description": "WSUS synchronization, publication and import diagnostics.",
+  "spec": [
+    {
+      "question_name": "Hide WSUS diagnostics (no_log)",
+      "question_description": "true hides operational details; false exposes transfer URLs, paths and errors. Credentials remain protected.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "wsus_no_log",
+      "default": "true",
+      "choices": "true\nfalse",
+      "min": 0,
+      "max": 1024
+    }
+  ]
+}

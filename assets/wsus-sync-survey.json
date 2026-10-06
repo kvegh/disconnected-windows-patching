@@ -1,0 +1,37 @@
+{
+  "name": "External WSUS update selection",
+  "description": "WSUS synchronization, publication and import diagnostics.",
+  "spec": [
+    {
+      "question_name": "Hide WSUS diagnostics (no_log)",
+      "question_description": "true hides operational details; false exposes transfer URLs, paths and errors. Credentials remain protected.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "wsus_no_log",
+      "default": "true",
+      "choices": "true\nfalse",
+      "min": 0,
+      "max": 1024
+    },
+    {
+      "question_name": "Update lookback in days",
+      "question_description": "Current update lookback; older file-bearing prerequisites are also included.",
+      "required": true,
+      "type": "integer",
+      "variable": "wsus_update_age_days",
+      "min": 1,
+      "max": 3650,
+      "default": 180
+    },
+    {
+      "question_name": "Maximum selected updates",
+      "question_description": "Abort above this count including prerequisites; no silent truncation.",
+      "required": true,
+      "type": "integer",
+      "variable": "wsus_max_selected_updates",
+      "min": 1,
+      "max": 500,
+      "default": 30
+    }
+  ]
+}

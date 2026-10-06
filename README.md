@@ -86,6 +86,12 @@ isolation separately; this playbook does not create networks or firewall rules.
 - `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.
 - `setup_wsus.yml`: WSUS installation, initialization and client update policies.
 - `setup_chocolatey.yml`: Nexus services, hosted feeds, and Chocolatey clients.
+- `prepare_repository_servers.yml`: feature/MSI installation and reboot barrier before parallel setup.
+- `check_wsus_prerequisites.yml`: read-only external WSUS readiness and PowerShell syntax checks.
+- `sync_external_wsus.yml`: Microsoft metadata synchronization and selected file downloads.
+- `export_external_wsus.yml`: WSUS metadata export and management-only IIS publication.
+- `replicate_and_import.yml`: direct external-to-internal HTTP transfer and offline WSUS import.
+- `docs/wsus-data-flow.md`: inputs, workflow, integrity checks, module use and live validation status.
 - `collections/requirements.yml`: pinned Ansible collection dependencies.
 - `docs/application-deployment.md`: application architecture, inputs, and remaining work.
 - `vars/main.yml`: base images and sizing configuration.
@@ -120,12 +126,16 @@ Run these job templates independently or through the deployment workflow:
 | Stage | Playbook | AAP job template |
 | --- | --- | --- |
 | Windows basics | `configure_windows_server_basics.yml` | Disconnected Windows Patching - Configure Windows Server Basics |
+| Preparation and reboots | `prepare_repository_servers.yml` | Disconnected Windows Patching - Prepare Repository Servers |
 | WSUS | `setup_wsus.yml` | Disconnected Windows Patching - Setup WSUS |
 | Application repositories and clients | `setup_chocolatey.yml` | Disconnected Windows Patching - Setup Chocolatey |
 
 The existing **Deploy Windows + WSUS environment** workflow creates four VMs in
-parallel, waits for all four creation jobs to succeed, then runs Windows basics,
-WSUS setup, and Chocolatey setup in sequence. Each transition requires success.
+parallel and waits for all four to succeed before Windows basics. A preparation
+stage completes feature/MSI installation and reboots. WSUS setup and Chocolatey/Nexus
+setup then run in parallel. The WSUS branch continues through prerequisite checks,
+synchronization, export, and replication/import. Each transition requires success.
+See [WSUS data flow](docs/wsus-data-flow.md) for the full graph and inputs.
 Use an individual configuration template to reconfigure existing VMs; rerunning
 the deployment workflow attempts creation and its existing-VM guard will stop it.
 
@@ -152,9 +162,10 @@ to `C:\WSUS`. Existing initialized content locations are protected against moves
 
 Both WSUS servers are standalone and synchronization is manual. Managed guests
 use internal WSUS with Internet update locations blocked and automatic updating
-disabled, leaving patch installation to AAP. Product selection, synchronization,
-approvals, metadata export/import, update binary transfer and patch installation
-are separate work and are not implemented by these setup playbooks.
+disabled, leaving patch installation to AAP. Product selection, synchronization, download-only
+approvals, metadata export/import and update binary transfer are implemented in
+the separate [WSUS population playbooks](docs/wsus-data-flow.md). Internal client
+approvals and patch installation remain separate work.
 
 Validate without executing against Windows:
 
@@ -182,10 +193,13 @@ provide a WinRM jump host automatically. The demo execution-node connectivity ha
 
 ## Implementation status
 
-The four deployment/configuration playbooks are written and syntax-checked.
+The deployment, preparation, setup and WSUS population playbooks are written
+and syntax-checked.
 VM creation, networking, DNS, hostnames, WSUS initialization and client policies
 have completed successfully in the demo. The split preserves those tasks; the
-new modular templates need their first separate live runs. Nexus/Chocolatey has
+new modular templates need their first separate live runs. External WSUS readiness
+passed read-only job 1072; the new synchronization/export/import stages need
+their first live runs. Nexus/Chocolatey has
 not been deployed yet. Its template/workflow stage requires installer staging,
 checksums, feed configuration and protected credentials before launch.
 

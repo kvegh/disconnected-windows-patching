@@ -160,3 +160,13 @@ and planned Windows hostnames are stored in the umbrella's vaulted network mappi
 with both services explicitly recorded. Apply those names through `vm_name` and
 `windows_hostname`; actual assignments remain outside plaintext documentation.
 Keep the existing WSUS inventory groups and role selector for playbook compatibility.
+
+## Parallel setup workflow
+
+Windows basics is followed by `prepare_repository_servers.yml`, which installs
+repository Windows features and bootstraps the offline Chocolatey MSI on clients,
+finishing all required reboots. `setup_wsus.yml` and `setup_chocolatey.yml` then run
+in parallel. Their standalone templates retain the shared bootstrap tasks. Stage
+the verified MSI before preparation and the Nexus ZIP/credentials before the
+application branch. The WSUS branch proceeds independently through sync, export
+and import; see [WSUS data flow](wsus-data-flow.md).

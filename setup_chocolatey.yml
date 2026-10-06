@@ -239,48 +239,8 @@
         timeout: 600
 
   tasks:
-    - name: Create installer staging directory
-      ansible.windows.win_file:
-        path: "{{ chocolatey_staging_directory }}"
-        state: directory
-
-    - name: Copy offline Chocolatey MSI
-      ansible.windows.win_copy:
-        src: "{{ chocolatey_msi }}"
-        dest: "{{ chocolatey_staging_directory }}\\chocolatey.msi"
-
-    - name: Check transferred Chocolatey MSI
-      ansible.windows.win_stat:
-        path: "{{ chocolatey_staging_directory }}\\chocolatey.msi"
-        checksum_algorithm: sha256
-        get_checksum: true
-      register: chocolatey_installer
-
-    - name: Verify Chocolatey MSI checksum
-      ansible.builtin.assert:
-        that: chocolatey_installer.stat.checksum == chocolatey_msi_sha256 | lower
-
-    - name: Detect existing Chocolatey CLI
-      ansible.windows.win_powershell:
-        script: |
-          $Ansible.Changed = $false
-          $Ansible.Result = [bool](Get-Command choco.exe -ErrorAction SilentlyContinue)
-      register: chocolatey_existing
-
-    - name: Bootstrap Chocolatey from offline MSI
-      ansible.windows.win_package:
-        path: "{{ chocolatey_staging_directory }}\\chocolatey.msi"
-        state: present
-      register: chocolatey_install
-      when: not chocolatey_existing.result
-
-    - name: Reboot if MSI installation requires it
-      ansible.windows.win_reboot:
-      when: chocolatey_install.reboot_required | default(false)
-
-    - name: Refresh connection after initial Chocolatey installation
-      ansible.builtin.meta: reset_connection
-      when: chocolatey_install.changed | default(false)
+    - name: Ensure Chocolatey CLI is bootstrapped
+      ansible.builtin.include_tasks: tasks/bootstrap_chocolatey_client.yml
 
     - name: Remove public Chocolatey community source
       chocolatey.chocolatey.win_chocolatey_source:

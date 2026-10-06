@@ -1,0 +1,53 @@
+---
+- name: Validate the offline Chocolatey installer before the parallel setup barrier
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Require repository servers, clients and a pinned offline MSI
+      ansible.builtin.assert:
+        that:
+          - groups.get('wsus_external', []) | length == 1
+          - groups.get('wsus_internal', []) | length == 1
+          - groups.get('windows_managed', []) | length > 0
+          - groups['wsus_external'] | intersect(groups['wsus_internal']) | length == 0
+          - (groups['wsus_external'] + groups['wsus_internal']) | intersect(groups['windows_managed']) | length == 0
+          - chocolatey_msi | default('') | length > 0
+          - chocolatey_msi_sha256 | default('') is match('^[A-Fa-f0-9]{64}$')
+        fail_msg: Stage the pinned offline Chocolatey MSI in the execution environment and supply its path and SHA256.
+
+    - name: Verify the offline MSI before changing guests
+      ansible.builtin.stat:
+        path: "{{ chocolatey_msi }}"
+        get_checksum: true
+        checksum_algorithm: sha256
+      register: chocolatey_preparation_installer
+
+    - name: Require the expected installer bytes
+      ansible.builtin.assert:
+        that:
+          - chocolatey_preparation_installer.stat.isreg | default(false)
+          - chocolatey_preparation_installer.stat.checksum | default('') == chocolatey_msi_sha256 | lower
+
+- name: Prepare repository Windows features before concurrent WSUS and Nexus setup
+  hosts: wsus_external:wsus_internal
+  gather_facts: false
+  tasks:
+    - name: Wait for Windows management
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
+    - name: Install shared Windows features and finish reboots
+      ansible.builtin.include_tasks: tasks/prepare_wsus_features.yml
+
+- name: Bootstrap managed clients and finish MSI reboots before concurrent configuration
+  hosts: windows_managed
+  gather_facts: false
+  vars:
+    chocolatey_staging_directory: 'C:\ProgramData\AAP\Installers'
+  tasks:
+    - name: Wait for Windows management
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
+    - name: Install offline Chocolatey CLI and finish reboots
+      ansible.builtin.include_tasks: tasks/bootstrap_chocolatey_client.yml

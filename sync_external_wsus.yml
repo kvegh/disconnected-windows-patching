@@ -1,0 +1,62 @@
+---
+- name: Check readiness before synchronization
+  ansible.builtin.import_playbook: check_wsus_prerequisites.yml
+
+- name: Synchronize and download selected Windows updates
+  hosts: wsus_external
+  gather_facts: false
+  vars_files:
+    - vars/wsus_pipeline.yml
+  tasks:
+    - name: Validate update selection bounds
+      ansible.builtin.assert:
+        that:
+          - wsus_products | length > 0
+          - wsus_classifications | length > 0
+          - wsus_languages | length > 0
+          - wsus_update_age_days | int > 0
+          - wsus_max_selected_updates | int > 0
+          - wsus_download_reserve_gb | int >= 2
+
+    - name: Ensure background download service is available
+      ansible.windows.win_service:
+        name: BITS
+        state: started
+
+    - name: Create WSUS pipeline state directory
+      ansible.windows.win_file:
+        path: "{{ wsus_state_root }}"
+        state: directory
+
+    - name: Synchronize metadata and download selected update files
+      ansible.windows.win_powershell:
+        error_action: stop
+        path: assets/sync-external-wsus.ps1
+        parameters:
+          Products: "{{ wsus_products }}"
+          Classifications: "{{ wsus_classifications }}"
+          Languages: "{{ wsus_languages }}"
+          AgeDays: "{{ wsus_update_age_days | int }}"
+          MaximumUpdates: "{{ wsus_max_selected_updates | int }}"
+          ReserveGB: "{{ wsus_download_reserve_gb | int }}"
+          SyncTimeout: "{{ wsus_sync_timeout | int }}"
+          DownloadTimeout: "{{ wsus_download_timeout | int }}"
+          GroupName: "{{ wsus_download_group }}"
+          StatePath: "{{ wsus_state_root }}"
+      become: true
+      become_method: runas
+      become_user: SYSTEM
+      async: "{{ (2 * (wsus_sync_timeout | int)) + (wsus_download_timeout | int) + 600 }}"
+      poll: 0
+      register: wsus_operation
+      no_log: "{{ wsus_no_log | bool }}"
+
+    - name: Wait for synchronization and binary downloads
+      ansible.builtin.include_tasks: tasks/wait_windows_operation.yml
+      vars:
+        wsus_operation_timeout: "{{ (2 * (wsus_sync_timeout | int)) + (wsus_download_timeout | int) + 600 }}"
+
+    - name: Report downloaded update selection
+      ansible.builtin.debug:
+        var: wsus_operation_status.result
+      no_log: "{{ wsus_no_log | bool }}"

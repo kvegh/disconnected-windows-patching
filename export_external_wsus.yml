@@ -1,0 +1,140 @@
+---
+- name: Export WSUS metadata and publish update files through IIS
+  hosts: wsus_external
+  gather_facts: false
+  vars_files:
+    - vars/wsus_pipeline.yml
+    - vars/wsus_environment_vault.yml
+  tasks:
+    - name: Validate protected transfer configuration
+      ansible.builtin.assert:
+        that:
+          - groups.get('wsus_external', []) | length == 1
+          - groups.get('wsus_internal', []) | length == 1
+          - wsus_transfer_bind_address | default('') | length > 0
+          - wsus_transfer_allowed_sources | default([]) | length > 0
+          - wsus_transfer_port | int > 1024
+          - wsus_transfer_port | int < 65536
+          - wsus_transfer_port | int not in [5985, 5986, 8081, 8530, 8531]
+          - wsus_transfer_base_url | default('') is match('^http://[^/\s]+:' ~ (wsus_transfer_port | string) ~ '/?$')
+        fail_msg: Supply the management-only IIS address, internal source addresses and matching HTTP URL through Vault.
+      no_log: "{{ wsus_no_log | bool }}"
+
+    - name: Ensure IIS static file support and management tools are installed
+      ansible.windows.win_feature:
+        name:
+          - Web-Static-Content
+          - Web-Scripting-Tools
+        state: present
+      register: wsus_web_features
+
+    - name: Reboot if IIS features require it
+      ansible.windows.win_reboot:
+      when: wsus_web_features.reboot_required
+
+    - name: Create publication directory
+      ansible.windows.win_file:
+        path: "{{ wsus_export_root }}"
+        state: directory
+
+    - name: Create export log directory outside the web root
+      ansible.windows.win_file:
+        path: "{{ wsus_state_root }}\\logs"
+        state: directory
+
+    - name: Discover registered update binary directory
+      ansible.windows.win_powershell:
+        error_action: stop
+        script: |
+          $Ansible.Changed = $false
+          $root = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup').ContentDir.TrimEnd('\')
+          if ((Split-Path $root -Leaf) -ne 'WsusContent') { $root = Join-Path $root 'WsusContent' }
+          if (-not (Test-Path -LiteralPath $root)) { throw 'Initialized WSUS binary directory not found.' }
+          $Ansible.Result = $root
+      register: wsus_binary_directory
+      no_log: "{{ wsus_no_log | bool }}"
+
+    - name: Grant IIS read access to published metadata and content
+      ansible.windows.win_acl:
+        path: "{{ item.0 }}"
+        user: "{{ item.1 }}"
+        rights: ReadAndExecute
+        type: allow
+        inherit: ContainerInherit,ObjectInherit
+        propagation: None
+        state: present
+      loop: "{{ [wsus_export_root, wsus_binary_directory.result] | product(['S-1-5-32-568', 'S-1-5-17']) | list }}"
+      no_log: "{{ wsus_no_log | bool }}"
+
+    - name: Configure static-only export responses
+      ansible.windows.win_copy:
+        src: assets/wsus-export-web.config
+        dest: "{{ wsus_export_root }}\\web.config"
+
+    - name: Create dedicated static IIS application pool
+      community.windows.win_iis_webapppool:
+        name: AAP WSUS Export
+        state: started
+        attributes:
+          managedRuntimeVersion: ''
+
+    - name: Bind the export site only to the management address
+      community.windows.win_iis_website:
+        name: AAP WSUS Export
+        state: started
+        physical_path: "{{ wsus_export_root }}"
+        application_pool: AAP WSUS Export
+        ip: "{{ wsus_transfer_bind_address }}"
+        port: "{{ wsus_transfer_port | int }}"
+      no_log: "{{ wsus_no_log | bool }}"
+
+    - name: Serve existing update files without duplicating them
+      community.windows.win_iis_virtualdirectory:
+        name: content
+        site: AAP WSUS Export
+        physical_path: "{{ wsus_binary_directory.result }}"
+        state: present
+      no_log: "{{ wsus_no_log | bool }}"
+
+    - name: Allow only configured internal management sources to read exports
+      community.windows.win_firewall_rule:
+        name: AAP WSUS export transfer
+        direction: in
+        action: allow
+        protocol: tcp
+        localport: "{{ wsus_transfer_port | string }}"
+        localip: "{{ wsus_transfer_bind_address }}"
+        remoteip: "{{ wsus_transfer_allowed_sources | join(',') }}"
+        profiles: domain,private,public
+        state: present
+        enabled: true
+      no_log: "{{ wsus_no_log | bool }}"
+
+    - name: Export metadata and publish a verified manifest
+      ansible.windows.win_powershell:
+        error_action: stop
+        path: assets/export-external-wsus.ps1
+        parameters:
+          ExportRoot: "{{ wsus_export_root }}"
+          StatePath: "{{ wsus_state_root }}"
+      become: true
+      become_method: runas
+      become_user: SYSTEM
+      async: "{{ wsus_transfer_timeout | int }}"
+      poll: 0
+      register: wsus_operation
+      no_log: "{{ wsus_no_log | bool }}"
+
+    - name: Wait for metadata export and manifest publication
+      ansible.builtin.include_tasks: tasks/wait_windows_operation.yml
+      vars:
+        wsus_operation_timeout: "{{ wsus_transfer_timeout | int }}"
+
+    - name: Verify the export is reachable from the internal server
+      ansible.windows.win_uri:
+        url: "{{ wsus_transfer_base_url | regex_replace('/$', '') }}/current.json"
+        status_code: 200
+        use_proxy: false
+      delegate_to: "{{ groups['wsus_internal'][0] }}"
+      changed_when: false
+      no_log: "{{ wsus_no_log | bool }}"
