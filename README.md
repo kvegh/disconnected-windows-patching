@@ -153,7 +153,7 @@ Required disjoint inventory groups are `wsus_external`, `wsus_internal`, and
 
 `configure_windows_server_basics.yml` owns permanent NIC settings, DNS, forwarding,
 hostnames and their reboots. It validates MAC assignments before changes, uses an
-asynchronous local network task, and reconnects at each host's permanent address.
+one-shot Windows scheduled task, and reconnects at each host's permanent address.
 Supply `windows_network_interfaces`, `windows_connection_address` and optional
 `windows_hostname` through protected per-host inventory variables. This playbook
 has no WSUS URL dependency and performs no WSUS or Chocolatey installation.
@@ -235,8 +235,8 @@ fixed MAC inputs are supported by the VM deployment playbook.
 Initially, inventory `ansible_host` must be the discovered DHCP address. Do not
 supply `ansible_host` through launch extra variables: they would override the
 playbook's switch to the permanent address. The bootstrap script validates all
-MAC matches before applying changes, runs asynchronously through the connection
-interruption, and verifies completion after reconnecting. It owns the configured
+MAC matches before applying changes, runs through Task Scheduler independently of the connection
+interruption, and verifies its exit code and JSON result after reconnecting. It owns the configured
 NICs' IPv4 addresses and replaces other IPv4 assignments on those NICs.
 
 Only external WSUS may have an IPv4 gateway or DNS servers. Internal WSUS has
@@ -325,11 +325,15 @@ It does not disable logging protection in other playbooks, or print the Machine
 or Vault credential values. A completed job's hidden results cannot be recovered
 by changing the toggle; launch a new run to obtain diagnostic output.
 
-The asynchronous network task and its status/cleanup tasks use Windows `runas`
-with the built-in `SYSTEM` account. This keeps the background process independent
-of the WinRM login profile being unloaded when its launching session ends. AAP
-continues to authenticate with the configured administrator Machine credential.
-The status tasks use the same execution account to locate the correct async cache.
+The network task uses `community.windows.win_scheduled_task` with the built-in
+`SYSTEM` service account and a delayed registration trigger. This avoids the
+`runas` process-token creation failure observed on Windows Server 2025 (error 367),
+and keeps the task independent of the WinRM login profile. Native task inspection
+checks completion and exit code; a small local runner records script errors and
+change status in an atomic JSON result. Its working directory is restricted to
+administrators and SYSTEM. The task and files are removed after success; failures
+retain the result for diagnostics. Windows security and execution policies are
+unchanged. The basics JT accepts a host limit for targeted troubleshooting.
 
 ### Teardown verification
 

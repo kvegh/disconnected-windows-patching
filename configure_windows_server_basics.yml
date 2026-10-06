@@ -17,6 +17,9 @@
 - name: Configure permanent Windows networking and guest identity
   hosts: wsus_external:wsus_internal:windows_managed
   gather_facts: false
+  vars:
+    windows_network_task_name: AAP-ConfigurePermanentNetwork
+    windows_network_task_directory: 'C:\ProgramData\AAP\NetworkConfiguration'
   tasks:
     - name: Wait for WinRM
       ansible.builtin.wait_for_connection:
@@ -62,19 +65,79 @@
           ValidateOnly: true
       no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
 
-    - name: Apply permanent network settings asynchronously
-      become: true
-      become_method: runas
-      become_user: SYSTEM
-      ansible.windows.win_powershell:
-        script: "{{ lookup('ansible.builtin.file', 'assets/configure-static-network.ps1') }}"
-        error_action: stop
-        parameters:
-          ConfigurationJson: "{{ windows_network_interfaces | to_json }}"
-          DisableForwarding: "{{ inventory_hostname in groups['wsus_internal'] }}"
-      async: 180
-      poll: 0
-      register: windows_network_job
+    - name: Remove an earlier network task before preparing this run
+      community.windows.win_scheduled_task:
+        name: "{{ windows_network_task_name }}"
+        state: absent
+      when: not ansible_check_mode
+
+    - name: Create local network configuration directory
+      ansible.windows.win_file:
+        path: "{{ windows_network_task_directory }}"
+        state: directory
+      when: not ansible_check_mode
+
+    - name: Allow only administrators and SYSTEM to manage network task files
+      ansible.windows.win_acl:
+        path: "{{ windows_network_task_directory }}"
+        user: "{{ item }}"
+        rights: FullControl
+        type: allow
+        state: present
+        inherit: ContainerInherit, ObjectInherit
+      loop: [SYSTEM, 'BUILTIN\Administrators']
+      when: not ansible_check_mode
+
+    - name: Remove inherited permissions from network configuration directory
+      ansible.windows.win_acl_inheritance:
+        path: "{{ windows_network_task_directory }}"
+        state: absent
+        reorganize: false
+      when: not ansible_check_mode
+
+    - name: Copy the validated network configuration script
+      ansible.windows.win_copy:
+        src: assets/configure-static-network.ps1
+        dest: "{{ windows_network_task_directory }}\\configure-static-network.ps1"
+      when: not ansible_check_mode
+
+    - name: Write protected network inputs for the scheduled task
+      ansible.windows.win_copy:
+        content: "{{ {'interfaces': windows_network_interfaces, 'disable_forwarding': inventory_hostname in groups['wsus_internal']} | to_json }}"
+        dest: "{{ windows_network_task_directory }}\\configuration.json"
+      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      when: not ansible_check_mode
+
+    - name: Copy the scheduled network task runner
+      ansible.windows.win_copy:
+        src: assets/run-network-configuration.ps1
+        dest: "{{ windows_network_task_directory }}\\run-network-configuration.ps1"
+      when: not ansible_check_mode
+
+    - name: Remove stale network task results
+      ansible.windows.win_file:
+        path: "{{ windows_network_task_directory }}\\result.json"
+        state: absent
+      when: not ansible_check_mode
+
+    - name: Apply permanent networking through Windows Task Scheduler
+      community.windows.win_scheduled_task:
+        name: "{{ windows_network_task_name }}"
+        description: Configure the demo-owned NICs independently of the WinRM session.
+        username: SYSTEM
+        logon_type: service_account
+        run_level: highest
+        actions:
+          - path: 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+            arguments: '-NoProfile -NonInteractive -File "{{ windows_network_task_directory }}\run-network-configuration.ps1"'
+            working_directory: "{{ windows_network_task_directory }}"
+        triggers:
+          - type: registration
+            delay: PT20S
+        execution_time_limit: PT3M
+        multiple_instances: 2
+        enabled: true
+        state: present
       when: not ansible_check_mode
       no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
 
@@ -90,30 +153,66 @@
 
     - name: Reconnect at the permanent address
       ansible.builtin.wait_for_connection:
-        delay: 20
+        delay: 35
         timeout: 300
       when: not ansible_check_mode
 
-    - name: Confirm background network configuration completed successfully
-      become: true
-      become_method: runas
-      become_user: SYSTEM
-      ansible.builtin.async_status:
-        jid: "{{ windows_network_job.ansible_job_id }}"
-      register: windows_network_result
-      until: windows_network_result.finished | default(false) | bool or windows_network_result.failed | default(false) | bool
-      retries: 30
+    - name: Wait for the scheduled network task to finish
+      community.windows.win_scheduled_task_stat:
+        name: "{{ windows_network_task_name }}"
+      register: windows_network_task_status
+      until: >-
+        windows_network_task_status.state.status | default('') != 'TASK_STATE_RUNNING' and
+        windows_network_task_status.task_exists | default(false) and
+        windows_network_task_status.state.last_task_result | default(267011) != 267011
+      retries: 36
       delay: 5
       when: not ansible_check_mode
       no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
 
-    - name: Clean up completed asynchronous job status
-      become: true
-      become_method: runas
-      become_user: SYSTEM
-      ansible.builtin.async_status:
-        jid: "{{ windows_network_job.ansible_job_id }}"
-        mode: cleanup
+    - name: Inspect the scheduled network task result file
+      ansible.windows.win_stat:
+        path: "{{ windows_network_task_directory }}\\result.json"
+      register: windows_network_result_stat
+      when: not ansible_check_mode
+
+    - name: Require a completed network configuration result
+      ansible.builtin.assert:
+        that:
+          - windows_network_result_stat.stat.exists
+        fail_msg: "Network task produced no result; process exit code {{ windows_network_task_status.state.last_task_result }}."
+      when: not ansible_check_mode
+
+    - name: Read the network configuration result
+      ansible.builtin.slurp:
+        src: "{{ windows_network_task_directory }}\\result.json"
+      register: windows_network_result_file
+      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      when: not ansible_check_mode
+
+    - name: Confirm permanent network configuration succeeded
+      ansible.builtin.assert:
+        that:
+          - network_result.success | bool
+          - windows_network_task_status.state.last_task_result == 0
+        fail_msg: "{{ network_result.error | default('Network configuration failed.') }}"
+        success_msg: Permanent network configuration completed successfully.
+      vars:
+        network_result: "{{ windows_network_result_file.content | b64decode | from_json }}"
+      changed_when: network_result.changed | default(false) | bool
+      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      when: not ansible_check_mode
+
+    - name: Remove the completed network task
+      community.windows.win_scheduled_task:
+        name: "{{ windows_network_task_name }}"
+        state: absent
+      when: not ansible_check_mode
+
+    - name: Remove temporary network configuration files
+      ansible.windows.win_file:
+        path: "{{ windows_network_task_directory }}"
+        state: absent
       when: not ansible_check_mode
       no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
 
@@ -144,4 +243,3 @@
       ansible.windows.win_reboot:
         reboot_timeout: 900
       when: hostname_result.reboot_required | default(false)
-
