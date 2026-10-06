@@ -1,0 +1,22 @@
+---
+- name: Create installer staging directory in this job's execution environment
+  ansible.builtin.file:
+    path: "{{ application_installer_directory }}"
+    state: directory
+    mode: '0750'
+
+- name: Download pinned vendor installers with SHA256 verification
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "{{ item.path }}"
+    checksum: "sha256:{{ item.checksum }}"
+    mode: '0640'
+    timeout: 120
+    validate_certs: true
+  loop: "{{ application_installers_to_download }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  register: application_installer_download
+  retries: 3
+  delay: 10
+  until: application_installer_download is succeeded

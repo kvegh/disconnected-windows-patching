@@ -60,10 +60,22 @@ Unexpected enabled Chocolatey sources cause failure for explicit review. Source
 passwords are set when the source is created; credential rotation is separate.
 Existing Windows/IIS rules are not narrowed by the added firewall rule.
 
-Stage installers inside the job's execution environment before launch, using a
-read-only mounted artifact directory or a preceding preparation step. Paths are
-local to the execution environment, not the controller filesystem or Windows
-hosts. Do not commit installer binaries or environment-specific variables.
+Installers download at deployment time inside the execution environment to
+`/tmp/aap-installers`. `vars/application_installers.yml` pins Nexus 3.96.4-01
+(Windows ZIP, approximately 512 MB) and Chocolatey 2.7.4 (MSI, approximately
+6.7 MB), with vendor-published SHA-256 checksums. Native `get_url` verifies each
+download; transferred installers are checked again on Windows. Preparation
+downloads the MSI; application setup downloads both installers. Separate AAP
+jobs have separate temporary storage and may download the MSI again.
+Do not commit installer binaries or environment-specific variables.
+
+`vars/wsus_environment_vault.yml` contains separate administrator passwords for
+the two Nexus services, a dedicated internal package reader password, the internal
+feed URL and firewall source restrictions. Passwords are generated once during
+configuration and reused on redeployment. The playbook initializes new Nexus
+administrators, disables anonymous access, and creates a repository-scoped read
+role and account using REST calls. The AAP Chocolatey template has the existing
+Vault credential attached. Credential tasks always use `no_log`.
 
 Use the same disjoint inventory groups as WSUS configuration: `wsus_external`,
 `wsus_internal`, and `windows_managed`, as children of the `windows` parent group.
@@ -81,7 +93,7 @@ tasks suppress their output.
 | `nexus_admin_username`, `nexus_admin_password` | Each WSUS host | Nexus credentials; first-start bootstrap uses the built-in admin account |
 | `nexus_allowed_sources` | Each WSUS host | Allowed client/AAP/transfer source addresses or subnets |
 | `chocolatey_internal_source_url` | Managed group/job | Internal Nexus NuGet v2 URL, ending in `/repository/chocolatey-released/` |
-| `chocolatey_source_username`, `chocolatey_source_password` | Managed group | Internal repository read credentials; demo may use the supplied internal admin credential |
+| `chocolatey_source_username`, `chocolatey_source_password` | Managed group | Dedicated internal repository read credentials from Vault |
 
 Optional job extra variables: `nexus_install_root` (default `C:\Nexus`),
 `nexus_data_directory` (default `C:\NexusData`), and per-server host variable
@@ -139,8 +151,8 @@ and client installation. Execution-node connectivity is a prerequisite.
 
 The deployment workflow creates the four VMs in parallel, then runs
 `configure_windows_server_basics.yml`, `setup_wsus.yml`, and `setup_chocolatey.yml`
-in sequence. Configuration stages are also separate AAP job templates for reruns
-on existing guests. Chocolatey setup requires the staged installers and protected
+with preparation before parallel WSUS and Chocolatey setup. Configuration stages are also separate AAP job templates for reruns
+on existing guests. Chocolatey setup downloads the pinned installers and loads the vaulted
 inputs described above; it has not yet been executed. Installing Nexus and creating
 feeds does not populate them or implement automatic replication.
 
@@ -166,7 +178,6 @@ Keep the existing WSUS inventory groups and role selector for playbook compatibi
 Windows basics is followed by `prepare_repository_servers.yml`, which installs
 repository Windows features and bootstraps the offline Chocolatey MSI on clients,
 finishing all required reboots. `setup_wsus.yml` and `setup_chocolatey.yml` then run
-in parallel. Their standalone templates retain the shared bootstrap tasks. Stage
-the verified MSI before preparation and the Nexus ZIP/credentials before the
-application branch. The WSUS branch proceeds independently through sync, export
+in parallel. Their standalone templates retain the shared bootstrap tasks.
+Both templates download the installers they need; application credentials are vaulted. The WSUS branch proceeds independently through sync, export
 and import; see [WSUS data flow](wsus-data-flow.md).

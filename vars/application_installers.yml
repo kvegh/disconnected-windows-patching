@@ -1,0 +1,10 @@
+---
+# Public, pinned vendor artifacts. Passwords and deployment addresses belong in Vault.
+application_installer_directory: /tmp/aap-installers
+nexus_windows_download_url: https://download.sonatype.com/nexus/3/nexus-3.96.4-01-win-x86_64.zip
+nexus_archive_sha256: 2d9afa2031b0dc64af415a3ad94b4be60d832e22911f0b13b6129e2ba944a763
+nexus_distribution_directory: nexus-3.96.4-01
+nexus_windows_archive: "{{ application_installer_directory }}/nexus-3.96.4-01-win-x86_64.zip"
+chocolatey_msi_download_url: https://github.com/chocolatey/choco/releases/download/2.7.4/chocolatey-2.7.4.0.msi
+chocolatey_msi_sha256: f39efebdc012525a7057f573f136f63af91a496efddd1db4c7910d657a5ac407
+chocolatey_msi: "{{ application_installer_directory }}/chocolatey-2.7.4.0.msi"

@@ -200,8 +200,8 @@ have completed successfully in the demo. The split preserves those tasks; the
 new modular templates need their first separate live runs. External WSUS readiness
 passed read-only job 1072; the new synchronization/export/import stages need
 their first live runs. Nexus/Chocolatey has
-not been deployed yet. Its template/workflow stage requires installer staging,
-checksums, feed configuration and protected credentials before launch.
+not been deployed yet. Installers download automatically with pinned checksums;
+Nexus administrator and package-reader credentials are in the existing encrypted vault.
 
 External-to-internal application promotion is intended to be AAP-controlled:
 retrieve selected `.nupkg` versions from external Nexus, verify their checksums,
@@ -209,8 +209,8 @@ and upload them to internal Nexus. The replication playbook is not implemented;
 Nexus does not automatically mirror the two feeds in this setup. Package building,
 application deployment, and release manifests also remain to be implemented.
 
-Before live deployment, stage verified installers, supply credentials, and establish
-AAP execution-node access to the isolated endnodes. See the detailed
+AAP execution-node access to the isolated endnodes is required. Installer downloads
+and vaulted application credentials are configured for deployment. See the detailed
 [implementation status and remaining work](docs/application-deployment.md#implementation-status-and-remaining-work).
 
 ### Permanent Windows NIC configuration

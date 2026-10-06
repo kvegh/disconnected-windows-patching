@@ -1,0 +1,110 @@
+---
+- name: Read internal repository roles
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/security/roles"
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: nexus_roles
+  changed_when: false
+  no_log: true
+
+- name: Ensure a repository-scoped read role exists
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/security/roles{{ '/aap-chocolatey-read' if role_exists else '' }}"
+    method: "{{ 'PUT' if role_exists else 'POST' }}"
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    content_type: application/json
+    body: "{{ role_definition | to_json }}"
+    status_code: [200, 204]
+  vars:
+    matching_roles: "{{ nexus_roles.json | selectattr('id', 'equalto', 'aap-chocolatey-read') | list }}"
+    role_exists: "{{ matching_roles | length > 0 }}"
+    role_definition:
+      id: aap-chocolatey-read
+      name: Chocolatey package reader
+      description: Read packages from the internal demo feed
+      privileges:
+        - "nx-repository-view-nuget-{{ nexus_repository_name }}-browse"
+        - "nx-repository-view-nuget-{{ nexus_repository_name }}-read"
+      roles: []
+  when: not role_exists or (matching_roles[0].privileges | sort != role_definition.privileges | sort) or matching_roles[0].roles | length > 0
+  changed_when: true
+  no_log: true
+
+- name: Read Nexus accounts
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/security/users"
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: nexus_users
+  changed_when: false
+  no_log: true
+
+- name: Create the vaulted package reader
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/security/users"
+    method: POST
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    content_type: application/json
+    body: "{{ reader_definition | to_json }}"
+    status_code: 200
+  vars:
+    reader_definition:
+      userId: "{{ chocolatey_source_username }}"
+      firstName: Package
+      lastName: Reader
+      emailAddress: packages@example.invalid
+      password: "{{ chocolatey_source_password }}"
+      status: active
+      roles: [aap-chocolatey-read]
+  when: chocolatey_source_username not in (nexus_users.json | map(attribute='userId') | list)
+  changed_when: true
+  no_log: true
+
+- name: Enforce scoped access for an existing reader
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/security/users/{{ chocolatey_source_username | urlencode }}"
+    method: PUT
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    content_type: application/json
+    body: "{{ item | combine({'roles': ['aap-chocolatey-read'], 'status': 'active'}) | to_json }}"
+    status_code: [200, 204]
+  loop: "{{ nexus_users.json | selectattr('userId', 'equalto', chocolatey_source_username) | list }}"
+  when: item.status != 'active' or item.roles | sort != ['aap-chocolatey-read']
+  changed_when: true
+  no_log: true
+
+- name: Check the vaulted reader password
+  ansible.windows.win_uri:
+    url: "http://localhost:{{ nexus_port }}/repository/{{ nexus_repository_name }}/"
+    url_username: "{{ chocolatey_source_username }}"
+    url_password: "{{ chocolatey_source_password }}"
+    force_basic_auth: true
+    status_code: [200, 401]
+  register: nexus_reader_auth
+  changed_when: false
+  no_log: true
+
+- name: Reconcile a changed reader password
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/security/users/{{ chocolatey_source_username | urlencode }}/change-password"
+    method: PUT
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    content_type: text/plain
+    body: "{{ chocolatey_source_password }}"
+    status_code: 204
+  when: nexus_reader_auth.status_code == 401
+  changed_when: true
+  no_log: true

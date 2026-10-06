@@ -2,6 +2,10 @@
 - name: Validate application repository deployment inputs
   hosts: localhost
   gather_facts: false
+  tags: [installer_download]
+  vars_files:
+    - vars/application_installers.yml
+    - vars/wsus_environment_vault.yml
   tasks:
     - name: Require repository servers and managed clients
       ansible.builtin.assert:
@@ -17,7 +21,19 @@
           - chocolatey_msi | default('') | length > 0
           - chocolatey_msi_sha256 | default('') is match('^[A-Fa-f0-9]{64}$')
           - chocolatey_internal_source_url | default('') is match('^https?://[^/\s]+/repository/[A-Za-z0-9._-]+/?$')
-        fail_msg: Supply inventory groups, pinned Windows Nexus ZIP and Chocolatey MSI paths/checksums, and the internal NuGet v2 feed URL.
+        fail_msg: Supply the inventory groups and vaulted internal feed settings; pinned installer defaults are included.
+      no_log: true
+
+    - name: Download verified Nexus and Chocolatey installers at deployment time
+      ansible.builtin.include_tasks: tasks/download_application_installers.yml
+      vars:
+        application_installers_to_download:
+          - url: "{{ nexus_windows_download_url }}"
+            path: "{{ nexus_windows_archive }}"
+            checksum: "{{ nexus_archive_sha256 }}"
+          - url: "{{ chocolatey_msi_download_url }}"
+            path: "{{ chocolatey_msi }}"
+            checksum: "{{ chocolatey_msi_sha256 }}"
 
     - name: Check execution environment installer files
       ansible.builtin.stat:
@@ -36,7 +52,7 @@
         that:
           - item.stat.isreg | default(false)
           - item.stat.checksum | default('') == item.item.checksum
-        fail_msg: Installer missing or checksum mismatch; stage verified installers in the execution environment.
+        fail_msg: Downloaded installer missing or checksum mismatch.
       loop: "{{ installer_files.results }}"
       loop_control:
         label: "{{ item.item.path }}"
@@ -44,7 +60,13 @@
 - name: Deploy Windows Nexus services and hosted Chocolatey feeds
   hosts: wsus_external:wsus_internal
   gather_facts: false
+  vars_files:
+    - vars/application_installers.yml
+    - vars/wsus_environment_vault.yml
   vars:
+    nexus_admin_username: "{{ nexus_server_settings[inventory_hostname].admin_username }}"
+    nexus_admin_password: "{{ nexus_server_settings[inventory_hostname].admin_password }}"
+    nexus_allowed_sources: "{{ nexus_server_settings[inventory_hostname].allowed_sources }}"
     nexus_install_root: 'C:\Nexus'
     nexus_data_directory: 'C:\NexusData'
     nexus_staging_directory: 'C:\ProgramData\AAP\Installers'
@@ -175,6 +197,31 @@
       ansible.builtin.include_tasks: tasks/initialize_nexus_password.yml
       when: nexus_auth.status_code == 401
 
+    - name: Read anonymous repository access settings
+      ansible.windows.win_uri:
+        url: "{{ nexus_api_url }}/v1/security/anonymous"
+        url_username: "{{ nexus_admin_username }}"
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        return_content: true
+      register: nexus_anonymous_access
+      changed_when: false
+      no_log: true
+
+    - name: Require authentication for repository access
+      ansible.windows.win_uri:
+        url: "{{ nexus_api_url }}/v1/security/anonymous"
+        method: PUT
+        url_username: "{{ nexus_admin_username }}"
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        content_type: application/json
+        body: "{{ nexus_anonymous_access.json | combine({'enabled': false}) | to_json }}"
+        status_code: [200, 204]
+      when: nexus_anonymous_access.json.enabled
+      changed_when: true
+      no_log: true
+
     - name: Read hosted repositories
       ansible.windows.win_uri:
         url: "{{ nexus_api_url }}/v1/repositories"
@@ -220,9 +267,16 @@
     - name: Enforce immutable versions on an existing feed
       ansible.builtin.include_tasks: tasks/configure_nexus_feed.yml
 
+    - name: Configure the internal package read account from Vault
+      ansible.builtin.include_tasks: tasks/configure_nexus_reader.yml
+      when: inventory_hostname in groups['wsus_internal']
+
 - name: Install Chocolatey CLI on managed Windows nodes
   hosts: windows_managed
   gather_facts: false
+  vars_files:
+    - vars/application_installers.yml
+    - vars/wsus_environment_vault.yml
   vars:
     chocolatey_staging_directory: 'C:\ProgramData\AAP\Installers'
   pre_tasks:

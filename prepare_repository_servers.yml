@@ -2,6 +2,8 @@
 - name: Validate the offline Chocolatey installer before the parallel setup barrier
   hosts: localhost
   gather_facts: false
+  vars_files:
+    - vars/application_installers.yml
   tasks:
     - name: Require repository servers, clients and a pinned offline MSI
       ansible.builtin.assert:
@@ -13,7 +15,15 @@
           - (groups['wsus_external'] + groups['wsus_internal']) | intersect(groups['windows_managed']) | length == 0
           - chocolatey_msi | default('') | length > 0
           - chocolatey_msi_sha256 | default('') is match('^[A-Fa-f0-9]{64}$')
-        fail_msg: Stage the pinned offline Chocolatey MSI in the execution environment and supply its path and SHA256.
+        fail_msg: Supply the Windows demo inventory groups and valid pinned installer settings.
+
+    - name: Download the pinned MSI for the preparation job
+      ansible.builtin.include_tasks: tasks/download_application_installers.yml
+      vars:
+        application_installers_to_download:
+          - url: "{{ chocolatey_msi_download_url }}"
+            path: "{{ chocolatey_msi }}"
+            checksum: "{{ chocolatey_msi_sha256 }}"
 
     - name: Verify the offline MSI before changing guests
       ansible.builtin.stat:
@@ -42,6 +52,8 @@
 - name: Bootstrap managed clients and finish MSI reboots before concurrent configuration
   hosts: windows_managed
   gather_facts: false
+  vars_files:
+    - vars/application_installers.yml
   vars:
     chocolatey_staging_directory: 'C:\ProgramData\AAP\Installers'
   tasks:
