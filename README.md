@@ -15,6 +15,12 @@ Base images on the hypervisor:
 - `/opt/images/windows-server-2022.qcow2`: 40 GiB virtual capacity.
 - `/opt/images/windows-server-2025.qcow2`: 64 GiB virtual capacity.
 
+Boot mode is selected from the verified base image layout: BIOS for the 2022
+image (MBR/NTFS), UEFI for the 2025 image (EFI System Partition). This mapping
+is specific to these images, not a Windows-version requirement. OVMF firmware
+and both Windows osinfo IDs are available on hactar. If the base images change,
+review `windows_boot_modes` in `vars/main.yml`.
+
 Cloning uses `qemu-img convert -S 4k` to create independent sparse qcow2 disks.
 There are no backing-file dependencies or disk resizing. Every VM receives
 2 vCPUs; `managed` gets 2048 MiB RAM and `wsus` gets 4096 MiB.
@@ -35,17 +41,16 @@ Required inputs:
 | `vm_role` | `managed`, `wsus` |
 | `windows_version` | `2022`, `2025` (string or integer) |
 | `vm_name` | Unique VM name; letters, numbers and hyphens, starting with a letter |
-| `vm_boot_mode` | `bios`, `uefi`, based on the image's actual boot layout |
 | `vm_network` | Primary existing libvirt network; default `windows-isolated` |
 | `vm_management_network` | Optional second libvirt network, allowed for `wsus` only; default empty |
 
 For the four-VM demo, launch the template four times (or chain these launches in
-an AAP workflow), supplying the appropriate networks and verified boot modes:
+an AAP workflow), supplying the appropriate networks:
 
 | VM name | Role | Windows version | Primary NIC | Second NIC |
 |---|---|---|---|---|
-| `wsus-external` | `wsus` | `2022` | Existing 192.168.42.x network | None |
-| `wsus-internal` | `wsus` | `2022` | `windows-isolated` | Existing 192.168.42.x network |
+| `wsus-external` | `wsus` | `2022` | `internal` | None |
+| `wsus-internal` | `wsus` | `2022` | `windows-isolated` | `internal` |
 | `win2022-managed` | `managed` | `2022` | `windows-isolated` | None |
 | `win2025-managed` | `managed` | `2025` | `windows-isolated` | None |
 
@@ -53,12 +58,12 @@ The Server 2022 WSUS choice is intended to serve both client versions. Select
 Windows Server 2025 products during WSUS configuration and validate actual
 synchronization and client scanning before the demo.
 
-Example CLI launch, **after confirming BIOS is appropriate for this image**:
+Example CLI launch:
 
 ```bash
 ansible-playbook -i inventory.ini 01-win-vm-setup.yml \
   -e vm_role=managed -e windows_version=2022 \
-  -e vm_name=win2022-managed -e vm_boot_mode=bios -e vm_network=windows-isolated
+  -e vm_name=win2022-managed -e vm_network=windows-isolated
 ```
 
 The initial hardware uses Q35, SATA storage and an emulated e1000e NIC to avoid
@@ -92,9 +97,9 @@ deployments or guest-level tests have been performed yet.
 
 Create `windows-isolated` separately with subnet `10.0.42.0/24`, no forwarding
 or NAT, and DHCP. This playbook verifies that selected networks exist and are
-active; it never creates or changes networks. Supply the actual existing
-192.168.42.x libvirt network name when launching external WSUS, and as
-`vm_management_network` for internal WSUS. DHCP discovery uses the primary NIC.
+active; it never creates or changes networks. Use `vm_network=internal` for external WSUS, and
+`vm_management_network=internal` for internal WSUS. The existing `internal`
+network is the management LAN on `192.168.42.0/24`. DHCP discovery uses the primary NIC.
 
 The second NIC alone does not enforce isolation. Internal WSUS still needs
 guest configuration with no default gateway, routing disabled, and firewall

@@ -7,6 +7,7 @@
   vars:
     selected_image: "{{ windows_images[windows_version | string] }}"
     selected_memory_mb: "{{ windows_memory_mb[vm_role] }}"
+    vm_boot_mode: "{{ windows_boot_modes[windows_version | string] }}"
     vm_disk_path: "{{ vm_dir }}/{{ vm_name }}.disk.qcow2"
 
   tasks:
@@ -16,12 +17,15 @@
           - vm_role | default('') in ['managed', 'wsus']
           - windows_version | default('') | string in ['2022', '2025']
           - vm_name | default('') is match('^[A-Za-z][A-Za-z0-9-]{0,62}$')
-          - vm_boot_mode | default('') in ['bios', 'uefi']
           - vm_network is match('^[A-Za-z0-9_.-]+$')
           - vm_management_network == '' or vm_management_network is match('^[A-Za-z0-9_.-]+$')
           - vm_management_network == '' or vm_role == 'wsus'
           - vm_management_network != vm_network
-        fail_msg: Supply vm_role (managed/wsus), windows_version (2022/2025), vm_name, vm_boot_mode (bios/uefi), and vm_network.
+        fail_msg: Supply vm_role (managed/wsus), windows_version (2022/2025), vm_name, and vm_network.
+
+    - name: Validate selected image boot mode
+      ansible.builtin.assert:
+        that: vm_boot_mode in ['bios', 'uefi']
 
     - name: Verify selected libvirt networks are active
       ansible.builtin.command:
@@ -158,6 +162,7 @@
           name: "{{ vm_name }}"
           role: "{{ vm_role }}"
           windows_version: "{{ windows_version | string }}"
+          boot_mode: "{{ vm_boot_mode }}"
           vcpus: 2
           memory_mb: "{{ selected_memory_mb }}"
           disk: "{{ vm_disk_path }}"

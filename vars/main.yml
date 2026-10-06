@@ -1,7 +1,7 @@
 ---
 vm_dir: /opt/vms
 vm_network: windows-isolated
-# Set for internal WSUS only: existing 192.168.42.x libvirt network name.
+# Set to internal for internal WSUS only (192.168.42.0/24 management LAN).
 vm_management_network: ''
 # Initial Windows setup may need console interaction before a DHCP lease appears.
 wait_for_dhcp: false
@@ -15,4 +15,8 @@ windows_memory_mb:
 windows_osinfo:
   '2022': win2k22
   '2025': win2k25
-# Required launch inputs: vm_role, windows_version, vm_name, vm_boot_mode.
+# Verified boot layout of these specific Microsoft images on hactar.
+windows_boot_modes:
+  '2022': bios
+  '2025': uefi
+# Required launch inputs: vm_role, windows_version, vm_name.
