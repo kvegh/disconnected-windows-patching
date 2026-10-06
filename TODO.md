@@ -22,5 +22,5 @@
 - Store the complete address/MAC mapping in AAP inventory or Vault-encrypted
   configuration, including deployment/workflow inputs and DHCP configuration.
   Keep actual hostnames, IPs, MAC assignments, and credentials out of plaintext Git.
-- Current VM deployment still generates MACs automatically; fixed MAC inputs and
-  DHCP reservation automation remain to be implemented.
+- Fixed MAC deployment inputs are implemented. Automate DHCP reservations to
+  match those inputs; libvirt generates MACs when explicit inputs are omitted.

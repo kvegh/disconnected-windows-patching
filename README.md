@@ -33,7 +33,7 @@ Set the Job Template playbook to `disconnected-windows-patching/01-win-vm-setup.
 when using the parent project, or `01-win-vm-setup.yml` with this repository directly.
 `assets/deploy-vm-survey.json` contains a survey specification to apply to that
 Job Template. Enable the survey; alternatively enable launch-time extra variables.
-No AAP configuration has been applied by this repository change.
+The demo controller has the deployment template and workflow configured.
 
 Required inputs:
 
@@ -69,7 +69,7 @@ ansible-playbook -i inventory.ini 01-win-vm-setup.yml \
 
 The initial hardware uses Q35, SATA storage and an emulated e1000e NIC to avoid
 requiring VirtIO drivers at first boot. Validate these devices with the actual
-images. The local SPICE console supports initial Windows setup. The role input
+images. A local VNC console supports initial Windows setup. The role input
 selects sizing; it does not install WSUS or configure Windows credentials,
 hostnames, WinRM, or SSH. The base images must already contain working credentials
 and WinRM; guest configuration is handled by the separate configuration playbooks.
@@ -176,7 +176,7 @@ and bootstraps the Chocolatey clients from an offline MSI. See
 [application deployment](docs/application-deployment.md) for installer inputs,
 credentials, resource requirements, package promotion, and pending live validation.
 
-The clients have only an isolated NIC. AAP still needs an execution node on that
+The clients have only an isolated NIC. AAP needs an execution node on that
 network or a restricted management route. Internal WSUS's second NIC does not
 provide a WinRM jump host automatically. The demo execution-node connectivity has been verified over WinRM; this playbook does not change network isolation or VM sizing.
 
@@ -224,8 +224,8 @@ must permit connections at the permanent address from the AAP execution node.
 Update the AAP host's inventory variables to the permanent address after a
 successful bootstrap, before future jobs. The vaulted umbrella network record is
 reference data and is not automatically loaded or converted into these host vars.
-This change is syntax-checked; Windows network switching and reboot persistence
-still require a live test. Console access is needed to recover a misconfigured NIC.
+Windows network switching and reboot persistence were verified before the split;
+the modular template has not yet been run separately. Console access is needed to recover a misconfigured NIC.
 
 ### Repository server identities
 
@@ -236,8 +236,8 @@ at deployment and `windows_hostname` during guest configuration.
 
 The existing `wsus` deployment role and `wsus_external` / `wsus_internal` inventory
 groups remain compatible with the playbooks; they identify WSUS-capable repository
-servers, not dedicated WSUS-only guests. Existing AAP workflow launch inputs still
-need to follow the renamed identities before deployment.
+servers, not dedicated WSUS-only guests. AAP workflow launch inputs use the
+repository-server identities recorded in the vaulted inventory.
 
 ## Destroy a Windows demo clone
 
@@ -284,7 +284,7 @@ The installed `win_route` module cannot select an interface or manage DHCP defau
 routes in active and persistent stores, so these routes remain in the script.
 DNS and registry configuration are outside the asynchronous network script.
 
-### WSUS configuration logging survey
+### Configuration logging surveys
 
 The Windows basics job template prompts for `windows_no_log`: `true` (default) hides
 network task arguments and results, while `false` exposes them in AAP job output

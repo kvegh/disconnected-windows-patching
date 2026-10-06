@@ -1,0 +1,57 @@
+---
+- name: Check external WSUS readiness without downloading updates
+  hosts: wsus_external
+  gather_facts: false
+  tasks:
+    - name: Require exactly one external WSUS server
+      ansible.builtin.assert:
+        that: groups.get('wsus_external', []) | length == 1
+
+    - name: Inspect WSUS, storage, services and outbound connectivity
+      ansible.windows.win_powershell:
+        error_action: stop
+        parameters:
+          MinimumFreeGB: "{{ wsus_minimum_free_gb | default(8) | int }}"
+        script: |
+          param([int]$MinimumFreeGB)
+          $Ansible.Changed = $false
+          Import-Module UpdateServices
+          $server = Get-WsusServer
+          $config = $server.GetConfiguration()
+          $content = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup').ContentDir
+          if (-not (Test-Path -LiteralPath $content)) { throw 'WSUS content directory is missing.' }
+          $drive = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$([IO.Path]::GetPathRoot($content).TrimEnd('\'))'"
+          $services = @{}
+          foreach ($name in @('WsusService', 'W3SVC', 'BITS')) {
+              $service = Get-Service $name
+              $services[$name] = [string]$service.Status
+              if ($name -ne 'BITS' -and $service.Status -ne 'Running') { throw "Required service is not running: $name" }
+              if ($service.StartType -eq 'Disabled') { throw "Required service is disabled: $name" }
+          }
+          if ($config.IsReplicaServer -or -not $config.SyncFromMicrosoftUpdate -or $config.HostBinariesOnMicrosoftUpdate) {
+              throw 'WSUS must be autonomous, synchronize from Microsoft, and store content locally.'
+          }
+          if ($drive.FreeSpace -lt ($MinimumFreeGB * 1GB)) { throw 'Insufficient free space for the configured demo minimum.' }
+          $endpoints = @{}
+          foreach ($entry in @(@{Host='sws.update.microsoft.com';Port=443}, @{Host='download.windowsupdate.com';Port=80})) {
+              $null = Resolve-DnsName $entry.Host -ErrorAction Stop
+              $connected = Test-NetConnection $entry.Host -Port $entry.Port -InformationLevel Quiet -WarningAction SilentlyContinue
+              $endpoints["$($entry.Host):$($entry.Port)"] = [bool]$connected
+              if (-not $connected) { throw "Microsoft connectivity failed: $($entry.Host):$($entry.Port)" }
+          }
+          $utility = Join-Path $env:ProgramFiles 'Update Services\Tools\WsusUtil.exe'
+          if (-not (Test-Path -LiteralPath $utility)) { throw 'WSUS export/import utility is missing.' }
+          $Ansible.Result = @{
+              Ready = $true
+              FreeGB = [math]::Round($drive.FreeSpace / 1GB, 2)
+              Services = $services
+              Endpoints = $endpoints
+              ProductsSelected = @($server.GetSubscription().GetUpdateCategories() | ForEach-Object Title)
+              LastSync = [string]$server.GetSubscription().GetLastSynchronizationInfo().Result
+              PendingDownloadBytes = $server.GetContentDownloadProgress().TotalBytesToDownload - $server.GetContentDownloadProgress().DownloadedBytes
+          }
+      register: wsus_prerequisites
+
+    - name: Report external WSUS readiness
+      ansible.builtin.debug:
+        var: wsus_prerequisites.result
