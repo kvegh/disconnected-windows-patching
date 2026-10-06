@@ -1,0 +1,39 @@
+---
+- name: Inspect Windows network bootstrap without changing configuration
+  hosts: wsus_external:wsus_internal:windows_managed
+  gather_facts: false
+  tasks:
+    - name: Wait for existing WinRM connectivity
+      ansible.builtin.wait_for_connection:
+        timeout: 180
+
+    - name: Inspect the bootstrap scheduled task
+      community.windows.win_scheduled_task_stat:
+        name: AAP-ConfigurePermanentNetwork
+
+    - name: Inspect saved network configuration result
+      ansible.windows.win_stat:
+        path: 'C:\ProgramData\AAP\NetworkConfiguration\result.json'
+      register: network_result_file
+
+    - name: Read saved network configuration result
+      ansible.builtin.slurp:
+        src: 'C:\ProgramData\AAP\NetworkConfiguration\result.json'
+      register: network_result_content
+      when: network_result_file.stat.exists
+
+    - name: Report saved network result
+      ansible.builtin.debug:
+        msg: "{{ network_result_content.content | b64decode | from_json }}"
+      when: network_result_file.stat.exists
+
+    - name: Inspect current adapters, addresses and routes
+      ansible.windows.win_powershell:
+        script: |
+          $Ansible.Changed = $false
+          $Ansible.Result = @{
+              Adapters = @(Get-NetAdapter | Select-Object Name, MacAddress, Status)
+              Addresses = @(Get-NetIPAddress -AddressFamily IPv4 | Select-Object InterfaceAlias, IPAddress, PrefixLength, AddressState)
+              Interfaces = @(Get-NetIPInterface -AddressFamily IPv4 | Select-Object InterfaceAlias, Dhcp, Forwarding)
+              Defaults = @(Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Select-Object InterfaceAlias, NextHop)
+          }
