@@ -274,3 +274,18 @@ changes through `$Ansible.Changed`. Validation and check mode make no changes.
 The installed `win_route` module cannot select an interface or manage DHCP default
 routes in active and persistent stores, so these routes remain in the script.
 DNS and registry configuration are outside the asynchronous network script.
+
+### WSUS configuration logging survey
+
+The configuration job template prompts for `wsus_no_log`: `true` (default) hides
+network task arguments and results, while `false` exposes them in AAP job output
+for troubleshooting. An external boolean variable is also accepted. If omitted,
+the playbook defaults to protection enabled. The survey definition is stored in
+`assets/wsus-setup-survey.json` for reuse on another controller.
+
+This toggle applies to network validation, asynchronous configuration/status,
+connection-address switching and DNS tasks. Disabling it may reveal environment
+IPs, MACs, adapter names and error details to users who can read the job output.
+It does not disable logging protection in other playbooks, or print the Machine
+or Vault credential values. A completed job's hidden results cannot be recovered
+by changing the toggle; launch a new run to obtain diagnostic output.

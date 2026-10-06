@@ -41,7 +41,7 @@
           - windows_network_interfaces | map(attribute='mac') | unique | length == windows_network_interfaces | length
           - windows_network_interfaces | map(attribute='name') | unique | length == windows_network_interfaces | length
         fail_msg: Supply per-host windows_network_interfaces and windows_connection_address through protected inventory variables.
-      no_log: true
+      no_log: "{{ wsus_no_log | default(true) | bool }}"
 
     - name: Validate each desired interface
       ansible.builtin.assert:
@@ -58,7 +58,7 @@
           - inventory_hostname in groups['wsus_external'] or item.dns_servers | length == 0
         fail_msg: Supply MAC, adapter name, IPv4 address/prefix, gateway (empty for none), and DNS list. Only external WSUS may have a gateway or DNS.
       loop: "{{ windows_network_interfaces }}"
-      no_log: true
+      no_log: "{{ wsus_no_log | default(true) | bool }}"
 
     - name: Validate MAC matches and addresses before changing networking
       ansible.windows.win_powershell:
@@ -67,7 +67,7 @@
         parameters:
           ConfigurationJson: "{{ windows_network_interfaces | to_json }}"
           ValidateOnly: true
-      no_log: true
+      no_log: "{{ wsus_no_log | default(true) | bool }}"
 
     - name: Apply permanent network settings asynchronously
       ansible.windows.win_powershell:
@@ -80,13 +80,13 @@
       poll: 0
       register: windows_network_job
       when: not ansible_check_mode
-      no_log: true
+      no_log: "{{ wsus_no_log | default(true) | bool }}"
 
     - name: Use permanent address for the remainder of this job
       ansible.builtin.set_fact:
         ansible_host: "{{ windows_connection_address }}"
       when: not ansible_check_mode
-      no_log: true
+      no_log: "{{ wsus_no_log | default(true) | bool }}"
 
     - name: Reset connection after network configuration starts
       ansible.builtin.meta: reset_connection
@@ -106,14 +106,14 @@
       retries: 30
       delay: 5
       when: not ansible_check_mode
-      no_log: true
+      no_log: "{{ wsus_no_log | default(true) | bool }}"
 
     - name: Clean up completed asynchronous job status
       ansible.windows.async_status:
         jid: "{{ windows_network_job.ansible_job_id }}"
         mode: cleanup
       when: not ansible_check_mode
-      no_log: true
+      no_log: "{{ wsus_no_log | default(true) | bool }}"
 
     - name: Configure DNS with the Windows DNS client module
       ansible.windows.win_dns_client:
@@ -121,7 +121,7 @@
           - "{{ item.name }}"
         dns_servers: "{{ item.dns_servers }}"
       loop: "{{ windows_network_interfaces }}"
-      no_log: true
+      no_log: "{{ wsus_no_log | default(true) | bool }}"
       when: not ansible_check_mode
 
     - name: Disable IP routing on internal repository server
