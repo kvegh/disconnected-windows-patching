@@ -7,6 +7,40 @@
       ansible.builtin.assert:
         that: groups.get('wsus_external', []) | length == 1
 
+    - name: Read installed WSUS features with a native module
+      ansible.windows.win_feature_info:
+        name: UpdateServices*
+      register: wsus_feature_information
+
+    - name: Read the WSUS service without changing it
+      ansible.windows.win_service_info:
+        name: WsusService
+      register: wsus_service_information
+
+    - name: Read the configured WSUS content path
+      ansible.windows.win_reg_stat:
+        path: 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup'
+        name: ContentDir
+      register: wsus_setup_registry
+
+    - name: Report installed WSUS components before readiness checks
+      ansible.builtin.debug:
+        msg:
+          InstalledFeatures: "{{ wsus_feature_information.features | selectattr('installed') | map(attribute='name') | list }}"
+          WsusServicePresent: "{{ wsus_service_information.exists }}"
+          ContentPathConfigured: "{{ wsus_setup_registry.exists | default(false) }}"
+
+    - name: Require WSUS services and its management API before querying updates
+      ansible.builtin.assert:
+        that:
+          - wsus_service_information.exists
+          - "'UpdateServices-Services' in installed_features"
+          - "'UpdateServices-API' in installed_features"
+          - wsus_setup_registry.exists | default(false)
+        fail_msg: WSUS is not initialized with its management API; run repository preparation and WSUS setup first.
+      vars:
+        installed_features: "{{ wsus_feature_information.features | selectattr('installed') | map(attribute='name') | list }}"
+
     - name: Inspect WSUS, storage, services and outbound connectivity
       ansible.windows.win_powershell:
         error_action: stop
@@ -41,8 +75,17 @@
           }
           $utility = Join-Path $env:ProgramFiles 'Update Services\Tools\WsusUtil.exe'
           if (-not (Test-Path -LiteralPath $utility)) { throw 'WSUS export/import utility is missing.' }
+          $scope = New-Object Microsoft.UpdateServices.Administration.UpdateScope
+          $catalogCount = $server.GetUpdateCount($scope)
+          $scope.ApprovedStates = [Microsoft.UpdateServices.Administration.ApprovedStates]::LatestRevisionApproved
+          $approved = @($server.GetUpdates($scope))
+          $ready = @($approved | Where-Object { [string]$_.State -eq 'Ready' -and -not $_.IsDeclined })
           $Ansible.Result = @{
               Ready = $true
+              CatalogUpdates = $catalogCount
+              ApprovedUpdates = $approved.Count
+              ApprovedReadyUpdates = $ready.Count
+              ClientApplicabilityAssessed = $false
               FreeGB = [math]::Round($drive.FreeSpace / 1GB, 2)
               Services = $services
               Endpoints = $endpoints
@@ -74,3 +117,5 @@
         - assets/export-external-wsus.ps1
         - assets/prepare-wsus-import.ps1
         - assets/import-wsus-metadata.ps1
+        - assets/validate-chocolatey-export.ps1
+        - assets/upload-nexus-package.ps1

@@ -191,3 +191,15 @@ Microsoft references:
 - [Required update relationships](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ms752947(v=vs.85))
 - [Server 2022 product selection](https://support.microsoft.com/en-us/servicing/os/windows-server/2025/11/november-11-2025-kb5068787-os-build-20348-4405)
 - [Server 2025 product selection](https://support.microsoft.com/en-us/servicing/os/windows-server/2025/06/june-10-2025-kb5060842-os-build-26100-4349)
+
+## Read-only repository inspection
+
+The prerequisites template reports installed WSUS role/API features, service
+presence and content-path configuration with native information modules before
+loading the WSUS API. An absent installation fails with an explicit setup
+prerequisite message rather than a generic module import error. Once WSUS is
+initialized it also reports catalog size, approved-update count, approved updates
+in `Ready` state and pending download bytes. Those external download approvals
+do not establish client applicability or approve installations on internal WSUS.
+Client rollout still requires completed transfer/import, internal approval and
+client scans. The check downloads or approves no updates.
