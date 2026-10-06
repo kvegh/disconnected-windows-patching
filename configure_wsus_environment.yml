@@ -185,6 +185,22 @@
         path: "{{ wsus_content_path }}"
         state: directory
 
+    - name: Inspect registered WSUS content location
+      ansible.windows.win_reg_stat:
+        path: 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup'
+        name: ContentDir
+      register: wsus_registered_content
+      tags: wsus_diagnostics
+      no_log: "{{ wsus_no_log | default(true) | bool }}"
+
+    - name: Report registered WSUS content location
+      ansible.builtin.debug:
+        msg:
+          configured_content: "{{ wsus_registered_content.value | default('Not configured') }}"
+          requested_content: "{{ wsus_content_path }}"
+      tags: wsus_diagnostics
+      no_log: "{{ wsus_no_log | default(true) | bool }}"
+
     - name: Initialize WSUS database and content location
       ansible.windows.win_powershell:
         error_action: stop
