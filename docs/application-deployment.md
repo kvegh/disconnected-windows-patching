@@ -189,8 +189,10 @@ Local syntax checking passed for setup and all five application stages.
 
 Live Nexus import and endnode upgrades remain unvalidated. The latest complete
 environment deployment stopped during Windows 2025 network configuration before
-WSUS/Chocolatey setup; correct Windows basics before executing these stages. VM
-creation succeeded. Historical WinRM connectivity and WSUS configuration were
+WSUS/Chocolatey setup. The network launcher was corrected to use Windows Task
+Scheduler after a SYSTEM token-creation error; a visible-log Windows Server 2025
+test passed static configuration and reconnection. Full service setup remains to
+be exercised in the fresh workflow. VM creation succeeded. Historical WinRM connectivity and WSUS configuration were
 validated before the teardown/redeployment.
 
 Both repository guests retain the requested demo allocation of 2 vCPUs and 8 GiB
@@ -202,7 +204,7 @@ old export archives or release content.
 ## Remaining work
 
 - Validate Nexus startup, upload/import APIs and both application upgrades live.
-- Resolve the Windows 2025 basics failure and resume modular setup on existing VMs.
+- Exercise the corrected Windows basics stage in the fresh environment workflow.
 - Add WSUS client approvals and Windows patch installation as separate stages.
 - Decide retention for old application archives and repository releases.
 - Implement a broader package/dependency selection only if the demo needs it.

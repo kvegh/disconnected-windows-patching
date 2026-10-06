@@ -31,7 +31,7 @@
 - Validate applicability and prerequisite/checkpoint coverage on both older base images.
 - Add internal client approval and patch installation stages.
 - Validate the pinned Nexus/Chocolatey downloads and vaulted inputs in live service setup.
-- Resolve the Windows 2025 network-configuration failure before resuming modular setup.
+- Validate Task Scheduler network configuration on all four freshly cloned VMs.
 - Exercise the five application stages: sync, export, import, baseline deployment and upgrade.
 - Add metadata snapshot/import-log retention without deleting active transfer files.
 - Migrate pinned community IIS modules to microsoft.iis before their upstream removal.

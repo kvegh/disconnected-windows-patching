@@ -217,7 +217,9 @@ handle normal configuration and installation; small helpers build deterministic
 packages/exports, inspect archive integrity and upload binary packages on Windows.
 The full flow still needs live Nexus and endnode validation. The latest environment
 workflow stopped during Windows 2025 basics before service setup; its four VM
-creation jobs succeeded. See [application deployment](docs/application-deployment.md).
+creation jobs succeeded. The SYSTEM process-token launch failure (error 367) was
+corrected by using the native scheduled-task module, and static networking with
+reconnection passed a visible-log Windows Server 2025 test. See [application deployment](docs/application-deployment.md).
 
 AAP execution-node access to the isolated endnodes is required. Installer downloads
 and vaulted application credentials are configured for deployment. See the detailed
@@ -248,8 +250,9 @@ must permit connections at the permanent address from the AAP execution node.
 Update the AAP host's inventory variables to the permanent address after a
 successful bootstrap, before future jobs. The vaulted umbrella network record is
 reference data and is not automatically loaded or converted into these host vars.
-Windows network switching and reboot persistence were verified before the split;
-the modular template has not yet been run separately. Console access is needed to recover a misconfigured NIC.
+Windows network switching was verified with the modular template on Windows
+Server 2025 after changing its launcher to Task Scheduler. Console access is
+needed to recover a misconfigured NIC.
 
 ### Repository server identities
 
@@ -337,9 +340,12 @@ unchanged. The basics JT accepts a host limit for targeted troubleshooting.
 
 ### Teardown verification
 
-`verify_windows_teardown.yml` runs read-only through its own AAP job template.
-Supply `teardown_baseline` (pre-teardown domain XML/state and base-image file
-metadata) and the exact `windows_demo_vm_names` list as protected AAP inputs.
+`capture_windows_teardown_baseline.yml` and `verify_windows_teardown.yml` run
+read-only through normal AAP job templates using the hypervisor Machine credential.
+Capture the baseline before invoking the guarded destroy JT for each approved
+Windows domain. Pass the capture job's `teardown_baseline` artifact (pre-teardown
+domain XML/state and base-image file metadata) and the exact
+`windows_demo_vm_names` list as protected inputs to verification after destruction.
 It verifies only those four domains disappeared, their clone disks are absent,
 and other domain definitions/states and base-image size/inode/mtime are unchanged.
 This is a metadata comparison, not a full disk-content checksum.
