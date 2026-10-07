@@ -82,6 +82,13 @@ isolation separately; this playbook does not create networks or firewall rules.
 
 ## Layout and validation
 
+Decision explanations and implementation commit IDs are recorded in
+[design_decisions_history.md](design_decisions_history.md). Nexus onboarding is
+part of `setup_chocolatey.yml`: existing acceptance is retained, and initial EULA
+acceptance requires encrypted approval for the pinned distribution. External
+package synchronization and export have passed live execution; internal import
+and application deployment are being verified separately.
+
 - `01-win-vm-setup.yml`: VM deployment playbook.
 - `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.
 - `setup_wsus.yml`: WSUS installation, initialization and client update policies.
