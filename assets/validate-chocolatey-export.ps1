@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $Ansible.Changed = $false
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$expected = @(ConvertFrom-Json -InputObject $ExpectedPackagesJson)
+$expected = ConvertFrom-Json -InputObject $ExpectedPackagesJson
 $archive = [System.IO.Compression.ZipFile]::OpenRead($ArchivePath)
 try {
     $manifestEntry = $archive.GetEntry('manifest.json')
@@ -20,8 +20,8 @@ try {
     if ($actual -ne $ManifestSha256) { throw 'Export manifest differs from the trusted AAP descriptor.' }
     $reader = New-Object System.IO.StreamReader($manifestEntry.Open())
     try { $manifest = ConvertFrom-Json -InputObject $reader.ReadToEnd() } finally { $reader.Dispose() }
-    if ($manifest.schema -ne 1 -or @($manifest.packages).Count -ne $expected.Count) {
-        throw 'Unexpected export manifest schema or package count.'
+    if ($manifest.schema -ne 1 -or @($manifest.packages).Count -ne @($expected).Count) {
+        throw "Unexpected export manifest schema or package count (schema=$($manifest.schema), exported=$(@($manifest.packages).Count), expected=$(@($expected).Count))."
     }
     $names = @('manifest.json')
     foreach ($package in $manifest.packages) {
