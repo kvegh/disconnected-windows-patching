@@ -22,6 +22,15 @@ class NexusPathValidationTests(unittest.TestCase):
             for expression in play["pre_tasks"][0]["ansible.builtin.assert"]["that"]
             if "is regex" in expression
         ]
+        import_play = yaml.safe_load(
+            (Path(__file__).resolve().parents[1] / "replicate_and_import_chocolatey.yml").read_text()
+        )[0]
+        checks.extend(
+            expression
+            for expression in import_play["tasks"][0]["ansible.builtin.assert"]["that"]
+            if "chocolatey_transfer_directory is regex" in expression
+        )
+        self.assertEqual(3, len(checks))
         cases = [
             (r"C:\Nexus", True),
             (r"C:\NexusData", True),
@@ -39,6 +48,7 @@ class NexusPathValidationTests(unittest.TestCase):
                     variables = {
                         "nexus_install_root": value,
                         "nexus_data_directory": value,
+                        "chocolatey_transfer_directory": value,
                     }
                     condition = Conditional(loader=loader)
                     condition.when = [expression]

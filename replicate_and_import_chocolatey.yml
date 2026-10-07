@@ -22,7 +22,7 @@
           - chocolatey_export_descriptor.manifest_sha256 is match('^[a-f0-9]{64}$')
           - chocolatey_export_descriptor.url == expected_export_base_url ~ chocolatey_export_descriptor.sha256 ~ '.zip'
           - chocolatey_export_descriptor.package_count | int == chocolatey_packages | length
-          - chocolatey_transfer_directory is match('^[A-Za-z]:\\[A-Za-z0-9_.\\-]+$')
+          - chocolatey_transfer_directory is regex('^[A-Za-z]:\\\\[A-Za-z0-9_.\\\\-]+$', match_type='fullmatch')
         fail_msg: Supply the trusted export descriptor; only the external Nexus export URL is accepted.
       no_log: true
 
