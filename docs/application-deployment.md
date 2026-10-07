@@ -223,3 +223,12 @@ References:
 - [Offline Chocolatey packages](https://docs.chocolatey.org/en-us/guides/create/recompile-packages/)
 - [NuGet package format](https://learn.microsoft.com/en-us/nuget/create-packages/creating-a-package)
 - [Git for Windows silent installation](https://github.com/git-for-windows/git-for-windows.github.io/blob/main/content/silent-or-unattended-installation.md)
+
+### External package upload diagnostics
+
+The external Chocolatey synchronization JT prompts for `chocolatey_no_log`,
+defaulting to `true`. Select `false` to display the upload task's HTTP status,
+error and response content. An external variable is also accepted. The native
+HTTP module masks its password argument; other credential-bearing tasks retain
+their logging protection. The survey definition is in
+`assets/chocolatey-sync-survey.json`.

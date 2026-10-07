@@ -30,12 +30,13 @@
     headers:
       Content-Type: "multipart/form-data; boundary={{ package_artifact.boundary }}"
     status_code: 204
+    return_content: true
     timeout: 300
     follow_redirects: none
     unredirected_headers: [Authorization]
   when: existing_package.json['items'] | length == 0
   changed_when: true
-  no_log: true
+  no_log: "{{ chocolatey_no_log | default(true) | bool }}"
 
 - name: Read the exact published package asset
   ansible.builtin.uri:

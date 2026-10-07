@@ -1,0 +1,17 @@
+{
+  "name": "Chocolatey synchronization diagnostics",
+  "description": "Control upload task output; credential passwords remain masked by the HTTP module.",
+  "spec": [
+    {
+      "question_name": "Hide Chocolatey upload diagnostics?",
+      "question_description": "Default true hides upload output. Select false to expose HTTP errors and response content for troubleshooting.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "chocolatey_no_log",
+      "choices": "true\nfalse",
+      "default": "true",
+      "min": 0,
+      "max": 1024
+    }
+  ]
+}
