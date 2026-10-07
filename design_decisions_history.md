@@ -33,6 +33,10 @@ Implementation: `95cbd03`. Live import verification passed, including checksum
 verification and publication to the two internal release feeds.
 Baseline installation and upgrades subsequently passed on both Windows client
 versions, including exact installed versions and the sole enabled source check.
+Fresh-environment workflow 1252 passed all 17 nodes on 2026-10-07 after guarded
+Windows-only teardown and independent preservation verification. This validates
+the combined implementation, including `4c83c87`, `aac60dd` and `95cbd03`, in a
+complete run rather than only targeted recovery jobs.
 
 ## Retrospective — Deployment and isolation
 

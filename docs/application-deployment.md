@@ -203,8 +203,12 @@ Windows Server 2022 and 2025 endnodes, verifying exact package versions and the
 selected internal feed as the only enabled source. Baseline package versions
 were 7-Zip `26.3.0` and Git `2.55.0.5`; current versions were `26.4.0` and
 `2.56.0.2`. Jobs 1214, 1216, 1221, 1224 and 1226 verified the application chain
-through targeted job templates. The original workflow remains failed and has
-not been relaunched; a complete uninterrupted workflow run remains to be tested.
+through targeted job templates. On 2026-10-07, fresh-environment workflow 1252
+subsequently passed all 17 nodes without a failed stage, including both content
+pipelines and application upgrades. Guarded destroy jobs 1233, 1235, 1240 and
+1242 removed only the four Windows clones; verification job 1250 confirmed the
+other VM definitions and states and base-image metadata matched the captured
+baseline. The workflow ran for approximately 2 hours 20 minutes.
 
 Both repository guests retain the requested demo allocation of 2 vCPUs and 8 GiB
 RAM; endnodes retain 2 vCPUs and 2 GiB RAM. Disk sizing stays unchanged. Check shared

@@ -90,6 +90,10 @@ package synchronization, export, internal import, baseline installation and
 upgrades have passed live execution on both Windows endnodes. Baseline packages
 were 7-Zip `26.3.0` and Git `2.55.0.5`; verified upgrades were 7-Zip `26.4.0`
 and Git `2.56.0.2`, using only the selected internal feed.
+On 2026-10-07, workflow 1252 passed all 17 nodes after guarded teardown and
+verification of the four Windows clones. This validates the complete fresh
+environment deployment and both content pipelines, including application
+upgrades. Windows update installation on the endnodes is a separate step.
 
 - `01-win-vm-setup.yml`: VM deployment playbook.
 - `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.
