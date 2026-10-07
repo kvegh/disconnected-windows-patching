@@ -199,6 +199,10 @@
       ansible.builtin.include_tasks: tasks/initialize_nexus_password.yml
       when: nexus_auth.status_code == 401
 
+    - name: Complete authorized Nexus Community Edition onboarding
+      ansible.builtin.import_tasks: tasks/accept_nexus_eula.yml
+      tags: [nexus_eula]
+
     - name: Read anonymous repository access settings
       ansible.windows.win_uri:
         url: "{{ nexus_api_url }}/v1/security/anonymous"

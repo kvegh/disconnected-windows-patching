@@ -232,3 +232,16 @@ error and response content. An external variable is also accepted. The native
 HTTP module masks its password argument; other credential-bearing tasks retain
 their logging protection. The survey definition is in
 `assets/chocolatey-sync-survey.json`.
+
+### Nexus Community Edition onboarding
+
+`setup_chocolatey.yml` checks EULA acceptance on both Nexus servers after
+administrator initialization. It accepts an unaccepted EULA only when the
+vaulted `nexus_eula_approved_distribution` matches the pinned distribution,
+using the exact disclaimer returned by the server, then verifies acceptance.
+The current pinned distribution has explicit user approval; a distribution
+change requires renewed approval before updating that vaulted value. Existing
+acceptance is left intact. The `nexus_eula` tag permits targeted onboarding of
+an already deployed environment through the same setup JT.
+
+This uses the supported [Sonatype EULA REST API](https://help.sonatype.com/en/eula-rest-api.html).

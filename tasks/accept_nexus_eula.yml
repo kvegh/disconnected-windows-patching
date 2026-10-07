@@ -1,0 +1,49 @@
+---
+- name: Read the current Nexus EULA acceptance state
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/system/eula"
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: nexus_eula
+  changed_when: false
+  no_log: true
+
+- name: Require explicit approval for the pinned Nexus distribution
+  ansible.builtin.assert:
+    that:
+      - nexus_eula.json.accepted | bool or nexus_eula_approved_distribution | default('') == nexus_distribution_directory
+      - nexus_eula.json.disclaimer is string
+      - nexus_eula.json.disclaimer | length > 0
+    fail_msg: Nexus EULA acceptance requires user approval for this pinned distribution.
+
+- name: Accept the approved EULA using the exact server-provided disclaimer
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/system/eula"
+    method: POST
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    content_type: application/json
+    body: "{{ {'accepted': true, 'disclaimer': nexus_eula.json.disclaimer} | to_json }}"
+    status_code: 204
+  when: not nexus_eula.json.accepted | bool
+  changed_when: true
+  no_log: true
+
+- name: Verify Nexus persisted EULA acceptance
+  ansible.windows.win_uri:
+    url: "{{ nexus_api_url }}/v1/system/eula"
+    url_username: "{{ nexus_admin_username }}"
+    url_password: "{{ nexus_admin_password }}"
+    force_basic_auth: true
+    return_content: true
+  register: nexus_eula_verified
+  changed_when: false
+  no_log: true
+
+- name: Require accepted Nexus EULA before repository transfers
+  ansible.builtin.assert:
+    that: nexus_eula_verified.json.accepted | bool
+    success_msg: Nexus EULA acceptance is verified.
