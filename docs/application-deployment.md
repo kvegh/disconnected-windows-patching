@@ -191,13 +191,20 @@ installers were downloaded and their pinned hashes verified; deterministic
 packages and the approximately 135 MB export archive were exercised with them.
 Local syntax checking passed for setup and all five application stages.
 
-Live Nexus import and endnode upgrades remain unvalidated. The latest complete
-environment deployment stopped during Windows 2025 network configuration before
-WSUS/Chocolatey setup. The network launcher was corrected to use Windows Task
-Scheduler after a SYSTEM token-creation error; a visible-log Windows Server 2025
-test passed static configuration and reconnection. Full service setup remains to
-be exercised in the fresh workflow. VM creation succeeded. Historical WinRM connectivity and WSUS configuration were
-validated before the teardown/redeployment.
+Fresh VM deployment, Windows basics, service preparation, WSUS setup and the
+WSUS synchronization/export/import stages passed live execution. Nexus setup
+also passed. External application synchronization initially stopped because
+Nexus required EULA acceptance. Approved, version-scoped onboarding now runs in
+`setup_chocolatey.yml`; both servers passed it. Targeted external synchronization,
+export and internal import subsequently passed, including all package checksums.
+The import rerun verified the Windows JSON-array correction documented in
+`design_decisions_history.md`. Baseline installation and upgrades passed on both
+Windows Server 2022 and 2025 endnodes, verifying exact package versions and the
+selected internal feed as the only enabled source. Baseline package versions
+were 7-Zip `26.3.0` and Git `2.55.0.5`; current versions were `26.4.0` and
+`2.56.0.2`. Jobs 1214, 1216, 1221, 1224 and 1226 verified the application chain
+through targeted job templates. The original workflow remains failed and has
+not been relaunched; a complete uninterrupted workflow run remains to be tested.
 
 Both repository guests retain the requested demo allocation of 2 vCPUs and 8 GiB
 RAM; endnodes retain 2 vCPUs and 2 GiB RAM. Disk sizing stays unchanged. Check shared

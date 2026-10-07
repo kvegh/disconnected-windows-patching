@@ -86,8 +86,10 @@ Decision explanations and implementation commit IDs are recorded in
 [design_decisions_history.md](design_decisions_history.md). Nexus onboarding is
 part of `setup_chocolatey.yml`: existing acceptance is retained, and initial EULA
 acceptance requires encrypted approval for the pinned distribution. External
-package synchronization and export have passed live execution; internal import
-and application deployment are being verified separately.
+package synchronization, export, internal import, baseline installation and
+upgrades have passed live execution on both Windows endnodes. Baseline packages
+were 7-Zip `26.3.0` and Git `2.55.0.5`; verified upgrades were 7-Zip `26.4.0`
+and Git `2.56.0.2`, using only the selected internal feed.
 
 - `01-win-vm-setup.yml`: VM deployment playbook.
 - `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.
