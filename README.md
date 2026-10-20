@@ -124,7 +124,12 @@ reboot-status API call. Searches now read the same Windows Update/CBS registry
 markers as the existing client inspection, preserving remote security controls.
 The install pass preserves integer retry arguments and exact-title matching
 through the pinned native module's title-plus-KB filtering representation.
-Full client Check completion and actual OS installation remain unverified.
+Normal installation has now upgraded Server 2022 to April build `20348.5020`
+with its OS and .NET updates. After a full VM restart applied 4 GiB RAM, a
+targeted normal patch job succeeded with zero remaining applicable updates and
+no pending reboot. Server 2025's download resumed after the IIS MIME repair
+and native servicing is in progress; its final baseline is still being verified.
+See the [live verification details](docs/windows-os-patching.md#references-and-verification).
 
 - `01-win-vm-setup.yml`: VM deployment playbook.
 - `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.

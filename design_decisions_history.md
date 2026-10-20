@@ -15,6 +15,13 @@ entries through the normal Setup WSUS Job Template; it does not rerun setup
 or change update approvals. PowerShell WhatIf validation passed on both servers.
 Keep the mapping inherited by WSUS, as Microsoft's deployment guidance requires.
 
+Live application through the focused normal Setup WSUS Job Template succeeded
+in 31 seconds. The client's exact payload changed from HTTP 404 to 200 with
+its expected length; both repository servers also passed HTTP verification.
+The original download retried and completed, then entered Windows servicing.
+Delivery Optimization had automatically fallen back to its offline mode;
+no additional cloud-mode policy change was needed.
+
 ## 2026-10-20 — Give managed Windows VMs 4 GiB of memory
 
 Implementation: `7e206ce`. The operator requested increasing both managed
@@ -26,6 +33,12 @@ alone keeps the old QEMU allocation. Verify both libvirt's running allocation
 and Windows-visible memory. The operator explicitly authorized this full VM
 restart. The extra memory does not establish that RAM caused every delay;
 Windows servicing and download progress need separate evidence.
+
+After Server 2022 reached the April OS and .NET baseline, its full clean VM
+stop/start applied 4 GiB, verified in libvirt and Windows. A separate normal
+targeted patch job succeeded in two minutes with no remaining updates and no
+pending reboot. Initial installation took approximately 39 minutes 49 seconds;
+the shorter run verifies the settled result and is not an installation benchmark.
 
 ## 2026-10-20 — Review all Microsoft-required and recommended reboots
 

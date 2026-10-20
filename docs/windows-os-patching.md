@@ -238,7 +238,7 @@ python3 -m unittest discover -s tests -p test_windows_patching_filters.py -v
 ```
 
 These tests do not install updates. Live Check mode validates integration;
-a normal client run is still required to validate actual OS installation.
+normal client runs provide actual OS installation evidence.
 
 Live validation on 2026-10-20 successfully published the internal April ceiling:
 four selected OS/.NET bundles were ready and approved, other catalogue entries
@@ -246,10 +246,35 @@ were declined and no selected payloads were missing. The updated client Check
 run passed internal policy and Server 2022 source validation, then stopped on
 the unreachable Server 2025 endnode. A later read-only WinRM audit reached both
 endnodes, confirmed their internal WSUS source settings and diagnosed expired
-evaluation activation grace on Server 2025. A full successful client Check run
-remains pending. Subsequently, authorized temporary connectivity activated the
+evaluation activation grace on Server 2025. Subsequently, authorized temporary connectivity activated the
 existing Server 2025 evaluation automatically, and isolation was restored as
-described above. No client update installation or reboot was run.
+described above.
+
+Subsequent normal installation upgraded Server 2022 from `20348.169` to the
+April baseline `20348.5020`, installing OS update KB5082142 and .NET bundle
+KB5084071. It reached its final verified report after about 39m49s. The original
+two-client job was canceled at its handoff after this successful client result
+to avoid overlapping the independent Server 2025 job. After a clean full VM
+stop/start applied the requested 4 GiB RAM, a separate normal targeted run
+succeeded in 2m00s: the build remained at the April baseline, no applicable
+updates remained and no reboot was pending. That second run measures a settled
+client, not the initial installation time.
+
+The Server 2025 download initially stalled because IIS returned HTTP 404 for an
+existing complete MSU. The focused Setup WSUS tag `wsus_uup_mime` added the
+server-level MSU/WIM MIME mappings through a successful normal AAP job in 31s.
+HTTP HEAD then returned 200 with the exact expected file length from the client
+and both repository servers. The original download retried and completed;
+Delivery Optimization's log recorded 25%, 50%, 75%, 95% and completion, followed
+by active Windows servicing. No network isolation change or download service
+reset was needed. Final Server 2025 baseline and reboot verification is pending.
+
+When a newer client stays at zero download progress, check that the actual
+payload is served through IIS as well as present on disk. Microsoft's required
+[UUP MIME mappings](https://learn.microsoft.com/en-us/windows-server/administration/windows-server-update-services/plan/plan-your-wsus-deployment#manually-add-the-required-mime-types-for-uup)
+are configured by `setup_wsus.yml`. `Get-DeliveryOptimizationStatus` and
+`Get-DeliveryOptimizationLog` expose download state and retry errors; a completed
+download is separate from successful update installation and the final build.
 
 ## Measured job runtimes
 
