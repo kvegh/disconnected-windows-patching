@@ -1,5 +1,28 @@
 # Design decisions history
 
+## 2026-10-20 — Establish the managed WSUS source before activation connectivity
+
+Fix: `f198c25`. Review identified Microsoft's documented prerequisite for the
+Internet-update-location restriction: the client must be configured for an
+intranet WSUS source. Fresh clones reach activation before WSUS setup, so the
+restriction alone is insufficient evidence of source isolation. Unlicensed
+managed clients now fill missing source URLs from the existing encrypted
+internal WSUS URL and enable that source before temporary connectivity. Preserve
+matching URLs and reject explicitly conflicting URLs before any policy write or
+network change. Already-licensed guests retain their read-only skip path.
+Repository roles preserve their existing OS update source and use the automatic
+updates policy as their automatic-update guard.
+
+Treat an existing default route as connected access only when the protected
+permanent adapter mapping also includes the approved connected libvirt network.
+An arbitrary route on an isolated adapter does not skip temporary NIC handling.
+
+Validation: twelve Python tests pass, including fresh managed source setup before
+exposure, conflict refusal without writes, matching-source preservation, and
+connected-network classification, alongside the existing failure and unreachable
+cleanup cases. YAML lint and syntax checking in the existing supported execution
+environment pass. No live guest or workflow was changed for this review fix.
+
 ## 2026-10-20 — Activate each evaluation clone before disconnected deployment continues
 
 Implementation: `88b307b`. The operator requested that both Windows versions
