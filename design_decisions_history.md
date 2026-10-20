@@ -1,5 +1,22 @@
 # Design decisions history
 
+## 2026-10-20 — Make installed patch assessment repeatable
+
+Implementation: `1d05660`. The operator requested reproducible Ansible tasks and
+a check of both managed endnodes against April 2026. Add a dedicated read-only
+playbook and PowerShell reader, using the installed OS build and revision as
+the primary cumulative-update evidence. Compare against Microsoft's published
+April monthly builds and retain exact installed hotfix identifiers separately,
+because supersedence can remove an older KB from the installed list.
+
+Report April .NET component KB matches without inferring absence of their fixes
+when an exact KB is missing. Preserve pending-reboot evidence, distinguish a
+newer OS revision from the exact requested baseline, and fail on unsupported
+OS builds or inaccessible nodes. Protect detailed results by default and retain
+them in authenticated AAP artifacts for before-and-after comparisons. This stage
+does not scan, approve, install, reboot or start VMs. Applicability assessment,
+older-baseline content selection and internal approval remain separate work.
+
 ## 2026-10-20 — Suggest SSH-tunneled VNC for demonstration access
 
 Documentation: `e8d1665`. The operator requested a saved suggestion for reaching
