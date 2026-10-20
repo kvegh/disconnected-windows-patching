@@ -1,5 +1,20 @@
 # Design decisions history
 
+## 2026-10-20 — Keep policy-only changes on internal WSUS
+
+Implementation: `257f5bf`. When all selected baseline files already exist at the
+expected lengths internally, skip external preparation, export and replication.
+Only reconcile the internal approval policy. Missing or incomplete payloads still
+use the existing verified transfer pipeline. This avoids unnecessary repository
+hashing when merely selecting an already available month.
+
+The native Ansible expression engine verified that complete content skips all
+three transfer stages and missing content enables them. The first live April
+publish, using the earlier implementation, also completed successfully: both OS
+and .NET baselines were ready, four bundles were offered, the remaining catalogue
+entries were declined, automatic approvals were disabled and no payloads were
+missing. This did not install updates on managed endnodes.
+
 ## 2026-10-20 — Remove redundant full-payload checksum passes
 
 Implementation: `63f4f1f`. The operator requested removal of excessive checksumming
