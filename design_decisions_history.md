@@ -1,5 +1,17 @@
 # Design decisions history
 
+## 2026-10-20 — Give managed Windows VMs 4 GiB of memory
+
+Implementation: `7e206ce`. The operator requested increasing both managed
+Windows VMs from 2 GiB to 4 GiB after investigating slow patching. Increase
+the deployment default and both existing persistent libvirt memory limits.
+Apply existing-VM changes through a clean shutdown and a fresh VM start after
+the affected client's update operation has safely finished. A guest reboot
+alone keeps the old QEMU allocation. Verify both libvirt's running allocation
+and Windows-visible memory. The operator explicitly authorized this full VM
+restart. The extra memory does not establish that RAM caused every delay;
+Windows servicing and download progress need separate evidence.
+
 ## 2026-10-20 — Review all Microsoft-required and recommended reboots
 
 Planning update: `5e19299`. The operator requested an explicit TODO to verify
