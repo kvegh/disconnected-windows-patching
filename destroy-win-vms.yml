@@ -70,6 +70,8 @@
       ansible.builtin.stat:
         path: "{{ vm_disk_path }}"
         follow: false
+        get_checksum: false
+        get_mime: false
       register: clone_disk
 
     - name: Refuse missing or symlinked clone disks

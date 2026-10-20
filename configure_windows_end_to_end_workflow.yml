@@ -1,0 +1,179 @@
+---
+- name: Order the existing Windows workflow through OS patching and application upgrades
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    windows_e2e_ceiling_identifier: set-internal-wsus-patch-ceiling
+    windows_e2e_patch_identifiers: [patch-server-2022, patch-server-2025]
+    windows_e2e_required_nodes:
+      - configure-windows-server-basics
+      - activate-windows-evaluations
+      - prepare-repository-servers
+      - replicate-and-import-wsus
+      - replicate-and-import-chocolatey
+      - deploy-baseline-applications
+      - upgrade-applications
+    windows_e2e_patch_limits:
+      - "{{ windows_e2e_target_2022 }}"
+      - "{{ windows_e2e_target_2025 }}"
+  module_defaults:
+    group/ansible.controller.controller:
+      controller_host: "{{ wsus_controller_host | default(omit) }}"
+      controller_oauthtoken: "{{ wsus_controller_token | default(omit) }}"
+      validate_certs: true
+  tasks:
+    - name: Require the selected workflow and existing patch template references
+      ansible.builtin.assert:
+        that:
+          - windows_e2e_workflow | default('') | string is match('^[0-9]+$')
+          - windows_e2e_ceiling_template | default('') | string is match('^[0-9]+$')
+          - windows_e2e_patching_template | default('') | string is match('^[0-9]+$')
+          - windows_e2e_target_2022 | default('') is match('^[A-Za-z0-9_.-]+:wsus_internal$')
+          - windows_e2e_target_2025 | default('') is match('^[A-Za-z0-9_.-]+:wsus_internal$')
+          - windows_e2e_target_2022 != windows_e2e_target_2025
+          - windows_e2e_patch_month | default('April 2026') == 'April 2026'
+        fail_msg: Supply exact Windows workflow/template references, two disjoint host limits and the April 2026 baseline.
+      no_log: true
+
+    - name: Refuse group-wide managed patch limits
+      ansible.builtin.assert:
+        that: item.split(':')[0] not in ['all', 'windows', 'windows_managed', 'wsus_internal', 'wsus_external', 'hypervisor']
+      loop: "{{ windows_e2e_patch_limits }}"
+      no_log: true
+
+    - name: Read the selected workflow before changing its content handoff
+      ansible.builtin.set_fact:
+        windows_e2e_existing_nodes: >-
+          {{ query('ansible.controller.controller_api', 'workflow_job_template_nodes',
+                    host=wsus_controller_host | default(omit),
+                    oauth_token=wsus_controller_token | default(omit),
+                    verify_ssl=true, return_all=true,
+                    query_params={'workflow_job_template': windows_e2e_workflow | string}) }}
+      no_log: true
+
+    - name: Require the known deployment and application stages
+      ansible.builtin.assert:
+        that: windows_e2e_existing_nodes | selectattr('identifier', 'equalto', item) | list | length == 1
+        fail_msg: The selected workflow lacks an expected Windows stage.
+      loop: "{{ windows_e2e_required_nodes }}"
+      no_log: true
+
+    - name: Refuse to replace an unexpected import successor
+      ansible.builtin.assert:
+        that: current_success in item.allowed
+        fail_msg: An import has an unexpected successor; review the workflow before changing it.
+      vars:
+        selected: "{{ windows_e2e_existing_nodes | selectattr('identifier', 'equalto', item.identifier) | first }}"
+        current_success: >-
+          {{ query('ansible.controller.controller_api',
+                    'workflow_job_template_nodes/' ~ selected.id ~ '/success_nodes/',
+                    host=wsus_controller_host | default(omit),
+                    oauth_token=wsus_controller_token | default(omit),
+                    verify_ssl=true, return_all=true) | map(attribute='identifier') | sort }}
+      loop:
+        - identifier: replicate-and-import-wsus
+          allowed: [[], ["{{ windows_e2e_ceiling_identifier }}"]]
+        - identifier: replicate-and-import-chocolatey
+          allowed: [[deploy-baseline-applications], ["{{ windows_e2e_ceiling_identifier }}"]]
+      no_log: true
+
+    - name: Create the monthly ceiling stage with both imports required
+      ansible.controller.workflow_job_template_node:
+        workflow_job_template: "{{ windows_e2e_workflow | string }}"
+        identifier: "{{ windows_e2e_ceiling_identifier }}"
+        unified_job_template: "{{ windows_e2e_ceiling_template | string }}"
+        all_parents_must_converge: true
+        extra_data:
+          wsus_patch_month: "{{ windows_e2e_patch_month | default('April 2026') }}"
+        state: present
+      no_log: true
+
+    - name: Create two independent host-limited patch jobs before baseline applications
+      ansible.controller.workflow_job_template_node:
+        workflow_job_template: "{{ windows_e2e_workflow | string }}"
+        identifier: "{{ item.0 }}"
+        unified_job_template: "{{ windows_e2e_patching_template | string }}"
+        limit: "{{ item.1 }}"
+        all_parents_must_converge: true
+        success_nodes: [deploy-baseline-applications]
+        failure_nodes: []
+        always_nodes: []
+        state: present
+      loop: "{{ windows_e2e_patch_identifiers | zip(windows_e2e_patch_limits) | list }}"
+      no_log: true
+
+    - name: Require both patched hosts before baseline installation
+      ansible.controller.workflow_job_template_node:
+        workflow_job_template: "{{ windows_e2e_workflow | string }}"
+        identifier: deploy-baseline-applications
+        all_parents_must_converge: true
+        success_nodes: [upgrade-applications]
+        state: present
+      no_log: true
+
+    - name: Start both patch jobs only after the monthly ceiling succeeds
+      ansible.controller.workflow_job_template_node:
+        workflow_job_template: "{{ windows_e2e_workflow | string }}"
+        identifier: "{{ windows_e2e_ceiling_identifier }}"
+        success_nodes: "{{ windows_e2e_patch_identifiers }}"
+        failure_nodes: []
+        always_nodes: []
+        state: present
+      no_log: true
+
+    - name: Route both completed imports into the common monthly ceiling
+      ansible.controller.workflow_job_template_node:
+        workflow_job_template: "{{ windows_e2e_workflow | string }}"
+        identifier: "{{ item }}"
+        success_nodes: ["{{ windows_e2e_ceiling_identifier }}"]
+        state: present
+      loop: [replicate-and-import-wsus, replicate-and-import-chocolatey]
+      no_log: true
+
+    - name: Read the resulting workflow for independent ordering verification
+      ansible.builtin.set_fact:
+        windows_e2e_final_nodes: >-
+          {{ query('ansible.controller.controller_api', 'workflow_job_template_nodes',
+                    host=wsus_controller_host | default(omit),
+                    oauth_token=wsus_controller_token | default(omit),
+                    verify_ssl=true, return_all=true,
+                    query_params={'workflow_job_template': windows_e2e_workflow | string}) }}
+      no_log: true
+
+    - name: Verify every changed success edge from the controller
+      ansible.builtin.assert:
+        that: actual_success == item.success | sort
+        fail_msg: Controller workflow ordering does not match the required end-to-end sequence.
+      vars:
+        selected: "{{ windows_e2e_final_nodes | selectattr('identifier', 'equalto', item.identifier) | first }}"
+        actual_success: >-
+          {{ query('ansible.controller.controller_api',
+                    'workflow_job_template_nodes/' ~ selected.id ~ '/success_nodes/',
+                    host=wsus_controller_host | default(omit),
+                    oauth_token=wsus_controller_token | default(omit),
+                    verify_ssl=true, return_all=true) | map(attribute='identifier') | sort }}
+      loop:
+        - identifier: replicate-and-import-wsus
+          success: ["{{ windows_e2e_ceiling_identifier }}"]
+        - identifier: replicate-and-import-chocolatey
+          success: ["{{ windows_e2e_ceiling_identifier }}"]
+        - identifier: "{{ windows_e2e_ceiling_identifier }}"
+          success: "{{ windows_e2e_patch_identifiers }}"
+        - identifier: patch-server-2022
+          success: [deploy-baseline-applications]
+        - identifier: patch-server-2025
+          success: [deploy-baseline-applications]
+        - identifier: deploy-baseline-applications
+          success: [upgrade-applications]
+      no_log: true
+
+    - name: Verify both common stages require every parent to succeed
+      ansible.builtin.assert:
+        that: (windows_e2e_final_nodes | selectattr('identifier', 'equalto', item) | first).all_parents_must_converge | bool
+      loop: ["{{ windows_e2e_ceiling_identifier }}", deploy-baseline-applications]
+      no_log: true
+
+    - name: Report verified end-to-end ordering
+      ansible.builtin.debug:
+        msg: Both imports -> April 2026 internal ceiling -> independent Windows patch jobs -> baseline applications -> upgraded applications.

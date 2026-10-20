@@ -32,7 +32,12 @@ flowchart TD
     C --> S[Synchronize external Chocolatey repo]
     S --> E[Export packages and share ZIP through external Nexus HTTP]
     E --> I[Internal server pulls, verifies and imports archive]
-    I --> O[Deploy applications from baseline feed]
+    WP --> M[Apply April 2026 internal WSUS ceiling; require both imports]
+    I --> M
+    M --> P22[Patch Server 2022 through required reboot cycles]
+    M --> P25[Patch Server 2025 through required reboot cycles]
+    P22 --> O[Deploy applications from baseline feed; require both patch jobs]
+    P25 --> O
     O --> U[Switch to current feed and upgrade applications]
 ```
 
@@ -40,7 +45,10 @@ Every edge requires success. Four VM jobs converge before Windows basics and
 the separate [evaluation activation stage](windows-evaluation-activation.md). WSUS and
 Chocolatey setup run in parallel after the feature/MSI/reboot preparation barrier.
 The workflow deploys new clones; use individual configuration templates for
-existing VMs. Application stages do not patch Windows through WSUS.
+existing VMs. After both imports, the workflow applies the internal April 2026
+ceiling and runs separate host-limited OS patch jobs. Both must succeed before
+baseline application deployment, then upgrade. Application stages themselves
+do not patch Windows through WSUS.
 
 ## Targeted content
 

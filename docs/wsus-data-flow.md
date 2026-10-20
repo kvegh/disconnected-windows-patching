@@ -34,11 +34,20 @@ flowchart TD
   C --> CS[Synchronize selected external application packages]
   CS --> CE[Export and share application archive]
   CE --> CI[Internal application pull and import]
-  CI --> CB[Install baseline applications]
+  I --> M[Apply April 2026 internal WSUS ceiling; require both imports]
+  CI --> M
+  M --> U22[Patch Server 2022 through required reboot cycles]
+  M --> U25[Patch Server 2025 through required reboot cycles]
+  U22 --> CB[Install baseline applications; require both patch jobs]
+  U25 --> CB
   CB --> CU[Switch feed and upgrade applications]
 ```
 
-All arrows are success transitions. The [activation stage](windows-evaluation-activation.md)
+All arrows are success transitions. Both imports must finish before the internal
+cutoff; both independent patch jobs must finish before baseline applications.
+`configure_windows_end_to_end_workflow.yml` configures and reads back those edges
+with native controller modules, including both convergence requirements.
+The [activation stage](windows-evaluation-activation.md)
 uses its approved encrypted inputs and verifies licensing and original topology
 before repository preparation. The two setup branches run concurrently after
 the preparation stage finishes feature/MSI installation and all required reboots.

@@ -161,6 +161,7 @@ See the [live verification details](docs/windows-os-patching.md#references-and-v
 - `01-win-vm-setup.yml`: VM deployment playbook.
 - `activate_windows_evaluations.yml`: verify or activate each clone and restore its exact original topology.
 - `configure_windows_activation_template.yml`: add the activation template between Windows basics and repository preparation.
+- `configure_windows_end_to_end_workflow.yml`: join both imports, enforce April 2026, patch hosts independently, then install baseline applications and upgrade them.
 - `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.
 - `setup_wsus.yml`: WSUS installation, initialization and client update policies.
 - `setup_chocolatey.yml`: Nexus services, hosted feeds, and Chocolatey clients.
@@ -253,9 +254,15 @@ parallel and waits for all four to succeed before Windows basics. Evaluation
 activation and topology verification then run before the preparation stage
 completes feature/MSI installation and reboots. WSUS setup and Chocolatey/Nexus
 setup then run in parallel. The Chocolatey branch proceeds through external package
-synchronization, HTTP export, internal import, baseline installation and upgrade.
+synchronization, HTTP export and internal import.
 The WSUS branch continues through prerequisite checks,
-synchronization, export, and replication/import. Each transition requires success.
+synchronization, export, and replication/import. Both imports converge before the
+April 2026 internal ceiling. Two disjoint host-limited patch jobs run in parallel;
+both must succeed before baseline application installation and the subsequent
+upgrade. Each transition requires success. Reproduce this handoff with
+`configure_windows_end_to_end_workflow.yml`, supplying protected workflow/template
+references and two exact `HOST:wsus_internal` limits. Managed clones default to
+4096 MiB RAM; deployment and guest inspection verify the actual allocation.
 See [WSUS data flow](docs/wsus-data-flow.md) for the full graph and inputs.
 Use an individual configuration template to reconfigure existing VMs; rerunning
 the deployment workflow attempts creation and its existing-VM guard will stop it.
@@ -456,8 +463,11 @@ its expected clone disk. Base images and shared networks are preserved.
 Older unmarked VMs or disks using the earlier naming scheme are refused and need
 manual review. A missing domain also fails rather than deleting an orphan disk.
 Additional writable disks, unusual NVRAM paths, snapshots that prevent undefining,
-or other libvirt errors stop teardown. Check mode performs inspection and does
-not stop, undefine, or delete anything. No teardown has been live-tested or run.
+or other libvirt errors stop teardown. File checks inspect metadata without
+hashing the entire VM disk; content hashes do not establish deletion ownership.
+Check mode performs inspection and does not stop, undefine, or delete anything.
+Guarded teardown and independent preservation verification passed before the
+2026-10-07 fresh deployment; the new end-to-end test repeats them.
 
 ```bash
 ansible-playbook -i inventory.ini destroy-win-vms.yml --syntax-check

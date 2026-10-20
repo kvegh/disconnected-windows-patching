@@ -86,6 +86,8 @@
       ansible.builtin.stat:
         path: "{{ vm_dir }}/win-{{ item }}-clone.disk.qcow2"
         follow: false
+        get_checksum: false
+        get_mime: false
       loop: "{{ windows_demo_vm_names }}"
       register: clone_files
 
