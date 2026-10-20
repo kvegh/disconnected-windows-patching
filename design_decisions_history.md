@@ -1,5 +1,14 @@
 # Design decisions history
 
+## 2026-10-20 — Verify existing files during a real Ansible dry run
+
+Fix: `5062c74`. AAP Check mode incorrectly counted existing WSUS files as missing.
+A targeted Windows test reproduced the issue under the actual Ansible Check
+context: `Get-FileHash` returned no hash despite valid files and expected SHA1s.
+Read file streams through .NET for SHA1 verification instead, retaining file
+length and filename-hash checks without changing WhatIf settings. Real Ansible
+Check-mode probes passed on both repository servers and changed no WSUS state.
+
 ## 2026-10-20 — Keep repeated client preflights practical and stable
 
 Fix: `d490042`. Windows PowerShell 5.1 does not sort hashtable keys using a named
