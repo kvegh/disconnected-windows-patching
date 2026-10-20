@@ -89,7 +89,9 @@ isolation separately; this playbook does not create networks or firewall rules.
 ## Layout and validation
 
 Decision explanations and implementation commit IDs are recorded in
-[design_decisions_history.md](design_decisions_history.md). Nexus onboarding is
+[design_decisions_history.md](design_decisions_history.md). Pending reviews,
+including Microsoft-required and recommended reboots, are tracked in
+[TODO.md](TODO.md). Nexus onboarding is
 part of `setup_chocolatey.yml`: existing acceptance is retained, and initial EULA
 acceptance requires encrypted approval for the pinned distribution. External
 package synchronization, export, internal import, baseline installation and

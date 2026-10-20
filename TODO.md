@@ -10,6 +10,17 @@
   content. Include controller configuration, content transfer and client patching.
 - Document the resulting module/dependency map and remaining replacements.
 
+## Verify Microsoft reboot guidance during patching
+
+- Check that server patching performs every reboot required or recommended by
+  Microsoft for the selected updates and prerequisites, before, within and after
+  installation rounds.
+- Verify native `win_updates` handling within a batch and the playbook's later
+  rescan/reboot passes against applicable Microsoft guidance on both supported
+  Windows Server versions.
+- Record update KBs, reboot triggers and counts, and final pending-reboot state.
+  Add focused regression coverage for any gaps found during the review.
+
 ## Permanent IP and MAC assignments
 
 - Define permanent addresses for every demo VM and every relevant NIC, including
