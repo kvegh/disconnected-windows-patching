@@ -1,5 +1,28 @@
 # Design decisions history
 
+## 2026-10-20 — Suggest SSH-tunneled VNC for demonstration access
+
+Documentation: `e8d1665`. The operator requested a saved suggestion for reaching
+the Windows GUI from a Linux laptop and showing that upgrades worked. Recommend
+the existing loopback VNC consoles through the operator's authorized SSH route.
+This builds on the VNC deployment choice in `fc8ac60` and reaches the guest
+display independently of its isolated network.
+
+The guide resolves console endpoints at demonstration time because ports are
+assigned automatically. Read-only hypervisor inspection verified the console
+configuration and an active endpoint. The end-to-end laptop connection, SSH
+forwarding permission and Desktop Experience installation remain unverified.
+The suggestion does not enable RDP or deploy a browser console.
+
+Show OS builds and Windows Update installation events as patch evidence, since
+Settings history can omit updates installed through Windows Update Agent APIs.
+Show application versions separately. Proposed OS levels X and X+1 use pinned
+cumulative updates and expected builds for repeatability; date-based selection
+must distinguish metadata revision dates from local arrival dates. The older
+baseline and its prerequisites may need explicit download and retention.
+These are documented suggestions; client assessment, approval and OS patch
+installation automation remain future work.
+
 ## 2026-10-06 — Approved Nexus onboarding
 
 Keep EULA acceptance in the Nexus installation playbook. Check the existing
