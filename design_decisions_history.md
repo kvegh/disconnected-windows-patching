@@ -1,5 +1,22 @@
 # Design decisions history
 
+## 2026-10-20 — Accept a hypervisor host alias during activation preflight
+
+Fix: `62d501e`. The first deployed Check run stopped at the activation
+configuration assertion, before reaching a guest or changing anything. Protected
+inventory inspection confirmed a hypervisor host alias exists but no same-named
+group exists; approval, credentials and the four unique clone mappings were
+present. The assertion wrongly counted group members even though the play's
+host pattern correctly matched the host alias.
+
+Validate that the resolved play contains exactly one hypervisor instead of
+requiring a particular group structure. Keep approval and protected configuration
+guards unchanged. Fifteen tests pass, including real Ansible preflight checks
+for a host-only alias, rejection of a group resolving to multiple hosts, and
+continued rejection without explicit activation approval. YAML lint passes.
+Root will repeat the deployed Check run after project synchronization; source
+regression validation alone is not a live deployment result.
+
 ## 2026-10-20 — Establish the managed WSUS source before activation connectivity
 
 Fix: `f198c25`. Review identified Microsoft's documented prerequisite for the
