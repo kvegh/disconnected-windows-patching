@@ -1,5 +1,28 @@
 # Design decisions history
 
+## 2026-10-20 — Offer named monthly Windows baselines
+
+Implementation: `eae5cbd`. The operator requested a survey-driven internal WSUS
+ceiling and reproducible Ansible automation. Use month names in the survey and
+canonical release months internally. Prepare exact OS cumulative releases,
+the latest eligible .NET releases and their prerequisites before approving them
+internally. Existing export and verified internal pull/import stages are reused.
+Budget missing files rather than all files, preserving downloaded content.
+
+Decline unselected catalogue entries server-wide so later updates are not
+offered for evaluation, and disable automatic approval paths. Save the verified
+policy and reconcile it after later imports because WSUS has no native durable
+month-filter setting. Unknown release identities, expired content, ambiguous
+bundles, missing files and unaccepted license agreements stop the operation.
+Check mode provides a read-only plan; this stage never patches endnodes.
+
+Keep the Job Template, credential associations and named-month survey in an
+Ansible controller configuration playbook. Its controller collection dependency
+is separate from the Windows runtime dependencies. Add a TODO to review every
+non-native-module dependency and whether supported Ansible content can replace
+it. Windows execution validated the PowerShell parser and selection regression
+checks before deployment; live policy validation is recorded separately.
+
 ## 2026-10-20 — Compare WSUS approvals with Satellite content lifecycles
 
 Documentation: `578bedd`. The operator requested a public comparison of patching,
