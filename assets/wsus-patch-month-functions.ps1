@@ -101,21 +101,8 @@ function Get-WsusPatchMonthPlan {
         Explicit = $explicit; Blocked = $blocked }
 }
 
-function Get-WsusReadOnlyFileSha1 {
-    param([string]$LiteralPath)
-    # Get-FileHash can emit no hash under the module's CHECK/WhatIf context.
-    # Read explicitly through .NET without changing the caller's WhatIf policy.
-    $algorithm = [Security.Cryptography.SHA1]::Create()
-    try {
-        $stream = [IO.File]::OpenRead($LiteralPath)
-        try {
-            return [BitConverter]::ToString($algorithm.ComputeHash($stream)).Replace('-', '')
-        } finally { $stream.Dispose() }
-    } finally { $algorithm.Dispose() }
-}
-
 function Get-WsusPatchMonthContent {
-    param([hashtable]$Plan, [bool]$VerifyHashes = $true)
+    param([hashtable]$Plan)
     $content = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup').ContentDir.TrimEnd('\')
     if ((Split-Path $content -Leaf) -ne 'WsusContent') { $content = Join-Path $content 'WsusContent' }
     $files = @{}
@@ -127,13 +114,11 @@ function Get-WsusPatchMonthContent {
                 if ($relative -notmatch '^[A-Fa-f0-9]{2}/(?<hash>[A-Fa-f0-9]{40})\.[A-Za-z0-9]+$') {
                     throw 'An unexpected WSUS content path cannot be verified safely.'
                 }
-                $expectedHash = $Matches.hash
                 $path = Join-Path $content $relative.Replace('/', '\')
                 $matching = (Test-Path -LiteralPath $path -PathType Leaf) -and
                     (Get-Item -LiteralPath $path).Length -eq [long]$file.TotalBytes
-                if ($matching -and $VerifyHashes) {
-                    $matching = (Get-WsusReadOnlyFileSha1 -LiteralPath $path) -eq $expectedHash
-                }
+                # WSUS readiness and transfer verification establish integrity.
+                # Policy and disk-budget checks only need existence and length.
                 $files[$relative] = @{ Path = $path; Bytes = [long]$file.TotalBytes; Present = [bool]$matching }
             }
         }
@@ -200,6 +185,6 @@ function Get-WsusPatchMonthPolicyViolations {
         $problems.Add('automatic-approval-rule')
     }
     if ($Server.GetSubscription().SynchronizeAutomatically) { $problems.Add('scheduled-synchronization') }
-    if ($Content.MissingBytes -gt 0) { $problems.Add('missing-verified-content') }
+    if ($Content.MissingBytes -gt 0) { $problems.Add('missing-or-incomplete-content') }
     return @($problems.ToArray())
 }

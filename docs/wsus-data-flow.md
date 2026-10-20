@@ -136,13 +136,16 @@ Actual update bytes flow external-to-internal, never through AAP.
 Manifest schema, paths, duplicate entries, hashes and disk space are checked before
 transfer. Internal languages and express settings are reconciled to the export,
 and automatic synchronization stays disabled. `win_file` creates content
-subdirectories; `win_get_url` downloads missing/mismatched files with SHA256
-verification and preserves WSUS's relative directory structure. Matching files
-are not downloaded again. Downloads are made directly into `WsusContent` to avoid
+subdirectories. Preparation verifies existing files once and returns only missing
+or mismatched entries to `win_get_url`, which verifies downloaded files with SHA256
+and preserves WSUS's relative directory structure. Matching files are neither
+downloaded nor hashed a second time. Downloads go directly into `WsusContent` to avoid
 a second full copy on the internal disk. Proxy use and HTTP redirects are disabled.
 
 After all content is verified, metadata is downloaded and checked, then
-`WSUSutil.exe import` runs locally on internal WSUS. Successful import is recorded
+`WSUSutil.exe import` runs locally on internal WSUS. Import checks that content is
+still present at the expected lengths, without repeating the verified transfer's
+payload checksums. Successful import is recorded
 with a checksum marker, using `win_copy`; repeating the same snapshot verifies
 content and skips the already imported metadata. Every selected update revision
 must exist in the internal database before the marker is written. No internal

@@ -9,10 +9,11 @@ if ((Get-FileHash -LiteralPath $metadata -Algorithm SHA256).Hash.ToLowerInvarian
     throw 'Metadata checksum differs from the verified manifest.'
 }
 foreach ($file in $manifest.files) {
+    # Existing files were verified during preparation; downloaded files were
+    # verified by win_get_url. Do not hash the entire content tree a second time.
     $destination = Join-Path $ContentPath $file.relativePath
-    if (-not (Test-Path -LiteralPath $destination) -or (Get-Item $destination).Length -ne $file.length -or
-        (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant() -ne $file.sha256) {
-        throw 'An update file is missing or corrupt. Metadata import was not started.'
+    if (-not (Test-Path -LiteralPath $destination) -or (Get-Item $destination).Length -ne $file.length) {
+        throw 'A transferred update file is missing or incomplete. Metadata import was not started.'
     }
 }
 Import-Module UpdateServices

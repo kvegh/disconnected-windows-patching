@@ -85,6 +85,7 @@
     - name: Validate manifest, matching settings and disk budget before transfer
       ansible.windows.win_powershell:
         error_action: stop
+        depth: 5
         path: assets/prepare-wsus-import.ps1
         parameters:
           ManifestPath: "{{ wsus_import_root }}\\{{ wsus_snapshot_reference.snapshot }}\\manifest.json"
@@ -109,7 +110,9 @@
         use_proxy: false
         follow_redirects: none
         url_timeout: "{{ wsus_transfer_timeout | int }}"
-      loop: "{{ wsus_manifest.files }}"
+      # Preparation already verified existing matching files. Only missing or
+      # mismatched files need the downloader's checksum verification.
+      loop: "{{ wsus_import_preparation.result.FilesToDownload }}"
       loop_control:
         label: "{{ item.relativePath }}"
       no_log: "{{ wsus_no_log | bool }}"
@@ -126,7 +129,7 @@
         url_timeout: "{{ wsus_transfer_timeout | int }}"
       no_log: "{{ wsus_no_log | bool }}"
 
-    - name: Verify content and import WSUS metadata after all downloads
+    - name: Import WSUS metadata after the verified transfer
       ansible.windows.win_powershell:
         error_action: stop
         path: assets/import-wsus-metadata.ps1

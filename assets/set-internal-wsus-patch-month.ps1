@@ -5,14 +5,10 @@ param(
     [string[]]$Products,
     [string[]]$Classifications,
     [hashtable]$PrerequisiteMonths = @{},
-    [switch]$ValidatePolicy,
-    [bool]$VerifyContentHashes = $true
+    [switch]$ValidatePolicy
 )
 $ErrorActionPreference = 'Stop'
 $Ansible.Changed = $false
-if (-not $ValidatePolicy -and -not $VerifyContentHashes) {
-    throw 'Changing the WSUS ceiling always requires full content hash verification.'
-}
 . ([scriptblock]::Create($FunctionsSource))
 Import-Module UpdateServices
 $server = Get-WsusServer
@@ -28,7 +24,7 @@ if ([string]$subscription.GetSynchronizationStatus() -ne 'NotProcessing') {
     throw 'Wait for active WSUS synchronization before enforcing the ceiling.'
 }
 $plan = Get-WsusPatchMonthPlan $server $Month $Products $Classifications $PrerequisiteMonths
-$content = Get-WsusPatchMonthContent $plan -VerifyHashes $VerifyContentHashes
+$content = Get-WsusPatchMonthContent $plan
 $summary = Get-WsusPatchMonthSummary $plan $content
 $summary.enabled_automatic_rules = @($server.GetInstallApprovalRules() | Where-Object Enabled).Count
 $summary.updates_needing_decline = @($plan.Blocked | Where-Object { -not $_.IsDeclined }).Count
@@ -48,7 +44,7 @@ if ($summary.pending_license_updates.Count -gt 0) {
     throw 'A selected update requires separate license review and acceptance. No approval policy changes were applied.'
 }
 if ($content.MissingBytes -gt 0) {
-    throw 'The baseline is missing verified internal payloads. Prepare, export and import it before applying the ceiling.'
+    throw 'The baseline has missing or incomplete internal payloads. Prepare, export and import it before applying the ceiling.'
 }
 $allComputersId = [guid]'a0a08746-4dbe-4a37-9adf-9e7652c0b421'
 $groups = @($server.GetComputerTargetGroups() | Where-Object { $_.Id -eq $allComputersId })

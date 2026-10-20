@@ -22,6 +22,7 @@ if ((Split-Path $content -Leaf) -ne 'WsusContent') { $content = Join-Path $conte
 if (-not (Test-Path -LiteralPath $content)) { throw 'Internal update content directory is missing.' }
 $paths = @{}
 $directories = @{}
+$downloads = @()
 $requiredBytes = [long]$manifest.metadata.length
 foreach ($file in $manifest.files) {
     if ($file.relativePath -notmatch '^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$' -or
@@ -38,7 +39,10 @@ foreach ($file in $manifest.files) {
     $matching = (Test-Path -LiteralPath $destination) -and
         (Get-Item $destination).Length -eq $file.length -and
         (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant() -eq $file.sha256
-    if (-not $matching) { $requiredBytes += [long]$file.length }
+    if (-not $matching) {
+        $requiredBytes += [long]$file.length
+        $downloads += $file
+    }
 }
 $drive = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$([IO.Path]::GetPathRoot($content).TrimEnd('\'))'"
 if ($requiredBytes + ($ReserveGB * 1GB) -gt $drive.FreeSpace) {
@@ -66,4 +70,5 @@ $Ansible.Result = @{
     Directories = @($directories.Keys | Sort-Object)
     RequiredBytes = $requiredBytes
     Files = @($manifest.files).Count
+    FilesToDownload = @($downloads)
 }

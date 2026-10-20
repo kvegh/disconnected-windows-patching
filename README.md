@@ -131,10 +131,11 @@ WSUS export atomically publishes `current.json` and retains the previous pointer
 as `current.previous.json` when replacing an existing manifest.
 Selected update identities use canonical ordering on Windows PowerShell 5.1 so
 policy drift comparisons remain stable between reads.
-Client patching verifies all payload hashes once, then retains fresh WSUS
-readiness, policy, identity and file-length checks between install passes.
-Read-only WSUS SHA1 verification also works under Ansible Check mode; existing
-payloads are counted as present without changing the caller's WhatIf policy.
+Monthly ceiling selection and client patching use WSUS readiness, policy,
+identities, file existence and lengths without hashing update payloads.
+Integrity checks stay at the transfer boundary: export records SHA256 hashes;
+internal preparation checks existing files once and only missing/mismatched files
+go through the verified downloader. Metadata import does not rehash payloads.
 
 Install `ansible-core` in the execution environment. Validate without deployment:
 

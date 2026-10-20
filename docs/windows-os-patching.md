@@ -39,9 +39,9 @@ assessment; changing availability is not a rollback procedure.
 1. Validate the named month, inventory roles, catalogue identities and internal
    file readiness without changing policy.
 2. On external WSUS, approve the explicit historical baseline for an empty
-   download-only group. Reuse existing files and budget only missing verified
+   download-only group. Reuse existing files and budget only missing or incomplete
    payloads against the configured disk reserve. This does not target clients.
-3. Wait for WSUS downloads and verify their content hashes. A required license
+3. Wait for WSUS readiness and check file existence and lengths. A required license
    agreement causes failure; the job never accepts license terms automatically.
 4. Reuse the existing export and internal HTTP pull/import playbooks, including
    their manifest and SHA-256 verification.
@@ -88,9 +88,11 @@ Before any installation it verifies every endnode's existing internal WSUS sourc
 policies, client web service access and supported OS family. It also revalidates
 internal approvals, declines and payloads. Conflicting sources stop the job for
 configuration review rather than changing the source during patch installation.
-The initial preflight verifies all payload hashes. Later checks retain WSUS
-readiness, exact identities, policy and file lengths without repeatedly hashing
-the entire baseline. Ceiling changes and transfers retain full hash checks.
+Ceiling selection and client preflights check WSUS readiness, exact identities,
+policy, file existence and lengths without hashing payloads. Transfer integrity
+checks remain: export supplies SHA256 hashes, existing internal files are checked
+once, and downloaded files are verified by the native Ansible downloader.
+Metadata import does not repeat those payload checksums.
 
 Clients run serially. Each pass performs a read-only Windows Update Agent search,
 checks the release ceiling and license state, then gives the exact observed
@@ -153,7 +155,10 @@ prerequisite mappings and shared-bundle conflicts. Run it with an existing
 Windows PowerShell 5.1 or PowerShell 7 installation; it needs no WSUS service.
 
 `tests/Test-WindowsUpdateClientPolicy.ps1` checks client source-policy rejection
-using mocks. With the existing pinned Ansible dependencies, run the filter and
+using mocks. `tests/Test-WsusContentValidation.ps1` verifies that policy checks
+do not hash payloads and that transfer preparation detects missing, truncated
+and same-length corrupt files while skipping already verified matching files.
+Both PowerShell tests run without a WSUS service. With the existing pinned Ansible dependencies, run the filter and
 completion regression checks using:
 
 ```bash

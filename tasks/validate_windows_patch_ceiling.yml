@@ -32,7 +32,7 @@
     fail_msg: The saved internal WSUS ceiling is unavailable or changed during this patch job. Rerun after policy changes finish.
   no_log: "{{ windows_patch_no_log | bool }}"
 
-- name: Revalidate approvals, declines, automatic policy and verified payloads without changing WSUS
+- name: Revalidate approvals, declines, readiness and file lengths without changing WSUS
   ansible.windows.win_powershell:
     error_action: stop
     depth: 6
@@ -44,7 +44,6 @@
       Classifications: "{{ wsus_classifications }}"
       PrerequisiteMonths: "{{ wsus_patch_prerequisite_months }}"
       ValidatePolicy: true
-      VerifyContentHashes: "{{ windows_patch_full_content_check | default(true) | bool }}"
   check_mode: true
   delegate_to: "{{ groups['wsus_internal'][0] }}"
   register: windows_patch_current_policy

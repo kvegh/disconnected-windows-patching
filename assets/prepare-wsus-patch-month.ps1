@@ -93,7 +93,7 @@ do {
     Start-Sleep -Seconds 30
 } while ($true)
 $content = Get-WsusPatchMonthContent $plan
-if ($content.MissingBytes -ne 0) { throw 'Selected payload files did not pass their WSUS content hashes.' }
+if ($content.MissingBytes -ne 0) { throw 'Selected payload files are missing or incomplete.' }
 $summary = Get-WsusPatchMonthSummary $plan $content
 $summary.selection = @{
     patchMonth = $Month
