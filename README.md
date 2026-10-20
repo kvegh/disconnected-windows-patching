@@ -95,6 +95,11 @@ verification of the four Windows clones. This validates the complete fresh
 environment deployment and both content pipelines, including application
 upgrades. Windows update installation on the endnodes is a separate step.
 
+On 2026-10-20, live publication verified the internal April 2026 ceiling with
+both OS and .NET baselines ready. A client Check run using the lighter validation
+passed internal policy and Server 2022 source checks, then stopped because the
+Server 2025 endnode was unreachable. Actual client OS installation remains untested.
+
 - `01-win-vm-setup.yml`: VM deployment playbook.
 - `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.
 - `setup_wsus.yml`: WSUS installation, initialization and client update policies.

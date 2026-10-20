@@ -171,3 +171,9 @@ python3 -m unittest discover -s tests -p test_windows_patching_filters.py -v
 
 These tests do not install updates. Live Check mode validates integration;
 a normal client run is still required to validate actual OS installation.
+
+Live validation on 2026-10-20 successfully published the internal April ceiling:
+four selected OS/.NET bundles were ready and approved, other catalogue entries
+were declined and no selected payloads were missing. The updated client Check
+run passed internal policy and Server 2022 source validation, then stopped on
+the unreachable Server 2025 endnode. No client installation or reboot was run.
