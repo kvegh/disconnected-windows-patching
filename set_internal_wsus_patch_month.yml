@@ -53,7 +53,9 @@
     - vars/wsus_patch_month.yml
   tasks:
     - name: Prepare the selected baseline without running a new metadata synchronization
-      when: not ansible_check_mode
+      when:
+        - not ansible_check_mode
+        - hostvars[groups['wsus_internal'][0]].wsus_patch_month_preview.result.missing_content_bytes | int > 0
       block:
         - name: Ensure the WSUS background transfer service is running
           ansible.windows.win_service:
@@ -109,11 +111,15 @@
 
 - name: Publish the prepared monthly selection through the existing export pipeline
   ansible.builtin.import_playbook: export_external_wsus.yml
-  when: not ansible_check_mode
+  when:
+    - not ansible_check_mode
+    - hostvars[groups['wsus_internal'][0]].wsus_patch_month_preview.result.missing_content_bytes | int > 0
 
 - name: Pull and import the prepared monthly baseline with the existing import pipeline
   ansible.builtin.import_playbook: replicate_and_import.yml
-  when: not ansible_check_mode
+  when:
+    - not ansible_check_mode
+    - hostvars[groups['wsus_internal'][0]].wsus_patch_month_preview.result.missing_content_bytes | int > 0
 
 - name: Enforce the selected month after verified content transfer and import
   hosts: wsus_internal

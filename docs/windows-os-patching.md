@@ -49,6 +49,10 @@ assessment; changing availability is not a rollback procedure.
    verified month. AAP artifacts contain the selected update identities and
    verification result. Detailed diagnostics remain protected by default.
 
+When the internal file check finds no missing or incomplete baseline payloads,
+stages 2–4 are skipped. An approval-only change then stays on internal WSUS;
+it does not prepare or retransfer external content.
+
 Ansible handles orchestration, services, files, transfer, waiting and artifacts.
 The WSUS management operations use its native PowerShell API through
 `ansible.windows.win_powershell`.

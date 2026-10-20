@@ -136,6 +136,8 @@ identities, file existence and lengths without hashing update payloads.
 Integrity checks stay at the transfer boundary: export records SHA256 hashes;
 internal preparation checks existing files once and only missing/mismatched files
 go through the verified downloader. Metadata import does not rehash payloads.
+When the internal baseline files are already present, the monthly cutoff job
+skips external preparation, export and transfer and only reconciles internal policy.
 
 Install `ansible-core` in the execution environment. Validate without deployment:
 
