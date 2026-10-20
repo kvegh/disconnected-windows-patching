@@ -1,0 +1,230 @@
+---
+- name: Keep automatic Windows updates disabled during the activation exception
+  ansible.windows.win_regedit:
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+    name: NoAutoUpdate
+    data: 1
+    type: dword
+
+- name: Block the Windows Update client from using Internet update locations
+  ansible.windows.win_regedit:
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    name: DoNotConnectToWindowsUpdateInternetLocations
+    data: 1
+    type: dword
+
+- name: Prepare a unique live-only temporary NIC and bounded exposure guard
+  ansible.builtin.set_fact:
+    windows_activation_temporary_mac: "{{ '52:54:00:' ~ identifier[0:2] ~ ':' ~ identifier[2:4] ~ ':' ~ identifier[4:6] }}"
+    windows_activation_guard_unit: "{{ 'aap-eval-activation-' ~ identifier }}"
+    windows_activation_needs_nic: "{{ not windows_activation_before.result.existing_connected_access | bool }}"
+  vars:
+    identifier: "{{ lookup('ansible.builtin.password', '/dev/null', length=12, chars=['hexdigits']) | lower }}"
+  no_log: true
+
+- name: Validate the selected existing activation network
+  ansible.builtin.command:
+    argv: [virsh, --connect, 'qemu:///system', net-info, "{{ windows_activation_connected_network }}"]
+  delegate_to: "{{ windows_activation_hypervisor }}"
+  become: true
+  environment:
+    LC_ALL: C
+  register: windows_activation_network_info
+  changed_when: false
+  failed_when: windows_activation_network_info.rc != 0 or windows_activation_network_info.stdout is not search('Active:\s+yes')
+  when: windows_activation_needs_nic | bool
+  no_log: true
+
+- name: Verify the new NIC MAC is unused on this domain
+  ansible.builtin.assert:
+    that: windows_activation_temporary_mac not in (windows_activation_domain_before.stdout | from_json).live | map(attribute='mac') | list
+  when: windows_activation_needs_nic | bool
+  no_log: true
+
+- name: Perform the bounded activation exception with unconditional hypervisor cleanup
+  block:
+    - name: Arm a hypervisor deadline before exposing the temporary adapter
+      ansible.builtin.command:
+        argv:
+          - systemd-run
+          - '--unit={{ windows_activation_guard_unit }}'
+          - --on-active=900s
+          - --timer-property=AccuracySec=1s
+          - --property=Type=oneshot
+          - --property=TimeoutStartSec=60s
+          - /bin/sh
+          - -c
+          - >-
+            /usr/bin/virsh --connect qemu:///system domif-setlink "$1" "$2" down --live;
+            /usr/bin/virsh --connect qemu:///system detach-interface "$1" network --mac "$2" --live
+          - --
+          - "{{ windows_activation_settings.vm_name }}"
+          - "{{ windows_activation_temporary_mac }}"
+      delegate_to: "{{ windows_activation_hypervisor }}"
+      become: true
+      changed_when: true
+      when: windows_activation_needs_nic | bool
+      no_log: true
+
+    - name: Attach only a live e1000e activation NIC while retaining every original adapter
+      ansible.builtin.command:
+        argv:
+          - virsh
+          - --connect
+          - qemu:///system
+          - attach-interface
+          - "{{ windows_activation_settings.vm_name }}"
+          - network
+          - "{{ windows_activation_connected_network }}"
+          - --model
+          - e1000e
+          - --mac
+          - "{{ windows_activation_temporary_mac }}"
+          - --live
+      delegate_to: "{{ windows_activation_hypervisor }}"
+      become: true
+      changed_when: true
+      when: windows_activation_needs_nic | bool
+      no_log: true
+
+    - name: Wait for temporary DHCP routing without altering permanent adapters
+      ansible.windows.win_powershell:
+        script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
+        error_action: stop
+        parameters:
+          Mode: Connected
+          ExpectedVersion: "{{ windows_activation_settings.windows_version | string }}"
+          ConfigurationJson: "{{ windows_activation_settings | to_json }}"
+          TemporaryMac: "{{ windows_activation_temporary_mac }}"
+      register: windows_activation_connected
+      until: windows_activation_connected is succeeded and not windows_activation_connected.unreachable | default(false)
+      retries: 24
+      delay: 5
+      ignore_unreachable: true
+      when: windows_activation_needs_nic | bool
+      no_log: true
+
+    - name: Require Windows reachability before activation
+      ansible.builtin.assert:
+        that: not windows_activation_connected.unreachable | default(false)
+      when: windows_activation_needs_nic | bool
+      no_log: true
+
+    - name: Activate only the already-installed evaluation license when automatic activation has not completed
+      ansible.windows.win_powershell:
+        script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
+        error_action: stop
+        parameters:
+          Mode: Activate
+          ExpectedVersion: "{{ windows_activation_settings.windows_version | string }}"
+          ConfigurationJson: "{{ windows_activation_settings | to_json }}"
+      register: windows_activation_attempt
+      async: 300
+      poll: 5
+      ignore_unreachable: true
+      no_log: true
+
+    - name: Require a reachable activation result
+      ansible.builtin.assert:
+        that: not windows_activation_attempt.unreachable | default(false)
+      no_log: true
+
+    - name: Verify licensed status before removing temporary connectivity
+      ansible.windows.win_powershell:
+        script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
+        error_action: stop
+        parameters:
+          Mode: Connected
+          ExpectedVersion: "{{ windows_activation_settings.windows_version | string }}"
+          ConfigurationJson: "{{ windows_activation_settings | to_json }}"
+          TemporaryMac: "{{ windows_activation_temporary_mac if windows_activation_needs_nic | bool else '' }}"
+      register: windows_activation_licensed
+      until: windows_activation_licensed.result.licensed | default(false) and windows_activation_licensed.result.grace_minutes | default(0) | int > 0
+      retries: 36
+      delay: 5
+      ignore_unreachable: true
+      no_log: true
+
+    - name: Require verified activation rather than successful command submission
+      ansible.builtin.assert:
+        that:
+          - not windows_activation_licensed.unreachable | default(false)
+          - windows_activation_licensed.result.licensed | default(false)
+          - windows_activation_licensed.result.grace_minutes | default(0) | int > 0
+      no_log: true
+
+  always:
+    - name: Inspect actual live topology even if attach or Windows activation failed
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/inspect-activation-domain.py') }}", "{{ windows_activation_settings.vm_name }}"]
+      delegate_to: "{{ windows_activation_hypervisor }}"
+      become: true
+      register: windows_activation_cleanup_before
+      changed_when: false
+      no_log: true
+
+    - name: Remove only this operation's temporary live NIC
+      ansible.builtin.command:
+        argv:
+          - virsh
+          - --connect
+          - qemu:///system
+          - detach-interface
+          - "{{ windows_activation_settings.vm_name }}"
+          - network
+          - --mac
+          - "{{ windows_activation_temporary_mac }}"
+          - --live
+      delegate_to: "{{ windows_activation_hypervisor }}"
+      become: true
+      changed_when: true
+      when:
+        - windows_activation_needs_nic | bool
+        - windows_activation_temporary_mac in (windows_activation_cleanup_before.stdout | from_json).live | map(attribute='mac') | list
+      no_log: true
+
+    - name: Verify detachment completed and every original persistent and live NIC was preserved
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/inspect-activation-domain.py') }}", "{{ windows_activation_settings.vm_name }}"]
+      delegate_to: "{{ windows_activation_hypervisor }}"
+      become: true
+      register: windows_activation_cleanup_after
+      changed_when: false
+      until:
+        - (windows_activation_cleanup_after.stdout | from_json).live == (windows_activation_domain_before.stdout | from_json).live
+        - (windows_activation_cleanup_after.stdout | from_json).persistent == (windows_activation_domain_before.stdout | from_json).persistent
+      retries: 12
+      delay: 5
+      no_log: true
+
+    - name: Disarm the deadline only after original libvirt topology is verified
+      ansible.builtin.systemd_service:
+        name: "{{ windows_activation_guard_unit }}.timer"
+        state: stopped
+      delegate_to: "{{ windows_activation_hypervisor }}"
+      become: true
+      when: windows_activation_needs_nic | bool
+      failed_when: false
+      no_log: true
+
+    - name: Verify original Windows addresses DNS and routes even when licensing failed
+      ansible.windows.win_powershell:
+        script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
+        error_action: stop
+        parameters:
+          Mode: Inspect
+          ExpectedVersion: "{{ windows_activation_settings.windows_version | string }}"
+          ConfigurationJson: "{{ windows_activation_settings | to_json }}"
+      register: windows_activation_guest_restored
+      until: windows_activation_guest_restored is succeeded and not windows_activation_guest_restored.unreachable | default(false)
+      retries: 12
+      delay: 5
+      ignore_unreachable: true
+      no_log: true
+
+    - name: Require successful guest isolation verification
+      ansible.builtin.assert:
+        that:
+          - not windows_activation_guest_restored.unreachable | default(false)
+          - windows_activation_guest_restored.result.original_topology_verified | default(false)
+      no_log: true

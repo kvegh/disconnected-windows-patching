@@ -1,0 +1,145 @@
+---
+- name: Prepare protected Windows clone activation connections
+  hosts: hypervisor
+  gather_facts: false
+  any_errors_fatal: true
+  vars_files:
+    - vars/windows_activation_vault.yml
+  tasks:
+    - name: Require an explicitly approved activation configuration
+      ansible.builtin.assert:
+        that:
+          - groups.get('hypervisor', []) | length == 1
+          - windows_activation_approved | default(false) | bool
+          - windows_activation_network | default('') is match('^[A-Za-z0-9_.-]+$')
+          - windows_activation_username | default('') | length > 0
+          - windows_activation_password | default('') | length > 0
+          - windows_activation_targets | default([]) | length > 0
+          - windows_activation_targets | map(attribute='inventory_host') | unique | length == windows_activation_targets | length
+          - windows_activation_targets | map(attribute='vm_name') | unique | length == windows_activation_targets | length
+        fail_msg: Supply approved encrypted activation topology and existing Windows login credentials.
+      no_log: true
+
+    - name: Validate each protected clone mapping
+      ansible.builtin.assert:
+        that:
+          - item.inventory_host in (groups.get('wsus_external', []) + groups.get('wsus_internal', []) + groups.get('windows_managed', []))
+          - item.vm_name is match('^[A-Za-z][A-Za-z0-9-]{0,62}$')
+          - item.windows_version | string in ['2022', '2025']
+          - item.interfaces | length > 0
+          - item.libvirt_interfaces | length == item.interfaces | length
+          - item.interfaces | map(attribute='mac') | unique | length == item.interfaces | length
+          - item.connection.port | int >= 1
+          - item.connection.port | int <= 65535
+          - item.connection.scheme in ['http', 'https']
+          - item.connection.transport in ['ntlm', 'kerberos', 'credssp', 'basic', 'certificate']
+          - item.connection.server_cert_validation in ['validate', 'ignore']
+        fail_msg: Activation requires exact existing inventory, domain, version, interfaces and WinRM settings.
+      loop: "{{ windows_activation_targets }}"
+      no_log: true
+
+    - name: Add in-memory connections using the existing encrypted Windows credentials
+      ansible.builtin.add_host:
+        name: "{{ item.inventory_host }}"
+        groups: windows_activation_guests
+        ansible_connection: winrm
+        ansible_host: "{{ item.connection.address }}"
+        ansible_port: "{{ item.connection.port }}"
+        ansible_winrm_scheme: "{{ item.connection.scheme }}"
+        ansible_winrm_transport: "{{ item.connection.transport }}"
+        ansible_winrm_server_cert_validation: "{{ item.connection.server_cert_validation }}"
+        ansible_shell_type: powershell
+        ansible_user: "{{ windows_activation_username }}"
+        ansible_password: "{{ windows_activation_password }}"
+        windows_activation_hypervisor: "{{ inventory_hostname }}"
+        windows_activation_settings: "{{ item }}"
+        windows_activation_connected_network: "{{ windows_activation_network }}"
+      loop: "{{ windows_activation_targets }}"
+      no_log: true
+      changed_when: false
+
+- name: Activate each evaluation clone and restore its original network topology
+  hosts: windows_activation_guests
+  gather_facts: false
+  become: false
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Wait for the existing permanent Windows management connection
+      ansible.builtin.wait_for_connection:
+        timeout: 180
+
+    - name: Inspect the installed license and permanent guest network without changing either
+      ansible.windows.win_powershell:
+        script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
+        error_action: stop
+        parameters:
+          Mode: Inspect
+          ExpectedVersion: "{{ windows_activation_settings.windows_version | string }}"
+          ConfigurationJson: "{{ windows_activation_settings | to_json }}"
+      register: windows_activation_before
+      no_log: true
+
+    - name: Read live and persistent libvirt topology before any activation connectivity
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/inspect-activation-domain.py') }}", "{{ windows_activation_settings.vm_name }}"]
+      delegate_to: "{{ windows_activation_hypervisor }}"
+      become: true
+      register: windows_activation_domain_before
+      changed_when: false
+      check_mode: false
+      no_log: true
+
+    - name: Require the exact demo-owned clone and unchanged permanent interface topology
+      ansible.builtin.assert:
+        that:
+          - domain.name == windows_activation_settings.vm_name
+          - domain.uuid is match('^[0-9a-fA-F-]{36}$')
+          - domain.marker == 'aap-disconnected-windows-clone'
+          - domain.running | bool
+          - domain.live == domain.persistent
+          - domain.live | map(attribute='mac') | sort == windows_activation_settings.interfaces | map(attribute='mac') | map('lower') | sort
+          - domain.live | map(attribute='link') | unique | list == ['up']
+        fail_msg: Refusing activation of an unmarked clone or unexpected interface topology.
+      vars:
+        domain: "{{ windows_activation_domain_before.stdout | from_json }}"
+      no_log: true
+
+    - name: Verify each original NIC still uses its approved libvirt network
+      ansible.builtin.assert:
+        that:
+          - matching | length == 1
+          - matching[0].type == 'network'
+          - matching[0].source.network == item.network
+      vars:
+        matching: "{{ (windows_activation_domain_before.stdout | from_json).live | selectattr('mac', 'equalto', item.mac | lower) | list }}"
+      loop: "{{ windows_activation_settings.libvirt_interfaces }}"
+      no_log: true
+
+    - name: Activate only an unlicensed evaluation in a normal run
+      ansible.builtin.include_tasks: tasks/activate_windows_evaluation.yml
+      when:
+        - not ansible_check_mode
+        - not windows_activation_before.result.licensed | bool
+
+    - name: Verify licensed state and original Windows topology after activation or a licensed skip
+      ansible.windows.win_powershell:
+        script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
+        error_action: stop
+        parameters:
+          Mode: Verify
+          ExpectedVersion: "{{ windows_activation_settings.windows_version | string }}"
+          ConfigurationJson: "{{ windows_activation_settings | to_json }}"
+      register: windows_activation_final
+      when: not ansible_check_mode
+      no_log: true
+
+    - name: Report licensing and topology verification without environment details
+      ansible.builtin.debug:
+        msg:
+          windows_version: "{{ windows_activation_settings.windows_version | string }}"
+          initially_licensed: "{{ windows_activation_before.result.licensed }}"
+          licensed: "{{ windows_activation_final.result.licensed | default(windows_activation_before.result.licensed) }}"
+          evaluation: "{{ windows_activation_before.result.evaluation }}"
+          original_topology_verified: true
+          check_mode: "{{ ansible_check_mode }}"

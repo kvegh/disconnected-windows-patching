@@ -28,9 +28,10 @@ There are no backing-file dependencies or disk resizing. Every VM receives
 An existing VM or destination disk causes the launch to stop rather than overwrite it.
 
 For existing managed VMs with a 2 GiB maximum, change both the persistent
-maximum and current memory allocation to 4 GiB with libvirt. Wait for any
-patching job to finish, shut Windows down cleanly, confirm the VM is off, then
-start it again. An ordinary Windows reboot does not restart QEMU and therefore
+maximum and current memory allocation to 4 GiB with libvirt. Use a clean,
+coordinated Windows shutdown or a Windows-requested reboot boundary, confirm the
+VM is off, then start it again. Never interrupt active servicing. An ordinary
+Windows reboot does not restart QEMU and therefore
 does not apply this persistent memory change. Verify the running allocation
 and the memory visible inside Windows after startup.
 
@@ -81,11 +82,23 @@ selects sizing; it does not install WSUS or configure Windows credentials,
 hostnames, WinRM, or SSH. The base images must already contain working credentials
 and WinRM; guest configuration is handled by the separate configuration playbooks.
 
-Evaluation images also need valid evaluation activation before isolation.
-Microsoft requires online activation within ten days, even for the 180-day trial;
-an expired activation grace period can cause hourly shutdowns. See the
-[evaluation activation prerequisite](docs/windows-os-patching.md#evaluation-activation-prerequisite).
-These playbooks do not activate Windows or change licensing/network isolation.
+Both versions use this same parameterized creation playbook. After Windows
+basics establishes permanent management access, `activate_windows_evaluations.yml`
+checks each clone's license. An unlicensed evaluation retains its isolated
+primary adapter, temporarily gains a connected adapter, activates its installed
+evaluation license, verifies licensed state, and loses the temporary adapter
+again. It verifies the original guest routes, addresses, DNS and live/persistent
+libvirt NIC topology before deployment continues. Already-licensed clones skip
+activation and connectivity changes; repository servers keep their permanent NICs.
+
+Microsoft requires Internet activation within ten days even for the 180-day
+evaluation. Activating a base image does not guarantee activation after cloning
+and generalization. The new stage uses the Hypervisor SSH and Vault credentials;
+Windows login and topology inputs are in `vars/windows_activation_vault.yml`.
+Automatic Windows updates are blocked before an unlicensed clone gains access.
+Ansible cleans up on failure, and a hypervisor deadline removes the temporary
+adapter if the controller is lost. See
+[per-clone activation and workflow configuration](docs/windows-evaluation-activation.md).
 
 `wait_for_dhcp` defaults to `false` because initial setup or the network layout
 may prevent immediate DHCP. Enable it to wait up to five minutes and discover
@@ -132,6 +145,8 @@ and native servicing is in progress; its final baseline is still being verified.
 See the [live verification details](docs/windows-os-patching.md#references-and-verification).
 
 - `01-win-vm-setup.yml`: VM deployment playbook.
+- `activate_windows_evaluations.yml`: verify or activate each clone and restore its exact original topology.
+- `configure_windows_activation_template.yml`: add the activation template between Windows basics and repository preparation.
 - `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.
 - `setup_wsus.yml`: WSUS installation, initialization and client update policies.
 - `setup_chocolatey.yml`: Nexus services, hosted feeds, and Chocolatey clients.

@@ -1,0 +1,129 @@
+---
+- name: Configure per-clone Windows evaluation activation in the deployment workflow
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    windows_activation_template_name: Disconnected Windows Patching - Activate Windows Evaluations
+    windows_activation_node_identifier: activate-windows-evaluations
+    windows_activation_basics_identifier: configure-windows-server-basics
+    windows_activation_prepare_identifier: prepare-repository-servers
+  module_defaults:
+    group/ansible.controller.controller:
+      controller_host: "{{ wsus_controller_host | default(omit) }}"
+      controller_oauthtoken: "{{ wsus_controller_token | default(omit) }}"
+      validate_certs: true
+  tasks:
+    - name: Require exact protected controller references and Hypervisor SSH plus Vault credentials
+      ansible.builtin.assert:
+        that:
+          - wsus_controller_inventory | default('') | string | length > 0
+          - wsus_controller_project | default('') | string | length > 0
+          - wsus_controller_execution_environment | default('') | string | length > 0
+          - windows_activation_controller_workflow | default('') | string is match('^[0-9]+$')
+          - windows_activation_controller_credentials | default([]) | length == 2
+        fail_msg: Supply the existing Windows workflow ID, inventory, project, EE and Hypervisor SSH plus Vault credential references.
+
+    - name: Read only the selected workflow nodes before modifying its deployment handoff
+      ansible.builtin.set_fact:
+        windows_activation_existing_nodes: >-
+          {{ query('ansible.controller.controller_api', 'workflow_job_template_nodes',
+                    host=wsus_controller_host | default(omit),
+                    oauth_token=wsus_controller_token | default(omit),
+                    verify_ssl=true, return_all=true,
+                    query_params={'workflow_job_template': windows_activation_controller_workflow | string}) }}
+      no_log: true
+
+    - name: Resolve the two existing deployment handoff nodes
+      ansible.builtin.set_fact:
+        windows_activation_basics_nodes: >-
+          {{ windows_activation_existing_nodes | selectattr('identifier', 'equalto', windows_activation_basics_identifier) | list }}
+        windows_activation_prepare_nodes: >-
+          {{ windows_activation_existing_nodes | selectattr('identifier', 'equalto', windows_activation_prepare_identifier) | list }}
+        windows_activation_prior_nodes: >-
+          {{ windows_activation_existing_nodes | selectattr('identifier', 'equalto', windows_activation_node_identifier) | list }}
+      no_log: true
+
+    - name: Require exactly the existing Windows basics and repository preparation nodes
+      ansible.builtin.assert:
+        that:
+          - windows_activation_basics_nodes | length == 1
+          - windows_activation_prepare_nodes | length == 1
+          - windows_activation_prior_nodes | length <= 1
+        fail_msg: The selected workflow does not have the expected Windows deployment handoff.
+
+    - name: Read the current Windows basics success edges
+      ansible.builtin.set_fact:
+        windows_activation_basics_success: >-
+          {{ query('ansible.controller.controller_api',
+                    'workflow_job_template_nodes/' ~ windows_activation_basics_nodes[0].id ~ '/success_nodes/',
+                    host=wsus_controller_host | default(omit),
+                    oauth_token=wsus_controller_token | default(omit),
+                    verify_ssl=true, return_all=true) }}
+      no_log: true
+
+    - name: Refuse to overwrite an unexpected workflow branch
+      ansible.builtin.assert:
+        that:
+          - windows_activation_basics_success | length == 1
+          - windows_activation_basics_success[0].identifier in [windows_activation_prepare_identifier, windows_activation_node_identifier]
+        fail_msg: Windows basics has unexpected successor edges; review the workflow before applying activation wiring.
+
+    - name: Refresh the project so its activation playbook and encrypted settings are available
+      ansible.controller.project_update:
+        project: "{{ wsus_controller_project | string }}"
+        wait: true
+        timeout: 600
+      when: wsus_controller_refresh_project | default(true) | bool
+      no_log: true
+
+    - name: Configure the activation Job Template with its existing distinct credential sources
+      ansible.controller.job_template:
+        name: "{{ windows_activation_template_name }}"
+        description: >-
+          Verify each clone's evaluation license after Windows basics. Unlicensed
+          evaluations use bounded temporary connectivity where required; always
+          restore and verify the exact original guest and libvirt NIC topology.
+        inventory: "{{ wsus_controller_inventory | string }}"
+        project: "{{ wsus_controller_project | string }}"
+        execution_environment: "{{ wsus_controller_execution_environment | string }}"
+        credentials: "{{ windows_activation_controller_credentials | map('string') | list }}"
+        playbook: activate_windows_evaluations.yml
+        job_type: run
+        become_enabled: false
+        allow_simultaneous: false
+        survey_enabled: false
+        ask_variables_on_launch: false
+        ask_job_type_on_launch: true
+        timeout: 7200
+        verbosity: 0
+        state: present
+      register: windows_activation_template_configuration
+      no_log: true
+
+    - name: Insert activation with repository preparation as its success continuation
+      ansible.controller.workflow_job_template_node:
+        workflow_job_template: "{{ windows_activation_controller_workflow | string }}"
+        identifier: "{{ windows_activation_node_identifier }}"
+        unified_job_template: "{{ windows_activation_template_configuration.id | string }}"
+        all_parents_must_converge: true
+        success_nodes: ["{{ windows_activation_prepare_identifier }}"]
+        failure_nodes: []
+        always_nodes: []
+        state: present
+      no_log: true
+
+    - name: Route the existing Windows basics success edge through activation
+      ansible.controller.workflow_job_template_node:
+        workflow_job_template: "{{ windows_activation_controller_workflow | string }}"
+        identifier: "{{ windows_activation_basics_identifier }}"
+        success_nodes: ["{{ windows_activation_node_identifier }}"]
+        state: present
+      no_log: true
+
+    - name: Report the configured activation handoff
+      ansible.builtin.debug:
+        msg:
+          name: "{{ windows_activation_template_name }}"
+          id: "{{ windows_activation_template_configuration.id }}"
+          deployment_sequence: Windows basics -> evaluation activation and topology verification -> repository preparation
