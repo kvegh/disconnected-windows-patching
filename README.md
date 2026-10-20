@@ -106,6 +106,7 @@ upgrades. Windows update installation on the endnodes is a separate step.
 - `upgrade_applications.yml`: switch feeds and upgrade to newer pinned versions.
 - `prepare_repository_servers.yml`: feature/MSI installation and reboot barrier before parallel setup.
 - `check_wsus_prerequisites.yml`: read-only external WSUS readiness and PowerShell syntax checks.
+- `assess_windows_patch_level.yml`: read-only installed OS build and hotfix evidence on managed endnodes.
 - `sync_external_wsus.yml`: Microsoft metadata synchronization and selected file downloads.
 - `export_external_wsus.yml`: WSUS metadata export and management-only IIS publication.
 - `replicate_and_import.yml`: direct external-to-internal HTTP transfer and offline WSUS import.
@@ -164,6 +165,48 @@ All configuration templates use WinRM and a Windows Machine credential. Their
 execution environment needs `pywinrm` and the pinned Ansible collections.
 Required disjoint inventory groups are `wsus_external`, `wsus_internal`, and
 `windows_managed`. Keep environment assignments protected and out of plaintext Git.
+
+### Assess installed Windows patch levels
+
+Run `assess_windows_patch_level.yml` against `windows_managed` before and after
+OS patching. The **Disconnected Windows Patching - Assess Windows Patch Level**
+Job Template uses this playbook; select the existing Windows Machine credential
+at launch. It reads the OS build, installed hotfix identifiers and Windows Update
+and component-servicing pending-reboot indicators. It does not perform an update
+scan, approve updates, install packages or reboot.
+
+The default comparison is the April 2026 monthly OS cumulative update:
+
+| OS | KB | Expected OS build |
+| --- | --- | --- |
+| Server 2022 | KB5082142 | 20348.5020 |
+| Server 2025 | KB5082063 | 26100.32690 |
+
+Sources: [Server 2022 release](https://support.microsoft.com/en-us/servicing/os/windows-server/2026/04/april-14-2026-kb5082142-os-build-20348-5020)
+and [Server 2025 release](https://support.microsoft.com/en-us/servicing/os/windows-server/2026/04/april-14-2026-kb5082063-os-build-26100-32690).
+Override `windows_patch_baseline_name` and `windows_patch_baselines` together
+through launch-time variables for another explicitly pinned baseline.
+
+`below`, `at` and `above` compare the installed revision within the configured
+OS build. An exact KB may disappear from the installed-hotfix list after
+supersedence, so use the build comparison for the OS patch level. The report
+also lists exact April .NET KB matches: Server 2022 installs the applicable
+component KB5082427 or KB5082425 under the WSUS bundle KB5084071; Server 2025
+uses KB5082417. Missing exact .NET identifiers do not establish whether a newer
+.NET update superseded them. This assessment does not certify an entire
+date-stamped security baseline or include later April out-of-band releases.
+
+Detailed evidence is protected by `windows_patch_no_log: true` by default and
+saved under `windows_patch_assessments` in authenticated AAP job artifacts. A
+short summary shows the build comparison. Store exported artifacts outside Git.
+A powered-off or unreachable node fails the assessment rather than reporting
+it as compliant. No VM is started by this playbook.
+
+For local use with an existing protected inventory and credential configuration:
+
+```bash
+ansible-playbook -i YOUR_PROTECTED_INVENTORY assess_windows_patch_level.yml
+```
 
 `configure_windows_server_basics.yml` owns permanent NIC settings, DNS, forwarding,
 hostnames and their reboots. It validates MAC assignments before changes, uses an

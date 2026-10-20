@@ -154,9 +154,11 @@ actual client applicability before choosing the final baselines. Component-based
 waves, such as Windows followed by .NET, are another demonstration option, but
 each needs its own version evidence.
 
-Client assessment, internal approval, OS installation and post-patching
-verification remain proposed stages in [TODO.md](TODO.md). Application baseline
-deployment and upgrades already have separate playbooks and Job Templates.
+Installed build and hotfix assessment is implemented in
+[assess_windows_patch_level.yml](assess_windows_patch_level.yml) and its dedicated
+Job Template. Client applicability scans, internal approval and OS installation
+remain proposed stages in [TODO.md](TODO.md). Application baseline deployment
+and upgrades already have separate playbooks and Job Templates.
 
 ## Validation status and alternatives
 

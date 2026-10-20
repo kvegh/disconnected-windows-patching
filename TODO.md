@@ -30,6 +30,11 @@
 - Run and validate the new sync, export and import stages with current Microsoft updates.
 - Validate applicability and prerequisite/checkpoint coverage on both older base images.
 - Add internal client approval and patch installation stages.
+- Installed-state assessment is implemented in `assess_windows_patch_level.yml`.
+  Add client applicability scans as a separate read-only stage.
+- Add reproducible selection, download and internal approval of explicit older
+  OS/.NET baselines, including prerequisites and a configurable release ceiling.
+  Keep newer releases available externally for the next demonstration stage.
 - Validate the pinned Nexus/Chocolatey downloads and vaulted inputs in live service setup.
 - Validate Task Scheduler network configuration on all four freshly cloned VMs.
 - Exercise the five application stages: sync, export, import, baseline deployment and upgrade.

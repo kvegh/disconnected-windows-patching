@@ -1,0 +1,54 @@
+---
+- name: Assess installed Windows OS patch levels without scanning or installing updates
+  hosts: windows_managed
+  gather_facts: false
+  vars:
+    windows_patch_no_log: true
+    windows_patch_baseline_name: April 2026
+    windows_patch_baselines:
+      '20348':
+        os_name: Windows Server 2022
+        revision: 5020
+        kb: KB5082142
+        dotnet_kbs:
+          - KB5082427
+          - KB5082425
+      '26100':
+        os_name: Windows Server 2025
+        revision: 32690
+        kb: KB5082063
+        dotnet_kbs:
+          - KB5082417
+  tasks:
+    - name: Read installed build, hotfix identifiers and pending reboot indicators
+      ansible.windows.win_powershell:
+        error_action: stop
+        depth: 5
+        path: assets/assess-windows-patch-level.ps1
+        parameters:
+          BaselineName: "{{ windows_patch_baseline_name }}"
+          Baselines: "{{ windows_patch_baselines }}"
+      register: windows_patch_assessment
+      changed_when: false
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Publish the installed-state evidence as AAP job artifacts
+      ansible.builtin.set_stats:
+        data:
+          windows_patch_assessments: "{{ {inventory_hostname: windows_patch_assessment.result} }}"
+        aggregate: true
+        per_host: false
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Report the installed OS build against the selected baseline
+      ansible.builtin.debug:
+        msg:
+          os: "{{ windows_patch_assessment.result.os_name }}"
+          installed_build: "{{ windows_patch_assessment.result.installed_build }}"
+          baseline: "{{ windows_patch_assessment.result.baseline_name }}"
+          baseline_build: "{{ windows_patch_assessment.result.baseline_build }}"
+          baseline_kb: "{{ windows_patch_assessment.result.baseline_kb }}"
+          comparison: "{{ windows_patch_assessment.result.comparison }}"
+          exact_os_kb_present: "{{ windows_patch_assessment.result.exact_os_kb_present }}"
+          exact_dotnet_kbs_present: "{{ windows_patch_assessment.result.exact_dotnet_kbs_present }}"
+          reboot_pending: "{{ windows_patch_assessment.result.reboot_pending }}"
