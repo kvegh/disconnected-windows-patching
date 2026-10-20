@@ -1,5 +1,29 @@
 # Design decisions history
 
+## 2026-10-20 — Compare declared virtual-network identity without generated live metadata
+
+Fix: `a99cf7a`. The next deployed activation Check passed initial configuration,
+guest inspection and libvirt reads, then rejected the first clone's topology.
+A read-only audit of all four clones found ownership, identity, running state,
+MACs and links valid. Only live/persistent interface equality failed: every live
+network source added libvirt's generated port UUID and resolved host bridge,
+while inactive sources declared only the network name.
+
+Exclude only those generated source fields for virtual-network interfaces.
+Keep the network name, portgroup and unknown source attributes in the comparison,
+along with interface type, MAC, model and link state. Bridge-type interfaces
+retain their actual bridge source identity. Ownership and protected-network
+mapping guards remain unchanged. This corrects false mismatches without admitting
+a different declared network or losing checks for unexpected source attributes.
+
+Validation: twenty tests pass, including runtime-only source normalization and
+refusal of real network, source attribute, bridge, model, MAC, type and link
+changes. Replaying the protected read-only capture through the production parser
+makes all four expected live/persistent comparisons equal. README was reviewed;
+the root task retains its pending README and live verification reconciliation.
+No live object was changed by this fix; the controller Check must be repeated
+after project synchronization.
+
 ## 2026-10-20 — Accept a hypervisor host alias during activation preflight
 
 Fix: `62d501e`. The first deployed Check run stopped at the activation
