@@ -1,5 +1,20 @@
 # Design decisions history
 
+## 2026-10-20 — Serve modern update payloads from existing WSUS content
+
+Fix: `f9883a8`. A managed client stayed at zero bytes while downloading the
+April Server 2025 cumulative update. The exact 1,559,987,208-byte MSU existed
+on both repository servers with the expected length, but HTTP HEAD requests
+returned 404 and server-level IIS configuration lacked the MSU and WIM MIME
+entries required by Microsoft for on-premises UUP. File presence alone did
+not establish that IIS could serve it.
+
+Add idempotent server-level MIME mappings through Ansible and the existing
+WebAdministration PowerShell module. A dedicated setup tag repairs only these
+entries through the normal Setup WSUS Job Template; it does not rerun setup
+or change update approvals. PowerShell WhatIf validation passed on both servers.
+Keep the mapping inherited by WSUS, as Microsoft's deployment guidance requires.
+
 ## 2026-10-20 — Give managed Windows VMs 4 GiB of memory
 
 Implementation: `7e206ce`. The operator requested increasing both managed
