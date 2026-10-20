@@ -4,6 +4,33 @@ Use **Disconnected Windows Patching - Set WSUS Patch Ceiling** to prepare and
 publish a monthly OS/.NET baseline on internal WSUS. This changes available
 content; it does not install updates on endnodes.
 
+## Evaluation activation prerequisite
+
+The evaluation installation already includes a time-limited evaluation license;
+it does not require purchasing a retail key for the trial. Microsoft provides a
+180-day evaluation but requires activation over the Internet within the first
+ten days to avoid automatic shutdown. Prepare and verify evaluation activation
+while the guest has authorized activation connectivity, before isolating it.
+See [Microsoft's Server 2025 evaluation requirements](https://www.microsoft.com/en-us/evalcenter/evaluate-windows-server-2025)
+and the equivalent [Server 2022 requirements](https://www.microsoft.com/en-us/evalcenter/evaluate-windows-server-2022).
+
+If a guest shuts down repeatedly, inspect its evaluation status and remaining
+grace time. Windows licensing service (WLMS) events 100/101 and System event 1074
+can identify an expired evaluation as the shutdown cause. The live diagnosis
+found an expired activation grace period on the Server 2025 endnode, while
+Server 2022 had a valid evaluation. This is separate from WSUS approval policy
+and update installation; detailed guest evidence stays outside Git.
+
+An existing isolated guest needs a separately authorized activation path before
+attempting online activation. Activation, grace-period resets, licensing-service
+changes and network exceptions are not performed by these playbooks. A trial
+that has already expired needs a supported recovery decision; do not assume
+restarting the VM renews it. Microsoft's
+[licensing command reference](https://learn.microsoft.com/en-us/windows-server/get-started/activation-slmgr-vbs-options)
+describes status, activation and timer-reset operations.
+
+## Month choices
+
 The required dropdown contains January 2026 through September 2026, the regular
 monthly OS cumulative releases present for both supported Windows versions when
 the feature was implemented. The default is April 2026. Display names map to
@@ -176,4 +203,7 @@ Live validation on 2026-10-20 successfully published the internal April ceiling:
 four selected OS/.NET bundles were ready and approved, other catalogue entries
 were declined and no selected payloads were missing. The updated client Check
 run passed internal policy and Server 2022 source validation, then stopped on
-the unreachable Server 2025 endnode. No client installation or reboot was run.
+the unreachable Server 2025 endnode. A later read-only WinRM audit reached both
+endnodes, confirmed their internal WSUS source settings and diagnosed expired
+evaluation activation grace on Server 2025. A full successful client Check run
+remains pending. No client installation, reboot or activation was run.

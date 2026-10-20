@@ -74,6 +74,12 @@ selects sizing; it does not install WSUS or configure Windows credentials,
 hostnames, WinRM, or SSH. The base images must already contain working credentials
 and WinRM; guest configuration is handled by the separate configuration playbooks.
 
+Evaluation images also need valid evaluation activation before isolation.
+Microsoft requires online activation within ten days, even for the 180-day trial;
+an expired activation grace period can cause hourly shutdowns. See the
+[evaluation activation prerequisite](docs/windows-os-patching.md#evaluation-activation-prerequisite).
+These playbooks do not activate Windows or change licensing/network isolation.
+
 `wait_for_dhcp` defaults to `false` because initial setup or the network layout
 may prevent immediate DHCP. Enable it to wait up to five minutes and discover
 IPv4 by MAC on a libvirt network providing DHCP. A lease does not establish that
@@ -98,7 +104,10 @@ upgrades. Windows update installation on the endnodes is a separate step.
 On 2026-10-20, live publication verified the internal April 2026 ceiling with
 both OS and .NET baselines ready. A client Check run using the lighter validation
 passed internal policy and Server 2022 source checks, then stopped because the
-Server 2025 endnode was unreachable. Actual client OS installation remains untested.
+Server 2025 endnode was unreachable. A subsequent read-only WinRM audit reached
+both endnodes and confirmed their existing internal WSUS source policies. It
+identified expired evaluation activation grace as the Server 2025 shutdown cause.
+Full client Check completion and actual OS installation remain unverified.
 
 - `01-win-vm-setup.yml`: VM deployment playbook.
 - `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.
