@@ -101,6 +101,19 @@ function Get-WsusPatchMonthPlan {
         Explicit = $explicit; Blocked = $blocked }
 }
 
+function Get-WsusReadOnlyFileSha1 {
+    param([string]$LiteralPath)
+    # Get-FileHash can emit no hash under the module's CHECK/WhatIf context.
+    # Read explicitly through .NET without changing the caller's WhatIf policy.
+    $algorithm = [Security.Cryptography.SHA1]::Create()
+    try {
+        $stream = [IO.File]::OpenRead($LiteralPath)
+        try {
+            return [BitConverter]::ToString($algorithm.ComputeHash($stream)).Replace('-', '')
+        } finally { $stream.Dispose() }
+    } finally { $algorithm.Dispose() }
+}
+
 function Get-WsusPatchMonthContent {
     param([hashtable]$Plan, [bool]$VerifyHashes = $true)
     $content = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup').ContentDir.TrimEnd('\')
@@ -119,7 +132,7 @@ function Get-WsusPatchMonthContent {
                 $matching = (Test-Path -LiteralPath $path -PathType Leaf) -and
                     (Get-Item -LiteralPath $path).Length -eq [long]$file.TotalBytes
                 if ($matching -and $VerifyHashes) {
-                    $matching = (Get-FileHash -LiteralPath $path -Algorithm SHA1).Hash -eq $expectedHash
+                    $matching = (Get-WsusReadOnlyFileSha1 -LiteralPath $path) -eq $expectedHash
                 }
                 $files[$relative] = @{ Path = $path; Bytes = [long]$file.TotalBytes; Present = [bool]$matching }
             }

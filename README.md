@@ -133,6 +133,8 @@ Selected update identities use canonical ordering on Windows PowerShell 5.1 so
 policy drift comparisons remain stable between reads.
 Client patching verifies all payload hashes once, then retains fresh WSUS
 readiness, policy, identity and file-length checks between install passes.
+Read-only WSUS SHA1 verification also works under Ansible Check mode; existing
+payloads are counted as present without changing the caller's WhatIf policy.
 
 Install `ansible-core` in the execution environment. Validate without deployment:
 
