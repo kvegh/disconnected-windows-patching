@@ -1,5 +1,16 @@
 # Design decisions history
 
+## 2026-10-20 — Review all Microsoft-required and recommended reboots
+
+Planning update: `5e19299`. The operator requested an explicit TODO to verify
+that patching performs every required or recommended reboot for the selected
+updates and prerequisites. Review pre-install, within-batch and post-install
+requirements against Microsoft guidance on both supported Windows versions,
+including native module behavior and the outer rescan/reboot passes.
+Record KBs, reboot triggers/counts and final pending-reboot evidence; add focused
+regressions for any gaps discovered. This records a future review, not a claim
+that every update-specific Microsoft recommendation has already been audited.
+
 ## 2026-10-20 — Run independent per-server patch jobs concurrently
 
 Implementation and timing analysis: `476f4e8`. The operator selected separate
