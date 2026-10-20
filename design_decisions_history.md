@@ -1,5 +1,25 @@
 # Design decisions history
 
+## 2026-10-20 — Remove redundant full-payload checksum passes
+
+Implementation: `63f4f1f`. The operator requested removal of excessive checksumming
+after repeated reads delayed baseline preparation. Remove payload hashing from
+monthly selection, ceiling application and client preflight. Keep WSUS readiness,
+file existence/length, update identity, approval and source-policy checks.
+This supersedes the earlier SHA1 preflight and Check-mode hashing decisions.
+
+Keep SHA256 integrity checks at the transfer boundary. Export records hashes;
+internal preparation verifies existing files once and sends only missing or
+mismatched entries to the native verified downloader. Metadata import checks
+presence/length without rehashing payloads already verified by that pipeline.
+Preserve authenticated manifest anchoring and metadata verification. Active
+snapshot files must remain unchanged during transfer, as already documented.
+
+Eight new mock assertions cover hash-free policy checks, missing/truncated files,
+same-length corrupt files, transfer queues and disk budgeting. They passed on
+both repository servers alongside eighteen selection and thirteen source-policy
+assertions; ten PowerShell scripts parsed and seven Python filter tests passed.
+
 ## 2026-10-20 — Verify existing files during a real Ansible dry run
 
 Fix: `5062c74`. AAP Check mode incorrectly counted existing WSUS files as missing.
