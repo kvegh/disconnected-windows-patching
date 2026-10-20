@@ -112,6 +112,7 @@ upgrades. Windows update installation on the endnodes is a separate step.
 - `docs/wsus-data-flow.md`: inputs, workflow, integrity checks, module use and live validation status.
 - `collections/requirements.yml`: pinned Ansible collection dependencies.
 - `docs/application-deployment.md`: application architecture, inputs, and remaining work.
+- `windows-remote-access.md`: suggested Linux-laptop console access over SSH/VNC, demo evidence, and proposed staged OS patch levels.
 - `vars/main.yml`: base images and sizing configuration.
 - `assets/deploy-vm-survey.json`: AAP survey specification.
 
