@@ -10,7 +10,9 @@ Windows Server 2022 and 2025 share `01-win-vm-setup.yml`, selected by
 
 The activation stage runs after Windows basics because Ansible must already be
 able to reach the guest over its permanent management address. It does not edit
-the base image. Microsoft's evaluation requires Internet activation within ten
+the base image. The `hypervisor` inventory target may be a host alias or a group;
+the play validates the resolved host count rather than requiring a named group.
+Microsoft's evaluation requires Internet activation within ten
 days to avoid automatic shutdown, and Sysprep generalization normally resets
 licensing timers. Verify each deployed clone rather than assuming the base
 image's licensing state is inherited.

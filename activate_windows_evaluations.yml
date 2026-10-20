@@ -9,7 +9,7 @@
     - name: Require an explicitly approved activation configuration
       ansible.builtin.assert:
         that:
-          - groups.get('hypervisor', []) | length == 1
+          - ansible_play_hosts_all | length == 1
           - windows_activation_approved | default(false) | bool
           - windows_activation_network | default('') is match('^[A-Za-z0-9_.-]+$')
           - windows_activation_username | default('') | length > 0

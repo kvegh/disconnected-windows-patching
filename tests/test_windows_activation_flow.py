@@ -237,5 +237,45 @@ class ActivationFlowTests(unittest.TestCase):
         self.assert_restored(state)
 
 
+@unittest.skipUnless(shutil.which('ansible-playbook'), 'Ansible is required for inventory preflight tests')
+class ActivationInventoryTests(unittest.TestCase):
+    def run_preflight(self, inventory, approved=True):
+        with tempfile.TemporaryDirectory(prefix='windows-activation-inventory-') as temporary:
+            directory = Path(temporary)
+            production = yaml.safe_load((ROOT / 'activate_windows_evaluations.yml').read_text())[0]
+            play = {
+                'name': 'Validate the resolved hypervisor target without remote operations',
+                'hosts': production['hosts'], 'gather_facts': False,
+                'vars': {
+                    'windows_activation_approved': approved,
+                    'windows_activation_network': 'example-activation',
+                    'windows_activation_username': 'example-login',
+                    'windows_activation_password': 'example-secret',
+                    'windows_activation_targets': [{'inventory_host': 'example-guest', 'vm_name': 'example-clone'}],
+                },
+                'tasks': [production['tasks'][0]],
+            }
+            playbook = directory / 'preflight.yml'
+            playbook.write_text(yaml.safe_dump([play]))
+            inventory_file = directory / 'inventory.yml'
+            inventory_file.write_text(yaml.safe_dump(inventory))
+            env = dict(os.environ, ANSIBLE_LOCAL_TEMP=str(directory / 'tmp'), ANSIBLE_NOCOLOR='1')
+            result = subprocess.run(['ansible-playbook', '-i', str(inventory_file), str(playbook)],
+                                    cwd=directory, env=env, capture_output=True, text=True, timeout=20)
+            return result.returncode, result.stdout + result.stderr
+
+    def test_host_alias_does_not_require_a_same_named_inventory_group(self):
+        code, output = self.run_preflight({'all': {'hosts': {'hypervisor': {}}}})
+        self.assertEqual(code, 0, output)
+
+    def test_group_resolving_to_multiple_hypervisors_is_rejected(self):
+        code, output = self.run_preflight({'all': {'children': {'hypervisor': {'hosts': {'example-first': {}, 'example-second': {}}}}}})
+        self.assertNotEqual(code, 0, output)
+
+    def test_single_host_still_requires_explicit_activation_approval(self):
+        code, output = self.run_preflight({'all': {'hosts': {'hypervisor': {}}}}, approved=False)
+        self.assertNotEqual(code, 0, output)
+
+
 if __name__ == '__main__':
     unittest.main()

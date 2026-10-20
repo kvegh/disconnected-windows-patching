@@ -5,7 +5,9 @@ in a simulated disconnected environment.
 
 ## VM deployment
 
-`01-win-vm-setup.yml` creates one VM per launch on the inventory's `hypervisor` group.
+`01-win-vm-setup.yml` creates one VM per launch on the inventory's `hypervisor`
+target. This may be a host alias or a group; activation requires the target to
+resolve to exactly one hypervisor.
 The hypervisor needs libvirt, `virsh`, `virt-install`, `qemu-img`, the selected
 libvirt network, suitable firmware, and osinfo IDs `win2k22` / `win2k25`.
 The AAP execution environment needs `ansible-core`; attach a machine credential
