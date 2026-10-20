@@ -127,6 +127,8 @@ upgrades. Windows update installation on the endnodes is a separate step.
 The internal WSUS role comes from the protected inventory. Its autonomous,
 locally stored content and manual-import policy are enforced independently of
 the upstream-selection flag retained by the existing offline setup.
+WSUS export atomically publishes `current.json` and retains the previous pointer
+as `current.previous.json` when replacing an existing manifest.
 
 Install `ansible-core` in the execution environment. Validate without deployment:
 

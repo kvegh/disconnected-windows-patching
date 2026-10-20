@@ -88,7 +88,10 @@ $encoding = New-Object Text.UTF8Encoding $false
 $temporary = Join-Path $ExportRoot 'current.pending'
 [IO.File]::WriteAllText($temporary, $json, $encoding)
 if (Test-Path -LiteralPath $currentPath) {
-    [IO.File]::Replace($temporary, $currentPath, $null)
+    # Windows PowerShell can bind $null as an empty backup path, which .NET
+    # rejects. Keep one recoverable previous manifest during atomic publication.
+    $previousPath = Join-Path $ExportRoot 'current.previous.json'
+    [IO.File]::Replace($temporary, $currentPath, $previousPath)
 } else { [IO.File]::Move($temporary, $currentPath) }
 $Ansible.Changed = $true
 $Ansible.Result = @{ Snapshot = $snapshot; Files = $fileEntries.Count; Reused = $false }
