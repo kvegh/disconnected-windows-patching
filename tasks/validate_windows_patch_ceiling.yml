@@ -44,6 +44,7 @@
       Classifications: "{{ wsus_classifications }}"
       PrerequisiteMonths: "{{ wsus_patch_prerequisite_months }}"
       ValidatePolicy: true
+      VerifyContentHashes: "{{ windows_patch_full_content_check | default(true) | bool }}"
   check_mode: true
   delegate_to: "{{ groups['wsus_internal'][0] }}"
   register: windows_patch_current_policy

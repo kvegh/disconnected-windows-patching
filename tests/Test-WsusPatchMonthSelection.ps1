@@ -80,6 +80,10 @@ $os2022.Bundled = @($oldPrerequisite)
 $plan = Get-WsusPatchMonthPlan $server '2026-04' $products $classes
 Assert-True ($plan.Allowed.ContainsKey([string]$oldPrerequisite.Id.UpdateId)) 'Include bundled children in the allowed graph.'
 Assert-True (-not $plan.Explicit.ContainsKey([string]$oldPrerequisite.Id.UpdateId)) 'Bundle-only child approvals belong to the parent.'
+$summary = Get-WsusPatchMonthSummary $plan @{ MissingBytes = 0 }
+$actualIds = @($summary.selected_updates | ForEach-Object { $_['id'] })
+$sortedIds = @($actualIds | Sort-Object)
+Assert-True (($actualIds -join ',') -eq ($sortedIds -join ',')) 'Selected identities must have canonical ordering on Windows PowerShell 5.1.'
 $newer.Bundled = @($oldPrerequisite)
 Assert-Throws { Get-WsusPatchMonthPlan $server '2026-04' $products $classes } 'shares an allowed child'
 $newer.Bundled = @()

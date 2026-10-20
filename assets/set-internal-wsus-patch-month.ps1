@@ -5,10 +5,14 @@ param(
     [string[]]$Products,
     [string[]]$Classifications,
     [hashtable]$PrerequisiteMonths = @{},
-    [switch]$ValidatePolicy
+    [switch]$ValidatePolicy,
+    [bool]$VerifyContentHashes = $true
 )
 $ErrorActionPreference = 'Stop'
 $Ansible.Changed = $false
+if (-not $ValidatePolicy -and -not $VerifyContentHashes) {
+    throw 'Changing the WSUS ceiling always requires full content hash verification.'
+}
 . ([scriptblock]::Create($FunctionsSource))
 Import-Module UpdateServices
 $server = Get-WsusServer
@@ -24,7 +28,7 @@ if ([string]$subscription.GetSynchronizationStatus() -ne 'NotProcessing') {
     throw 'Wait for active WSUS synchronization before enforcing the ceiling.'
 }
 $plan = Get-WsusPatchMonthPlan $server $Month $Products $Classifications $PrerequisiteMonths
-$content = Get-WsusPatchMonthContent $plan
+$content = Get-WsusPatchMonthContent $plan -VerifyHashes $VerifyContentHashes
 $summary = Get-WsusPatchMonthSummary $plan $content
 $summary.enabled_automatic_rules = @($server.GetInstallApprovalRules() | Where-Object Enabled).Count
 $summary.updates_needing_decline = @($plan.Blocked | Where-Object { -not $_.IsDeclined }).Count
@@ -96,6 +100,19 @@ foreach ($update in $plan.Explicit.Values) {
         $Ansible.Changed = $true
     }
 }
+# WSUS may need a short interval to recognize already imported local content.
+$readyDeadline = (Get-Date).AddMinutes(5)
+do {
+    $notReady = @($plan.Explicit.Values | Where-Object {
+        $_.Refresh()
+        [string]$_.State -ne 'Ready'
+    })
+    if ($notReady.Count -eq 0) { break }
+    if ((Get-Date) -ge $readyDeadline) {
+        throw 'Selected WSUS updates did not become ready; no successful ceiling marker was written.'
+    }
+    Start-Sleep -Seconds 10
+} while ($true)
 # Re-read the catalogue to detect concurrent imports or approval changes.
 $violations = @(Get-WsusPatchMonthPolicyViolations $server $plan $content)
 if ($violations.Count -gt 0) {

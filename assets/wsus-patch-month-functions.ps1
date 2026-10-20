@@ -102,7 +102,7 @@ function Get-WsusPatchMonthPlan {
 }
 
 function Get-WsusPatchMonthContent {
-    param([hashtable]$Plan)
+    param([hashtable]$Plan, [bool]$VerifyHashes = $true)
     $content = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup').ContentDir.TrimEnd('\')
     if ((Split-Path $content -Leaf) -ne 'WsusContent') { $content = Join-Path $content 'WsusContent' }
     $files = @{}
@@ -118,7 +118,7 @@ function Get-WsusPatchMonthContent {
                 $path = Join-Path $content $relative.Replace('/', '\')
                 $matching = (Test-Path -LiteralPath $path -PathType Leaf) -and
                     (Get-Item -LiteralPath $path).Length -eq [long]$file.TotalBytes
-                if ($matching) {
+                if ($matching -and $VerifyHashes) {
                     $matching = (Get-FileHash -LiteralPath $path -Algorithm SHA1).Hash -eq $expectedHash
                 }
                 $files[$relative] = @{ Path = $path; Bytes = [long]$file.TotalBytes; Present = [bool]$matching }
@@ -141,7 +141,7 @@ function Get-WsusPatchMonthSummary {
         selected_updates = @($Plan.Allowed.Values | ForEach-Object {
             @{ id = [string]$_.Id.UpdateId; revision = $_.Id.RevisionNumber; title = $_.Title;
                 kb = @($_.KnowledgebaseArticles); products = @($_.ProductTitles) }
-        } | Sort-Object id)
+        } | Sort-Object { $_['id'] })
         blocked_updates = $Plan.Blocked.Count
         missing_content_bytes = $Content.MissingBytes
         pending_license_updates = @($Plan.Allowed.Values | Where-Object RequiresLicenseAgreementAcceptance |
@@ -167,6 +167,8 @@ function Get-WsusPatchMonthPolicyViolations {
         if ($update.RequiresLicenseAgreementAcceptance) { $problems.Add("license-pending:$($update.Id.UpdateId)") }
     }
     foreach ($update in $Plan.Explicit.Values) {
+        $update.Refresh()
+        if ([string]$update.State -ne 'Ready') { $problems.Add("not-ready:$($update.Id.UpdateId)") }
         $approvals = @($update.GetUpdateApprovals() | Where-Object { [string]$_.Action -ne 'Bundle' })
         $wanted = @($approvals | Where-Object {
             [string]$_.Action -eq 'Install' -and $_.ComputerTargetGroupId -eq $allComputersId -and

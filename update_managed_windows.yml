@@ -44,6 +44,9 @@
       ansible.builtin.set_fact:
         windows_patch_active_month: "{{ hostvars[groups['wsus_internal'][0]].windows_patch_policy_marker.result.patch_month }}"
         windows_patch_allowed_updates: "{{ hostvars[groups['wsus_internal'][0]].windows_patch_current_policy.result.selected_updates }}"
+        # The first play already verified every hash. Subsequent checks retain
+        # identities, policy, WSUS readiness and file lengths without rereading GBs.
+        windows_patch_full_content_check: false
       no_log: "{{ windows_patch_no_log | bool }}"
 
     # WUA can expose .NET component titles/IDs rather than their WSUS bundle

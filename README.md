@@ -129,6 +129,10 @@ locally stored content and manual-import policy are enforced independently of
 the upstream-selection flag retained by the existing offline setup.
 WSUS export atomically publishes `current.json` and retains the previous pointer
 as `current.previous.json` when replacing an existing manifest.
+Selected update identities use canonical ordering on Windows PowerShell 5.1 so
+policy drift comparisons remain stable between reads.
+Client patching verifies all payload hashes once, then retains fresh WSUS
+readiness, policy, identity and file-length checks between install passes.
 
 Install `ansible-core` in the execution environment. Validate without deployment:
 

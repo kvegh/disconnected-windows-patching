@@ -88,6 +88,9 @@ Before any installation it verifies every endnode's existing internal WSUS sourc
 policies, client web service access and supported OS family. It also revalidates
 internal approvals, declines and payloads. Conflicting sources stop the job for
 configuration review rather than changing the source during patch installation.
+The initial preflight verifies all payload hashes. Later checks retain WSUS
+readiness, exact identities, policy and file lengths without repeatedly hashing
+the entire baseline. Ceiling changes and transfers retain full hash checks.
 
 Clients run serially. Each pass performs a read-only Windows Update Agent search,
 checks the release ceiling and license state, then gives the exact observed
