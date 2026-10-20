@@ -1,5 +1,22 @@
 # Design decisions history
 
+## 2026-10-20 — Compare WSUS approvals with Satellite content lifecycles
+
+Documentation: `578bedd`. The operator requested a public comparison of patching,
+repository management, Content Views and promotion. Add a sourced guide and
+README link, using Microsoft's WSUS documentation and Satellite 6.19 guidance.
+Distinguish mutable WSUS group approvals from published Content View versions,
+and explain why promotion does not install or downgrade host packages. Include
+the rolling-view exception, disconnected transfer choices and separate Ansible
+stages for content preparation, policy, installation and verification.
+
+Use generic examples without deployed identities or connection details. The
+comparison describes conceptual equivalents and does not add OS-installation
+or approval automation. The same documentation change records successful
+read-only assessment and artifact collection on both supported Windows versions;
+no host changes were reported. Sources, relative links and whitespace were
+reviewed before publication.
+
 ## 2026-10-20 — Make installed patch assessment repeatable
 
 Implementation: `1d05660`. The operator requested reproducible Ansible tasks and
