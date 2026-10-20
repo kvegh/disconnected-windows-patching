@@ -1,0 +1,5 @@
+---
+# Optional controller administration dependency, separate from Windows job runtime.
+collections:
+  - name: ansible.controller
+    version: '4.8.11'

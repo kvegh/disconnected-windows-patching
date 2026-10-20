@@ -1,0 +1,25 @@
+---
+# Keep these audited catalogue choices aligned with the Job Template survey.
+wsus_patch_month_labels:
+  January 2026: '2026-01'
+  February 2026: '2026-02'
+  March 2026: '2026-03'
+  April 2026: '2026-04'
+  May 2026: '2026-05'
+  June 2026: '2026-06'
+  July 2026: '2026-07'
+  August 2026: '2026-08'
+  September 2026: '2026-09'
+wsus_patch_month_choices:
+  - '2026-01'
+  - '2026-02'
+  - '2026-03'
+  - '2026-04'
+  - '2026-05'
+  - '2026-06'
+  - '2026-07'
+  - '2026-08'
+  - '2026-09'
+# Unknown prerequisite titles are rejected unless their release month is audited.
+# Keys, when required, are Microsoft update GUIDs; values are YYYY-MM.
+wsus_patch_prerequisite_months: {}

@@ -1,0 +1,130 @@
+---
+- name: Validate and preview the requested internal WSUS patch ceiling
+  hosts: wsus_internal
+  gather_facts: false
+  any_errors_fatal: true
+  vars_files:
+    - vars/wsus_pipeline.yml
+    - vars/wsus_patch_month.yml
+  tasks:
+    - name: Require one external and one distinct internal WSUS with an available 2026 month
+      ansible.builtin.assert:
+        that:
+          - groups.get('wsus_external', []) | length == 1
+          - groups.get('wsus_internal', []) | length == 1
+          - groups['wsus_external'] | intersect(groups['wsus_internal']) | length == 0
+          - wsus_patch_month | default('') in wsus_patch_month_labels
+          - wsus_download_reserve_gb | int >= 2
+          - wsus_max_selected_updates | int > 0
+        fail_msg: Choose an available named 2026 patchset and supply exactly one external and one internal WSUS.
+
+    - name: Preview baseline identities, dependency graph and internal payload readiness
+      ansible.windows.win_powershell:
+        error_action: stop
+        depth: 6
+        path: assets/set-internal-wsus-patch-month.ps1
+        parameters:
+          FunctionsSource: "{{ lookup('ansible.builtin.file', 'assets/wsus-patch-month-functions.ps1') }}"
+          Month: "{{ wsus_patch_month_labels[wsus_patch_month] }}"
+          Products: "{{ wsus_products }}"
+          Classifications: "{{ wsus_classifications }}"
+          PrerequisiteMonths: "{{ wsus_patch_prerequisite_months }}"
+      check_mode: true
+      changed_when: false
+      register: wsus_patch_month_preview
+      no_log: "{{ wsus_no_log | bool }}"
+
+    - name: Report the read-only plan
+      ansible.builtin.debug:
+        msg:
+          patch_month: "{{ wsus_patch_month_preview.result.patch_month }}"
+          selected_updates: "{{ wsus_patch_month_preview.result.selected_updates }}"
+          missing_internal_content_bytes: "{{ wsus_patch_month_preview.result.missing_content_bytes }}"
+          pending_license_updates: "{{ wsus_patch_month_preview.result.pending_license_updates }}"
+          updates_needing_decline: "{{ wsus_patch_month_preview.result.updates_needing_decline }}"
+          check_mode: "{{ ansible_check_mode }}"
+
+- name: Download the explicit historical monthly baseline on external WSUS
+  hosts: wsus_external
+  gather_facts: false
+  any_errors_fatal: true
+  vars_files:
+    - vars/wsus_pipeline.yml
+    - vars/wsus_patch_month.yml
+  tasks:
+    - name: Prepare the selected baseline without running a new metadata synchronization
+      when: not ansible_check_mode
+      block:
+        - name: Ensure the WSUS background transfer service is running
+          ansible.windows.win_service:
+            name: BITS
+            state: started
+
+        - name: Create the WSUS pipeline state directory
+          ansible.windows.win_file:
+            path: "{{ wsus_state_root }}"
+            state: directory
+
+        - name: Explicitly select and download the monthly baseline and its prerequisites
+          ansible.windows.win_powershell:
+            error_action: stop
+            depth: 8
+            path: assets/prepare-wsus-patch-month.ps1
+            parameters:
+              FunctionsSource: "{{ lookup('ansible.builtin.file', 'assets/wsus-patch-month-functions.ps1') }}"
+              Month: "{{ wsus_patch_month_labels[wsus_patch_month] }}"
+              Products: "{{ wsus_products }}"
+              Classifications: "{{ wsus_classifications }}"
+              Languages: "{{ wsus_languages }}"
+              PrerequisiteMonths: "{{ wsus_patch_prerequisite_months }}"
+              MaximumUpdates: "{{ wsus_max_selected_updates | int }}"
+              ReserveGB: "{{ wsus_download_reserve_gb | int }}"
+              DownloadTimeout: "{{ wsus_download_timeout | int }}"
+              GroupName: "{{ wsus_download_group }}"
+          become: true
+          become_method: runas
+          become_user: SYSTEM
+          async: "{{ (wsus_download_timeout | int) + 600 }}"
+          poll: 0
+          register: wsus_operation
+          no_log: "{{ wsus_no_log | bool }}"
+
+        - name: Wait for verified historical baseline downloads
+          ansible.builtin.include_tasks: tasks/wait_windows_operation.yml
+          vars:
+            wsus_operation_timeout: "{{ (wsus_download_timeout | int) + 600 }}"
+
+        - name: Record the stable monthly selection in the existing export format
+          ansible.windows.win_copy:
+            content: "{{ wsus_operation_status.result.selection | to_nice_json }}"
+            dest: "{{ wsus_state_root }}\\selection.json"
+          no_log: "{{ wsus_no_log | bool }}"
+
+        - name: Report completed external content preparation
+          ansible.builtin.debug:
+            msg:
+              patch_month: "{{ wsus_operation_status.result.patch_month }}"
+              ready_updates: "{{ wsus_operation_status.result.selected_updates | length }}"
+              missing_content_bytes: "{{ wsus_operation_status.result.missing_content_bytes }}"
+
+- name: Publish the prepared monthly selection through the existing export pipeline
+  ansible.builtin.import_playbook: export_external_wsus.yml
+  when: not ansible_check_mode
+
+- name: Pull and import the prepared monthly baseline with the existing import pipeline
+  ansible.builtin.import_playbook: replicate_and_import.yml
+  when: not ansible_check_mode
+
+- name: Enforce the selected month after verified content transfer and import
+  hosts: wsus_internal
+  gather_facts: false
+  any_errors_fatal: true
+  vars_files:
+    - vars/wsus_pipeline.yml
+    - vars/wsus_patch_month.yml
+  tasks:
+    - name: Apply and persist the requested internal patch ceiling
+      ansible.builtin.include_tasks: tasks/apply_wsus_patch_month.yml
+      vars:
+        wsus_patch_policy_month: "{{ wsus_patch_month_labels[wsus_patch_month] }}"
+      when: not ansible_check_mode

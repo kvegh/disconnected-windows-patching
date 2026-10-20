@@ -1,0 +1,17 @@
+{
+  "name": "Internal WSUS monthly patch ceiling",
+  "description": "Prepare an OS/.NET baseline, transfer it, and offer only the selected month or earlier prerequisites. No client updates are installed.",
+  "spec": [
+    {
+      "question_name": "Last permitted patch month",
+      "question_description": "Microsoft release month, inclusive. Select an available 2026 patchset. A lower month cannot downgrade clients that are already newer.",
+      "required": true,
+      "type": "multiplechoice",
+      "variable": "wsus_patch_month",
+      "default": "April 2026",
+      "choices": "January 2026\nFebruary 2026\nMarch 2026\nApril 2026\nMay 2026\nJune 2026\nJuly 2026\nAugust 2026\nSeptember 2026",
+      "min": 0,
+      "max": 1024
+    }
+  ]
+}

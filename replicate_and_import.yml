@@ -4,6 +4,7 @@
   gather_facts: false
   vars_files:
     - vars/wsus_pipeline.yml
+    - vars/wsus_patch_month.yml
     - vars/wsus_environment_vault.yml
   tasks:
     - name: Validate autonomous import inventory and protected transfer URL
@@ -155,3 +156,32 @@
       ansible.builtin.debug:
         var: wsus_operation_status.result
       no_log: "{{ wsus_no_log | bool }}"
+
+    - name: Inspect the saved internal patch ceiling
+      ansible.windows.win_stat:
+        path: "{{ wsus_state_root }}\\patch-month-policy.json"
+      register: wsus_saved_patch_ceiling
+      no_log: "{{ wsus_no_log | bool }}"
+
+    - name: Reapply an active ceiling after metadata import
+      when: wsus_saved_patch_ceiling.stat.exists
+      block:
+        - name: Read the previously verified patch ceiling
+          ansible.builtin.slurp:
+            src: "{{ wsus_state_root }}\\patch-month-policy.json"
+          register: wsus_saved_patch_ceiling_file
+          no_log: "{{ wsus_no_log | bool }}"
+
+        - name: Decode the saved patch ceiling
+          ansible.builtin.set_fact:
+            wsus_saved_patch_ceiling_policy: "{{ wsus_saved_patch_ceiling_file.content | b64decode | from_json }}"
+          no_log: "{{ wsus_no_log | bool }}"
+
+        - name: Require the supported saved-ceiling format
+          ansible.builtin.assert:
+            that: wsus_saved_patch_ceiling_policy.schema_version == 1
+
+        - name: Enforce the saved ceiling against newly imported catalogue entries
+          ansible.builtin.include_tasks: tasks/apply_wsus_patch_month.yml
+          vars:
+            wsus_patch_policy_month: "{{ wsus_saved_patch_ceiling_policy.patch_month }}"

@@ -1,0 +1,61 @@
+---
+- name: Configure the monthly WSUS ceiling Job Template and survey
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    wsus_ceiling_template_name: Disconnected Windows Patching - Set WSUS Patch Ceiling
+  tasks:
+    - name: Require protected controller references
+      ansible.builtin.assert:
+        that:
+          - wsus_controller_inventory | default('') | string | length > 0
+          - wsus_controller_project | default('') | string | length > 0
+          - wsus_controller_execution_environment | default('') | string | length > 0
+          - wsus_controller_credentials | default([]) | length > 0
+        fail_msg: Supply inventory, project, execution environment and credential references through protected configuration.
+
+    - name: Refresh the project so its selected playbook is available
+      ansible.controller.project_update:
+        controller_host: "{{ wsus_controller_host | default(omit) }}"
+        controller_oauthtoken: "{{ wsus_controller_token | default(omit) }}"
+        validate_certs: true
+        project: "{{ wsus_controller_project | string }}"
+        wait: true
+        timeout: 600
+      when: wsus_controller_refresh_project | default(true) | bool
+      no_log: true
+
+    - name: Configure the template, credential associations and named-month survey
+      ansible.controller.job_template:
+        controller_host: "{{ wsus_controller_host | default(omit) }}"
+        controller_oauthtoken: "{{ wsus_controller_token | default(omit) }}"
+        validate_certs: true
+        name: "{{ wsus_ceiling_template_name }}"
+        description: >-
+          Prepare and transfer the selected monthly Windows baseline, then enforce
+          the internal WSUS ceiling. Does not install updates on endnodes.
+        inventory: "{{ wsus_controller_inventory | string }}"
+        project: "{{ wsus_controller_project | string }}"
+        execution_environment: "{{ wsus_controller_execution_environment | string }}"
+        credentials: "{{ wsus_controller_credentials | map('string') | list }}"
+        playbook: set_internal_wsus_patch_month.yml
+        job_type: run
+        survey_enabled: true
+        survey_spec: "{{ lookup('ansible.builtin.file', 'assets/wsus-patch-month-survey.json') | from_json }}"
+        ask_variables_on_launch: true
+        ask_job_type_on_launch: true
+        ask_limit_on_launch: false
+        allow_simultaneous: false
+        timeout: 43200
+        verbosity: 0
+        state: present
+      register: wsus_ceiling_template_configuration
+      no_log: true
+
+    - name: Report configured template
+      ansible.builtin.debug:
+        msg:
+          name: "{{ wsus_ceiling_template_name }}"
+          id: "{{ wsus_ceiling_template_configuration.id }}"
+          changed: "{{ wsus_ceiling_template_configuration.changed }}"

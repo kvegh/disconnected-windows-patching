@@ -1,5 +1,15 @@
 # Demo TODO
 
+## Review Ansible use and external dependencies
+
+- Review every automation stage to identify whether it uses native Ansible
+  modules only. List each exception: PowerShell scripts, Windows/WSUS APIs,
+  command-line utilities, custom helpers and direct external API calls.
+- For each exception, record its purpose, how Ansible invokes it, why a native
+  module is insufficient, and whether it can be replaced with supported Ansible
+  content. Include controller configuration, content transfer and client patching.
+- Document the resulting module/dependency map and remaining replacements.
+
 ## Permanent IP and MAC assignments
 
 - Define permanent addresses for every demo VM and every relevant NIC, including
@@ -29,12 +39,14 @@
 
 - Run and validate the new sync, export and import stages with current Microsoft updates.
 - Validate applicability and prerequisite/checkpoint coverage on both older base images.
-- Add internal client approval and patch installation stages.
+- Internal monthly approval/visibility ceilings are implemented in
+  `set_internal_wsus_patch_month.yml`, with saved-policy reapplication after imports.
+  Client patch installation is a separate stage.
 - Installed-state assessment is implemented in `assess_windows_patch_level.yml`.
   Add client applicability scans as a separate read-only stage.
-- Add reproducible selection, download and internal approval of explicit older
-  OS/.NET baselines, including prerequisites and a configurable release ceiling.
-  Keep newer releases available externally for the next demonstration stage.
+- Reproducible named-month selection, historical content download and internal
+  approval are implemented. Keep newer releases available externally for the
+  next demonstration stage and add survey choices after auditing new catalogues.
 - Validate the pinned Nexus/Chocolatey downloads and vaulted inputs in live service setup.
 - Validate Task Scheduler network configuration on all four freshly cloned VMs.
 - Exercise the five application stages: sync, export, import, baseline deployment and upgrade.

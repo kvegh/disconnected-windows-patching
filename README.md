@@ -107,11 +107,14 @@ upgrades. Windows update installation on the endnodes is a separate step.
 - `prepare_repository_servers.yml`: feature/MSI installation and reboot barrier before parallel setup.
 - `check_wsus_prerequisites.yml`: read-only external WSUS readiness and PowerShell syntax checks.
 - `assess_windows_patch_level.yml`: read-only installed OS build and hotfix evidence on managed endnodes.
+- `set_internal_wsus_patch_month.yml`: prepare a named monthly baseline and enforce its internal WSUS ceiling.
+- `configure_wsus_patch_ceiling_template.yml`: reproduce the ceiling Job Template and month-name survey with Ansible.
 - `sync_external_wsus.yml`: Microsoft metadata synchronization and selected file downloads.
 - `export_external_wsus.yml`: WSUS metadata export and management-only IIS publication.
 - `replicate_and_import.yml`: direct external-to-internal HTTP transfer and offline WSUS import.
 - `docs/wsus-data-flow.md`: inputs, workflow, integrity checks, module use and live validation status.
 - [WSUS vs Satellite](docs/wsus-vs-satellite.md): patching, repository management, Content Views and staged content promotion.
+- [Monthly Windows patching](docs/windows-os-patching.md): named-month selection, content preparation, approval policy and repeatable Job Template configuration.
 - `collections/requirements.yml`: pinned Ansible collection dependencies.
 - `docs/application-deployment.md`: application architecture, inputs, and remaining work.
 - `windows-remote-access.md`: suggested Linux-laptop console access over SSH/VNC, demo evidence, and proposed staged OS patch levels.

@@ -1,0 +1,49 @@
+---
+- name: Validate the month used for internal policy enforcement
+  ansible.builtin.assert:
+    that: wsus_patch_policy_month in wsus_patch_month_choices
+    fail_msg: The saved or selected patch month is unsupported; no approval policy was changed.
+
+- name: Reconcile internal WSUS approvals, declines and automatic approval settings
+  ansible.windows.win_powershell:
+    error_action: stop
+    depth: 6
+    path: assets/set-internal-wsus-patch-month.ps1
+    parameters:
+      FunctionsSource: "{{ lookup('ansible.builtin.file', 'assets/wsus-patch-month-functions.ps1') }}"
+      Month: "{{ wsus_patch_policy_month }}"
+      Products: "{{ wsus_products }}"
+      Classifications: "{{ wsus_classifications }}"
+      PrerequisiteMonths: "{{ wsus_patch_prerequisite_months }}"
+  become: true
+  become_method: runas
+  become_user: SYSTEM
+  register: wsus_patch_month_policy
+  no_log: "{{ wsus_no_log | bool }}"
+
+- name: Create the internal policy state directory
+  ansible.windows.win_file:
+    path: "{{ wsus_state_root }}"
+    state: directory
+
+- name: Save the verified ceiling for enforcement after subsequent imports
+  ansible.windows.win_copy:
+    content: "{{ {'schema_version': 1, 'patch_month': wsus_patch_policy_month} | to_nice_json }}"
+    dest: "{{ wsus_state_root }}\\patch-month-policy.json"
+  when: not ansible_check_mode
+
+- name: Publish the verified patch ceiling as AAP job artifacts
+  ansible.builtin.set_stats:
+    data:
+      wsus_patch_month_policy: "{{ wsus_patch_month_policy.result }}"
+    aggregate: false
+    per_host: false
+  no_log: "{{ wsus_no_log | bool }}"
+
+- name: Report the successfully enforced internal patch ceiling
+  ansible.builtin.debug:
+    msg:
+      patch_month: "{{ wsus_patch_month_policy.result.patch_month }}"
+      policy_verified: "{{ wsus_patch_month_policy.result.policy_verified }}"
+      offered_updates: "{{ wsus_patch_month_policy.result.offered_updates }}"
+      blocked_updates: "{{ wsus_patch_month_policy.result.blocked_updates }}"
