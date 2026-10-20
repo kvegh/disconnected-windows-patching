@@ -1,5 +1,43 @@
 # Design decisions history
 
+## 2026-10-20 — Activate each evaluation clone before disconnected deployment continues
+
+Implementation: `88b307b`. The operator requested that both Windows versions
+temporarily gain connected access, activate and verify their evaluation license,
+then return to their original isolated topology. Activating the base image is
+insufficient evidence for a generalized clone, so licensing is checked on every
+deployed guest. Keep the existing single parameterized VM creation playbook and
+insert a dedicated activation stage after Windows basics establishes permanent
+management access, before repository preparation.
+
+Reuse the existing Hypervisor SSH Machine and Vault credentials. Store the
+existing Windows login, approved connected network and four exact clone mappings
+in a separate encrypted activation record. Build temporary in-memory WinRM
+connections rather than duplicating the hypervisor private key or weakening
+access controls. Already-licensed guests remain read-only. Repository roles
+retain all permanent adapters and may reuse their existing connected route;
+isolated guests gain only a live temporary adapter while their original NIC
+remains attached.
+
+Block automatic Windows updating before an unlicensed guest receives access.
+Activate only the installed evaluation SKU, verify licensed state and remaining
+time, then verify the original guest addresses, DNS, routes and live/persistent
+libvirt topology after cleanup. Convert WinRM-unreachable results to normal task
+failures so Ansible's unconditional cleanup runs. A prearmed hypervisor deadline
+also lowers and detaches this operation's temporary MAC if the controller is
+canceled or lost. Never change product keys, reset licensing timers, convert
+editions or accept license terms.
+
+Validation: eight Python tests cover topology evidence and real Ansible
+success/failure/unreachable cleanup control flow with remote operations mocked;
+nineteen PowerShell assertions pass on each repository server with all licensing
+and network calls mocked. Syntax checks pass in the existing supported execution
+environment and for controller configuration; YAML and controller configuration
+lint pass. No current guest activation, topology mutation, fresh clone deployment
+or live workflow change was performed by this implementation task. Apply the
+reproducible controller configuration and validate a controlled fresh deployment
+before treating the new stage as operationally verified.
+
 ## 2026-10-20 — Serve modern update payloads from existing WSUS content
 
 Fix: `f9883a8`. A managed client stayed at zero bytes while downloading the
