@@ -34,8 +34,9 @@
         name: "{{ windows_patching_template_name }}"
         description: >-
           Validate the current internal WSUS monthly ceiling, then install its
-          applicable approved updates on managed Windows endnodes serially,
-          following required reboot and rescan cycles. Check mode searches only.
+          applicable approved updates on the selected managed Windows endnodes,
+          following required reboot and rescan cycles. Disjoint host limits allow
+          simultaneous per-server jobs. Check mode searches only.
         inventory: "{{ wsus_controller_inventory | string }}"
         project: "{{ wsus_controller_project | string }}"
         execution_environment: "{{ wsus_controller_execution_environment | string }}"
@@ -45,8 +46,8 @@
         survey_enabled: false
         ask_variables_on_launch: false
         ask_job_type_on_launch: true
-        ask_limit_on_launch: false
-        allow_simultaneous: false
+        ask_limit_on_launch: true
+        allow_simultaneous: true
         timeout: 43200
         verbosity: 0
         state: present

@@ -140,6 +140,14 @@ Full client Check completion and actual OS installation remain unverified.
 - [WSUS vs Satellite](docs/wsus-vs-satellite.md): patching, repository management, Content Views and staged content promotion.
 - [Monthly Windows patching](docs/windows-os-patching.md): named-month selection, content preparation, approval policy and repeatable Job Template configuration.
 
+For concurrent OS patching, launch the Update Managed Windows Job Template once
+per managed server. Include that server and `wsus_internal` in each launch limit
+so the shared read-only preflight runs, for example `HOST_A:wsus_internal` and
+`HOST_B:wsus_internal`. Simultaneous launches are enabled; the playbook retains
+sequential client processing within a launch. Keep managed-host targets disjoint
+and the internal WSUS ceiling stable until both jobs finish. Measured historical
+runtimes are recorded in the patching guide.
+
 - `collections/requirements.yml`: pinned Ansible collection dependencies.
 - `docs/application-deployment.md`: application architecture, inputs, and remaining work.
 - `windows-remote-access.md`: suggested Linux-laptop console access over SSH/VNC, demo evidence, and proposed staged OS patch levels.

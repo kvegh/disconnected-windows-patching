@@ -143,7 +143,17 @@ checks remain: export supplies SHA256 hashes, existing internal files are checke
 once, and downloaded files are verified by the native Ansible downloader.
 Metadata import does not repeat those payload checksums.
 
-Clients run serially. Each pass performs a read-only Windows Update Agent search,
+To patch two servers concurrently, launch this Job Template twice, selecting a
+different managed host on each. Each limit must also include `wsus_internal` for
+the shared read-only preflight: use `HOST_A:wsus_internal` and
+`HOST_B:wsus_internal`. The template permits simultaneous jobs and accepts a limit
+at launch; each individual playbook launch retains sequential client processing.
+Never overlap the managed-host targets of concurrent jobs. Keep ceiling changes,
+content import and client patching as separate stages, with the ceiling stable
+until both jobs finish. An already running job retains the targets and scheduling
+it started with.
+
+Each pass performs a read-only Windows Update Agent search,
 checks the release ceiling and license state, then gives the exact observed
 update titles to `ansible.windows.win_updates` with `reboot: true`. The native
 allowlist handles both the exact title and the pinned module's concatenated
@@ -240,3 +250,54 @@ evaluation activation grace on Server 2025. A full successful client Check run
 remains pending. Subsequently, authorized temporary connectivity activated the
 existing Server 2025 evaluation automatically, and isolation was restored as
 described above. No client update installation or reboot was run.
+
+## Measured job runtimes
+
+The ten latest successful jobs in this use case were inspected on 2026-10-20.
+Durations below use AAP execution time, excluding the delay between job creation
+and execution. Task spans come from matching per-host start and completion
+events; asynchronous wait spans include the monitored Windows operation.
+Failed jobs and the current incomplete client installation are outside this
+successful-job sample.
+
+| Job | Date | Operation | Execution time | Measured main cost |
+|---|---|---|---|---|
+| 2218 | October 20 | First April ceiling publication | 37m31s | External baseline preparation 12m37s; internal verification/import 8m54s; transfer/check loop 4m45s; approval reconciliation 2m47s. |
+| 2203 | October 20 | Ceiling preview in Check mode | 1m11s | Execution startup 48s; baseline preview 10s. |
+| 2191 | October 20 | Installed patch assessment | 13s | Windows state query 8s; this launch targeted one endnode. |
+| 2183 | October 20 | Repeat WSUS replication/import | 4m20s | Transfer prevalidation 107s, per-file checks 65s, import wait 35s; all 22 file items reported unchanged. |
+| 2185 | October 20 | Chocolatey replication/import | 1m48s | Numerous small feed/account/package checks; actual archive pull 6s. |
+| 2181 | October 20 | WSUS prerequisite check | 33s | PowerShell syntax validation 18s; readiness inspection 6s. |
+| 2179 | October 20 | WSUS prerequisite check | 42s | PowerShell syntax validation 18s; readiness inspection 8s. |
+| 1302 | October 7 | Full WSUS replication/import | 36m33s | Download/verification loop 16m24s for about 13.0 GB; verification/import wait 18m34s. |
+| 1300 | October 7 | External WSUS export | 3m00s | Export and manifest operation 2m17s. |
+| 1268 | October 7 | External WSUS synchronization | 52m35s | Microsoft metadata synchronization and selected-file download wait 50m42s; four selected updates estimated at about 13.0 GB. |
+
+The three long runs account for about 91% of this sample's execution time.
+Their source predates removal of redundant payload hashing. Earlier import
+operations combined payload verification and WSUS metadata import in one script;
+the recorded task duration cannot divide that phase precisely between the two.
+The first April publication transferred about 2.8 GB of additional files while
+checking a 15.8 GB manifest, so the total selected content was larger than the
+new network transfer.
+
+The repeat WSUS run also spent time on unchanged files. Current transfer
+preparation returns only missing or mismatched files, metadata import avoids a
+second full payload hash, and an already available monthly baseline skips
+external preparation and transfer entirely. These changes address measured
+repeated work; another comparable successful run is needed to quantify their
+speedup. A fresh baseline still needs its missing binaries and real WSUS work.
+
+Creation-to-start delay was usually 14–42 seconds, with a 2m41s exception.
+Startup before the first playbook event was usually 3–14 seconds, with 48s and
+81s exceptions. These spans are measured separately; the events alone do not
+fully attribute them to queueing, project preparation or execution-environment
+startup. The async poll interval is 30 seconds; it can delay noticing completion,
+but does not explain a 50-minute Windows operation.
+
+Recommended priorities are to reuse synchronized content and existing baselines,
+run independent endnodes concurrently through disjoint host-limited jobs, and
+measure disk, memory and native WSUS subphase timings before attributing the
+remaining import time to a particular resource. Reducing many small WinRM/API
+checks can help short jobs, but those checks are not the main cause of the long
+WSUS runs. Preserve update/reboot verification and the internal-only source.
