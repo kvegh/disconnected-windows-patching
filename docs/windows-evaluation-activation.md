@@ -146,6 +146,29 @@ preservation of matching URLs, and rejection of an arbitrary default route as
 evidence of connected-network access.
 Source validation does not substitute for a controlled fresh-clone workflow run.
 
+Live controller configuration on 2026-10-20 created activation Job Template 82
+and routed the existing Windows basics success edge through activation to
+repository preparation. Reapplying the configuration left the template and
+workflow edges unchanged. Check job 2283 succeeded on all four existing clones
+in 63 seconds: each was already licensed and its original guest and libvirt
+topology matched the protected configuration. No activation, policy writes or
+adapter changes occurred.
+
+Normal job 2286 then succeeded in 69 seconds on the same four licensed clones.
+Its recap reported zero changed tasks, no failures and no unreachable hosts.
+Each clone skipped activation and passed the final licensed-state and original
+topology verification. This verifies the deployed normal licensed skip path.
+
+The first two Check attempts caught and corrected integration assumptions:
+the hypervisor inventory entry is a host alias rather than a same-named group,
+and live libvirt network interfaces have generated `bridge`/`portid` fields
+absent from persistent XML. Target selection now requires one resolved host;
+network comparison ignores only those generated fields for network interfaces.
+Twenty regression tests pass, including real captured topology comparisons and
+refusal of actual network, portgroup, unknown-attribute, model, MAC or link changes.
+The unlicensed activation and failure cleanup paths have mocked test coverage;
+a controlled fresh-clone run is still needed to prove that path end to end.
+
 References:
 
 - [Microsoft: Windows Server 2025 evaluation requirements](https://www.microsoft.com/en-us/evalcenter/evaluate-windows-server-2025).

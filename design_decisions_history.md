@@ -1,5 +1,35 @@
 # Design decisions history
 
+## 2026-10-20 — Verify completed April patching and apply memory at safe reboot boundaries
+
+Memory implementation: `7e206ce`; payload-serving repair: `f9883a8`;
+completed-state documentation: `a6934ae`. Both managed servers now meet the
+internal April OS and .NET baseline with no applicable updates or pending
+reboot. Server 2022's initial verified installation took about 39m49s;
+its post-maintenance verification took 2m00s. Server 2025's successful job 2258
+took 1h38m52s including its failed HTTP retries before the MIME repair.
+
+The operator explicitly authorized complete VM restarts for 4 GiB allocation.
+Server 2022 received a clean stop/start after patch completion. For Server 2025,
+use one Windows-requested reboot boundary to stop and start QEMU with the
+persistent 4 GiB allocation; do not forcibly power off an active install.
+The one-time live reboot action ended at startup, restoring the persistent
+restart policy. Verify both the running libvirt allocation and Windows memory.
+Event record order confirms two patch restarts on Server 2022 and four on
+Server 2025; guest clock offsets prevent direct timestamp comparisons.
+
+Activation implementation and review fixes: `88b307b`, `f198c25`, `62d501e`,
+`a99cf7a`. Native Ansible controller configuration created the activation
+template and inserted it between Windows basics and repository preparation.
+Live Check job 2283 passed on all four existing licensed clones after correcting
+inventory alias selection and generated libvirt source attributes. These
+integration fixes retain the ownership, network and license guards. Normal
+job 2286 also passed on all four with zero changes, verifying the licensed skip
+path and final topology/license checks. Twenty
+regression tests pass. Fresh unlicensed activation remains an explicit
+end-to-end validation limit; do not treat existing licensed-clone checks as
+proof of that path.
+
 ## 2026-10-20 — Compare declared virtual-network identity without generated live metadata
 
 Fix: `a99cf7a`. The next deployed activation Check passed initial configuration,

@@ -104,6 +104,13 @@ Ansible cleans up on failure, and a hypervisor deadline removes the temporary
 adapter if the controller is lost. See
 [per-clone activation and workflow configuration](docs/windows-evaluation-activation.md).
 
+The activation template and workflow handoff are deployed. Live Check job 2283
+and normal job 2286 passed on all four existing, already-licensed clones without
+host changes, verifying the normal licensed skip path as well as inspection.
+Twenty regression tests cover the activation guards and cleanup paths. A
+controlled fresh deployment is still required to verify the unlicensed path
+end to end; the earlier complete workflow run predates this stage.
+
 `wait_for_dhcp` defaults to `false` because initial setup or the network layout
 may prevent immediate DHCP. Enable it to wait up to five minutes and discover
 IPv4 by MAC on a libvirt network providing DHCP. A lease does not establish that
