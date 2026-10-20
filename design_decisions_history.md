@@ -1,5 +1,35 @@
 # Design decisions history
 
+## 2026-10-20 — Keep managed update assessment compatible with WinRM
+
+Fix: `a47bd1c`. After both clients became reachable, live Check job 2238 completed
+the managed-source update search but failed creating WUA's SystemInfo COM object.
+Microsoft explicitly excludes ISystemInformation from remote interfaces. Read
+the same Windows Update and Component Based Servicing reboot registry markers
+as the existing installed-state inspector instead. Keep read-only searches and
+license guards; no COM permissions or remote security settings are changed.
+
+Eight new mock assertions reproduce restricted COM access, preserve managed
+source selection and unaccepted licenses, verify both reboot markers and reject
+incomplete searches. All forty-seven PowerShell assertions and eleven script
+parses passed on each repository server. The operator then authorized actual
+OS installation on both managed endnodes through the existing Job Template.
+
+## 2026-10-20 — Activate the existing evaluation with temporary connectivity
+
+Recovery documentation: `a47bd1c`. The operator explicitly authorized placing
+Server 2025 temporarily on the connected network and returning it to isolation.
+A live-only additional adapter provided DNS and an Internet route while keeping
+the original isolated adapter. Windows automatically activated the installed
+evaluation; read-only Ansible WinRM checks reported licensed status and 180 days
+remaining. No key replacement, edition conversion or timer reset was needed.
+
+Remove the temporary adapter immediately after verification. Follow-up checks
+confirmed the original single adapter in both live and persistent VM definitions,
+no default route and valid evaluation status after isolation. Both clients'
+internal WSUS policies remained correct. Environment-specific evidence and
+network identifiers remain outside Git.
+
 ## 2026-10-20 — Prepare evaluation activation before isolation
 
 Documentation: `8f8539f`. The operator reported repeated Server 2025 shutdowns
