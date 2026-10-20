@@ -28,7 +28,11 @@ foreach ($update in $search.Updates) {
         downloaded = [bool]$update.IsDownloaded
     }
 }
-$system = New-Object -ComObject Microsoft.Update.SystemInfo
+# SystemInfo creation is denied in the existing WinRM context even when the
+# managed-server search succeeds. Read the same update/CBS reboot indicators
+# used by inspect-windows-update-client.ps1 without changing COM permissions.
+$cbsReboot = Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
+$wuReboot = Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
 $Ansible.Result = @{
     schema_version = 1
     assessed_utc = (Get-Date).ToUniversalTime().ToString('o')
@@ -36,6 +40,6 @@ $Ansible.Result = @{
     found_update_count = $updates.Count
     hidden_update_count = @($updates.Values | Where-Object hidden).Count
     pending_eula_count = @($updates.Values | Where-Object { -not $_.eula_accepted }).Count
-    reboot_required = [bool]$system.RebootRequired
+    reboot_required = [bool]($cbsReboot -or $wuReboot)
     updates = $updates
 }

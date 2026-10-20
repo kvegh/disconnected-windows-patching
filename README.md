@@ -107,6 +107,12 @@ passed internal policy and Server 2022 source checks, then stopped because the
 Server 2025 endnode was unreachable. A subsequent read-only WinRM audit reached
 both endnodes and confirmed their existing internal WSUS source policies. It
 identified expired evaluation activation grace as the Server 2025 shutdown cause.
+After authorized temporary connectivity, its existing evaluation activated
+automatically with 180 days remaining. The temporary adapter was removed,
+isolation was restored and both clients retained their internal WSUS policies.
+The subsequent client Check run exposed a remote-incompatible Windows Update
+reboot-status API call. Searches now read the same Windows Update/CBS registry
+markers as the existing client inspection, preserving remote security controls.
 Full client Check completion and actual OS installation remain unverified.
 
 - `01-win-vm-setup.yml`: VM deployment playbook.

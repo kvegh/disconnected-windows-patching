@@ -29,6 +29,24 @@ restarting the VM renews it. Microsoft's
 [licensing command reference](https://learn.microsoft.com/en-us/windows-server/get-started/activation-slmgr-vbs-options)
 describes status, activation and timer-reset operations.
 
+For the diagnosed Server 2025 activation-grace failure, the operator authorized
+temporary connectivity. A live-only second NIC on an existing NAT network
+provided a route and DNS while preserving the original isolated adapter.
+Windows activated its installed evaluation automatically; no product key,
+edition conversion or timer reset was needed. A read-only Ansible WinRM query
+confirmed licensed status and 180 days remaining. Removing the temporary NIC
+restored the original single-adapter configuration and no default route; the
+evaluation stayed valid and the internal WSUS source policies still matched.
+The persistent VM definition was unchanged. Network identifiers and detailed
+guest evidence remain outside Git.
+
+For a future recovery, record the original adapters, routes and WSUS policies;
+obtain approval for the temporary network exception; verify activation while
+connected; then remove the temporary adapter and verify licensing, isolation
+and WSUS policies again. Use a live-only adapter so it is not retained in the
+persistent VM definition. Do not treat an attachment or activation command's
+exit status alone as proof of a valid evaluation.
+
 ## Month choices
 
 The required dropdown contains January 2026 through September 2026, the regular
@@ -130,6 +148,10 @@ checks the release ceiling and license state, then gives the exact observed
 update titles to `ansible.windows.win_updates` with `reboot: true`. The native
 module handles installation, intermediate reboots and rescans for that set.
 Further bounded passes admit newly applicable prerequisites after fresh checks.
+Read-only scans use Windows Update and Component Based Servicing registry reboot
+markers, as the installed-state inspection does. The WUA `ISystemInformation`
+interface is unavailable remotely and must not be used from the WinRM session;
+see [Microsoft's remote WUA interface restrictions](https://learn.microsoft.com/en-us/windows/win32/wua_sdk/using-wua-from-a-remote-computer).
 An empty scan with an outstanding reboot uses `ansible.windows.win_reboot`.
 The default is eight passes, two retries for failed updates and an hour per reboot.
 
@@ -189,7 +211,10 @@ Windows PowerShell 5.1 or PowerShell 7 installation; it needs no WSUS service.
 using mocks. `tests/Test-WsusContentValidation.ps1` verifies that policy checks
 do not hash payloads and that transfer preparation detects missing, truncated
 and same-length corrupt files while skipping already verified matching files.
-Both PowerShell tests run without a WSUS service. With the existing pinned Ansible dependencies, run the filter and
+`tests/Test-ManagedUpdateSearch.ps1` reproduces restricted COM access with mocks,
+checks managed-source selection and pending licenses, verifies both reboot
+markers and rejects incomplete searches. These PowerShell tests run without a
+WSUS service. With the existing pinned Ansible dependencies, run the filter and
 completion regression checks using:
 
 ```bash
@@ -206,4 +231,6 @@ run passed internal policy and Server 2022 source validation, then stopped on
 the unreachable Server 2025 endnode. A later read-only WinRM audit reached both
 endnodes, confirmed their internal WSUS source settings and diagnosed expired
 evaluation activation grace on Server 2025. A full successful client Check run
-remains pending. No client installation, reboot or activation was run.
+remains pending. Subsequently, authorized temporary connectivity activated the
+existing Server 2025 evaluation automatically, and isolation was restored as
+described above. No client update installation or reboot was run.
