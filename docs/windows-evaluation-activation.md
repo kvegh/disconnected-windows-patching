@@ -25,12 +25,18 @@ that live and persistent libvirt adapters match the protected deployment mapping
 Already-licensed clones remain read-only: no licensing call, policy write,
 temporary adapter or cleanup timer. A normal run on an unlicensed evaluation:
 
-1. Sets `NoAutoUpdate=1` and
-   `DoNotConnectToWindowsUpdateInternetLocations=1` with native Ansible Windows
-   registry modules. Existing internal WSUS URLs and approval policies remain
-   intact. The stage never requests or installs Windows updates.
-2. Uses existing connected access when the role already has an approved default
-   route. Otherwise it arms a 15-minute hypervisor cleanup deadline and attaches
+1. Disables automatic Windows updates with `NoAutoUpdate=1`. For managed
+   endnodes it first rejects any conflicting explicitly configured WSUS URL,
+   fills missing `WUServer`/`WUStatusServer` values from the existing encrypted
+   `wsus_internal_url`, and sets `UseWUServer=1`. Matching source URLs are
+   preserved. It then sets `DoNotConnectToWindowsUpdateInternetLocations=1`.
+   Microsoft's Internet-location restriction depends on an intranet WSUS source;
+   it is not an independent Internet block on a fresh clone. Repository roles
+   preserve their existing OS update source and use `NoAutoUpdate` as their
+   automatic-update guard. The stage never requests or installs Windows updates.
+2. Uses existing connected access only when a default route exists **and** an
+   approved permanent libvirt adapter is on the configured connected network.
+   Otherwise it arms a 15-minute hypervisor cleanup deadline and attaches
    a temporary e1000e adapter **live only** to the approved connected libvirt
    network. The isolated primary adapter and every permanent secondary adapter
    stay attached.
@@ -67,6 +73,8 @@ The activation Job Template uses the existing **Hypervisor SSH Machine** and
 **Vault** credentials. Its first play builds an in-memory Windows inventory with
 explicit WinRM settings and existing Windows credentials from
 `vars/windows_activation_vault.yml`; Windows execution has `become: false`.
+The existing `vars/wsus_environment_vault.yml` supplies the internal WSUS URL for
+unlicensed managed clients, using the same Vault credential.
 Hypervisor-only tasks delegate over SSH with explicit privilege escalation.
 All connection inputs, topology results and credentials use `no_log: true`.
 
@@ -126,7 +134,10 @@ The PowerShell tests replace all licensing and network calls with mocks and
 cover licensed skips, evaluation-only activation, check mode, ambiguous/wrong
 licenses, changed addresses/DNS/routes/adapters, temporary routing, original
 repository connectivity, licensing errors and expired evaluations. Python tests
-verify live/persistent topology evidence and the activation task cleanup paths.
+verify live/persistent topology evidence and the activation task cleanup paths,
+fresh managed source establishment before exposure, conflicting-source refusal,
+preservation of matching URLs, and rejection of an arbitrary default route as
+evidence of connected-network access.
 Source validation does not substitute for a controlled fresh-clone workflow run.
 
 References:
@@ -134,4 +145,5 @@ References:
 - [Microsoft: Windows Server 2025 evaluation requirements](https://www.microsoft.com/en-us/evalcenter/evaluate-windows-server-2025).
 - [Microsoft: licensing operations and Sysprep rearm behavior](https://learn.microsoft.com/en-us/windows-server/get-started/activation-slmgr-vbs-options).
 - [Microsoft: SoftwareLicensingProduct licensing status and Activate method](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/sppwmi/softwarelicensingproduct).
+- [Microsoft: intranet WSUS and the Internet-location policy dependency](https://learn.microsoft.com/en-us/windows/deployment/update/waas-wu-settings#do-not-connect-to-any-windows-update-internet-locations).
 - [libvirt: live interface attachment, removal and link control](https://www.libvirt.org/manpages/virsh.html).

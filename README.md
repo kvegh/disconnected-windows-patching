@@ -95,7 +95,9 @@ Microsoft requires Internet activation within ten days even for the 180-day
 evaluation. Activating a base image does not guarantee activation after cloning
 and generalization. The new stage uses the Hypervisor SSH and Vault credentials;
 Windows login and topology inputs are in `vars/windows_activation_vault.yml`.
-Automatic Windows updates are blocked before an unlicensed clone gains access.
+Automatic Windows updates are disabled before an unlicensed clone gains access;
+managed clones are first assigned their protected internal WSUS source, with
+conflicting existing sources rejected before connectivity changes.
 Ansible cleans up on failure, and a hypervisor deadline removes the temporary
 adapter if the controller is lost. See
 [per-clone activation and workflow configuration](docs/windows-evaluation-activation.md).

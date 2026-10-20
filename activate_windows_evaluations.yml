@@ -64,6 +64,8 @@
   become: false
   serial: 1
   any_errors_fatal: true
+  vars_files:
+    - vars/wsus_environment_vault.yml
   tasks:
     - name: Wait for the existing permanent Windows management connection
       ansible.builtin.wait_for_connection:

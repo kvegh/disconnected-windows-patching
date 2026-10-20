@@ -1,10 +1,56 @@
 ---
+- name: Require the protected internal WSUS URL for an unlicensed managed clone
+  ansible.builtin.assert:
+    that: wsus_internal_url | default('') is match('^https?://[^/\s]+/?$')
+  when: inventory_hostname in groups.get('windows_managed', [])
+  no_log: true
+
+- name: Inspect existing managed Windows update sources before changing policies
+  ansible.windows.win_reg_stat:
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    name: "{{ item }}"
+  loop: [WUServer, WUStatusServer]
+  register: windows_activation_sources_before
+  when: inventory_hostname in groups.get('windows_managed', [])
+  no_log: true
+
+- name: Reject an explicitly configured conflicting managed update source
+  ansible.builtin.assert:
+    that: >-
+      not item.exists | default(false) or
+      item.value | default('') | length == 0 or
+      item.value | lower | regex_replace('/+$', '') == wsus_internal_url | lower | regex_replace('/+$', '')
+    fail_msg: A managed clone has an explicit conflicting WSUS source; review it before allowing activation connectivity.
+  loop: "{{ windows_activation_sources_before.results | default([]) }}"
+  when: inventory_hostname in groups.get('windows_managed', [])
+  no_log: true
+
 - name: Keep automatic Windows updates disabled during the activation exception
   ansible.windows.win_regedit:
     path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
     name: NoAutoUpdate
     data: 1
     type: dword
+
+- name: Establish missing managed update URLs before activation connectivity
+  ansible.windows.win_regedit:
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    name: "{{ item.item }}"
+    data: "{{ wsus_internal_url }}"
+    type: string
+  loop: "{{ windows_activation_sources_before.results | default([]) }}"
+  when:
+    - inventory_hostname in groups.get('windows_managed', [])
+    - not item.exists | default(false) or item.value | default('') | length == 0
+  no_log: true
+
+- name: Require the internal managed update service before activation connectivity
+  ansible.windows.win_regedit:
+    path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+    name: UseWUServer
+    data: 1
+    type: dword
+  when: inventory_hostname in groups.get('windows_managed', [])
 
 - name: Block the Windows Update client from using Internet update locations
   ansible.windows.win_regedit:
@@ -17,7 +63,10 @@
   ansible.builtin.set_fact:
     windows_activation_temporary_mac: "{{ '52:54:00:' ~ identifier[0:2] ~ ':' ~ identifier[2:4] ~ ':' ~ identifier[4:6] }}"
     windows_activation_guard_unit: "{{ 'aap-eval-activation-' ~ identifier }}"
-    windows_activation_needs_nic: "{{ not windows_activation_before.result.existing_connected_access | bool }}"
+    windows_activation_needs_nic: >-
+      {{ not (windows_activation_before.result.existing_connected_access | bool and
+              windows_activation_settings.libvirt_interfaces |
+              selectattr('network', 'equalto', windows_activation_connected_network) | list | length > 0) }}
   vars:
     identifier: "{{ lookup('ansible.builtin.password', '/dev/null', length=12, chars=['hexdigits']) | lower }}"
   no_log: true

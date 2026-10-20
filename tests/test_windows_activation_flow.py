@@ -19,6 +19,7 @@ ROOT = Path(__file__).parents[1]
 REMOTE_ACTIONS = {
     'ansible.builtin.command', 'ansible.builtin.systemd_service',
     'ansible.windows.win_powershell', 'ansible.windows.win_regedit',
+    'ansible.windows.win_reg_stat',
 }
 
 ACTION = r'''
@@ -38,7 +39,13 @@ class ActionModule(ActionBase):
         result = {'changed': False}
         if operation.endswith('win_regedit'):
             events.append(parameters['name'])
+            state['policy'][parameters['name']] = parameters['data']
             result['changed'] = True
+        elif operation.endswith('win_reg_stat'):
+            name = parameters['name']
+            result['exists'] = name in state['policy']
+            if result['exists']:
+                result['value'] = state['policy'][name]
         elif operation.endswith('systemd_service'):
             events.append('stop_timer')
             state['timer'] = False
@@ -49,7 +56,11 @@ class ActionModule(ActionBase):
                 state['timer'] = True
                 state['guard_argv'] = argv
             elif 'attach-interface' in argv:
-                assert events[:2] == ['NoAutoUpdate', 'DoNotConnectToWindowsUpdateInternetLocations']
+                assert 'NoAutoUpdate' in events and 'DoNotConnectToWindowsUpdateInternetLocations' in events
+                if 'guest' in task_vars['groups'].get('windows_managed', []):
+                    assert state['policy']['WUServer'].lower().rstrip('/') == task_vars['wsus_internal_url'].lower().rstrip('/')
+                    assert state['policy']['WUStatusServer'].lower().rstrip('/') == task_vars['wsus_internal_url'].lower().rstrip('/')
+                    assert state['policy']['UseWUServer'] == 1
                 assert state['timer']
                 events.append('attach')
                 state['temporary'] = True
@@ -106,7 +117,7 @@ def substitute_remote_actions(tasks):
 
 @unittest.skipUnless(shutil.which('ansible-playbook'), 'Ansible is required for control-flow tests')
 class ActivationFlowTests(unittest.TestCase):
-    def run_flow(self, failure='', licensed=False, connected=False):
+    def run_flow(self, failure='', licensed=False, connected=False, managed=True, source=None, approved_connected=None):
         with tempfile.TemporaryDirectory(prefix='windows-activation-flow-') as temporary:
             directory = Path(temporary)
             actions = directory / 'collections/ansible_collections/activation/test/plugins/action'
@@ -131,18 +142,26 @@ class ActivationFlowTests(unittest.TestCase):
                     'windows_activation_settings': {'vm_name': 'example-clone', 'windows_version': '2025'},
                     'windows_activation_hypervisor': 'hypervisor',
                     'windows_activation_connected_network': 'example-activation',
+                    'wsus_internal_url': 'https://updates.internal.example:8531',
                     'windows_activation_before': {'result': {'licensed': licensed, 'existing_connected_access': connected}},
                     'windows_activation_domain_before': {'stdout': json.dumps(baseline)},
                     'test_baseline': baseline,
                 },
                 'tasks': [include],
             }]
+            approved_connected = connected if approved_connected is None else approved_connected
+            fixture[0]['vars']['windows_activation_settings']['libvirt_interfaces'] = [
+                {'mac': '52:54:00:11:22:33', 'network': 'example-activation' if approved_connected else 'example-isolated'}]
             playbook = directory / 'fixture.yml'
             playbook.write_text(yaml.safe_dump(fixture, sort_keys=False))
             inventory = directory / 'inventory.yml'
-            inventory.write_text(yaml.safe_dump({'all': {'hosts': {'guest': {}, 'hypervisor': {'ansible_connection': 'local'}}}}))
+            inventory.write_text(yaml.safe_dump({'all': {
+                'hosts': {'guest': {}, 'hypervisor': {'ansible_connection': 'local'}},
+                'children': {'windows_managed': {'hosts': {'guest': {}} if managed else {}}}}}))
             statefile = directory / 'state.json'
-            statefile.write_text(json.dumps({'events': [], 'temporary': False, 'timer': False, 'licensed': licensed, 'failure': failure}))
+            policy = {} if source is None else {'WUServer': source, 'WUStatusServer': source}
+            statefile.write_text(json.dumps({'events': [], 'temporary': False, 'timer': False,
+                                            'licensed': licensed, 'failure': failure, 'policy': policy}))
             env = dict(os.environ, ANSIBLE_LOCAL_TEMP=str(directory / 'tmp'),
                        ANSIBLE_COLLECTIONS_PATH=str(directory / 'collections'),
                        ANSIBLE_NOCOLOR='1', ANSIBLE_RETRY_FILES_ENABLED='false',
@@ -155,7 +174,8 @@ class ActivationFlowTests(unittest.TestCase):
     def assert_restored(self, state):
         self.assertFalse(state['temporary'])
         self.assertFalse(state['timer'])
-        self.assertEqual(state['events'][:2], ['NoAutoUpdate', 'DoNotConnectToWindowsUpdateInternetLocations'])
+        self.assertIn('NoAutoUpdate', state['events'])
+        self.assertIn('DoNotConnectToWindowsUpdateInternetLocations', state['events'])
         self.assertLess(state['events'].index('detach'), state['events'].index('stop_timer'))
         self.assertIn('Inspect', state['events'])
         guard = state['guard_argv']
@@ -184,12 +204,37 @@ class ActivationFlowTests(unittest.TestCase):
         self.assertEqual(state['events'], [])
 
     def test_existing_repository_connection_does_not_add_or_remove_nics(self):
-        code, state, output = self.run_flow(connected=True)
+        code, state, output = self.run_flow(connected=True, managed=False)
         self.assertEqual(code, 0, output)
         self.assertNotIn('attach', state['events'])
         self.assertNotIn('detach', state['events'])
         self.assertNotIn('arm_timer', state['events'])
         self.assertIn('Inspect', state['events'])
+
+    def test_fresh_managed_clone_gets_internal_source_before_exposure(self):
+        code, state, output = self.run_flow()
+        self.assertEqual(code, 0, output)
+        for name in ('WUServer', 'WUStatusServer', 'UseWUServer'):
+            self.assertLess(state['events'].index(name), state['events'].index('attach'))
+
+    def test_conflicting_managed_source_fails_before_any_write_or_connectivity(self):
+        code, state, output = self.run_flow(source='https://conflicting.example:8531')
+        self.assertNotEqual(code, 0, output)
+        self.assertEqual(state['events'], [])
+        self.assertFalse(state['temporary'])
+
+    def test_matching_managed_source_is_preserved(self):
+        source = 'HTTPS://UPDATES.internal.example:8531/'
+        code, state, output = self.run_flow(source=source)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(state['policy']['WUServer'], source)
+        self.assertNotIn('WUServer', state['events'])
+
+    def test_default_route_without_approved_connected_adapter_still_needs_temporary_nic(self):
+        code, state, output = self.run_flow(connected=True, approved_connected=False)
+        self.assertEqual(code, 0, output)
+        self.assertIn('attach', state['events'])
+        self.assert_restored(state)
 
 
 if __name__ == '__main__':
