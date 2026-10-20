@@ -24,8 +24,15 @@ review `windows_boot_modes` in `vars/main.yml`.
 
 Cloning uses `qemu-img convert -S 4k` to create independent sparse qcow2 disks.
 There are no backing-file dependencies or disk resizing. Every VM receives
-2 vCPUs; `managed` gets 2048 MiB RAM and `wsus` gets 8192 MiB.
+2 vCPUs; `managed` gets 4096 MiB RAM and `wsus` gets 8192 MiB.
 An existing VM or destination disk causes the launch to stop rather than overwrite it.
+
+For existing managed VMs with a 2 GiB maximum, change both the persistent
+maximum and current memory allocation to 4 GiB with libvirt. Wait for any
+patching job to finish, shut Windows down cleanly, confirm the VM is off, then
+start it again. An ordinary Windows reboot does not restart QEMU and therefore
+does not apply this persistent memory change. Verify the running allocation
+and the memory visible inside Windows after startup.
 
 ## AAP survey / extra variables
 

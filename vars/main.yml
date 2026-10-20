@@ -9,7 +9,7 @@ windows_images:
   '2022': /opt/images/windows-server-2022.qcow2
   '2025': /opt/images/windows-server-2025.qcow2
 windows_memory_mb:
-  managed: 2048
+  managed: 4096
   wsus: 8192
 # Override if the hypervisor's installed osinfo database uses different IDs.
 windows_osinfo:
