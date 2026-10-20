@@ -1,5 +1,38 @@
 # Design decisions history
 
+## 2026-10-20 — Follow managed updates through intermediate reboots
+
+Implementation: `5e401ac`. The operator requested a separate client patching
+playbook and Job Template using the currently served WSUS ceiling, with repeated
+installation and reboot cycles. Validate the internal policy and every client's
+existing source before installation, then process clients serially with bounded
+passes. Native Ansible handles update installation, rebooting and reconnection.
+
+Use read-only Windows Update Agent searches through Ansible PowerShell for
+applicability checks: the pinned native update module can accept update licenses
+even during search. Freeze each pass to the exact observed client titles after
+license checks, and rescan before admitting newly applicable prerequisites.
+This also accommodates .NET component titles that differ from WSUS bundle titles.
+Stop for unaccepted terms rather than accepting them automatically.
+
+Require the official monthly OS build floor, no remaining applicable updates
+and no pending reboot before claiming completion. Record before/after evidence
+and report already newer clients honestly. Check mode performs no installation
+or reboot. Seven filter/completion regression checks and Windows PowerShell
+parsing/source-policy tests passed; actual OS installation needs a normal run.
+Keep controller configuration reproducible with native Ansible modules and
+environment references protected outside plaintext Git.
+
+## 2026-10-20 — Validate the existing offline WSUS role
+
+Fix: `569a0fd`. The first deployed ceiling preview rejected the internal WSUS
+because the existing offline setup retains the Microsoft upstream-selection
+flag on both autonomous servers. Determine the internal role from the protected
+inventory and retain local-content, autonomous-mode and active-sync checks.
+Do not change the existing upstream configuration merely to satisfy the new
+guard. The policy continues to disable scheduled internal synchronization.
+The corrected AAP preview passed without host changes.
+
 ## 2026-10-20 — Offer named monthly Windows baselines
 
 Implementation: `eae5cbd`. The operator requested a survey-driven internal WSUS
