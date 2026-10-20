@@ -1,5 +1,14 @@
 # Design decisions history
 
+## 2026-10-20 — Publish subsequent WSUS manifests atomically
+
+Fix: `9d7c082`. Preparing the historical baseline completed its external downloads
+and metadata export, then exposed a failure when replacing an existing manifest:
+Windows PowerShell bound the null backup argument to an invalid empty path.
+Supply a real `current.previous.json` backup path to the atomic replacement API.
+Keep the previous manifest recoverable and leave downloaded update content intact.
+The first publication still uses a same-directory move.
+
 ## 2026-10-20 — Follow managed updates through intermediate reboots
 
 Implementation: `5e401ac`. The operator requested a separate client patching
