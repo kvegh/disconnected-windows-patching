@@ -1,5 +1,30 @@
 # Design decisions history
 
+## 2026-10-20 — Run the complete demo in the requested order without redundant disk reads
+
+Implementation: `07e1200`. The operator authorized an end-to-end test that removes
+only the four Windows demo clones and their owned disks, preserves other VMs and
+base images, then rebuilds and verifies the entire pipeline. Managed servers use
+the existing 4096 MiB default. The original workflow installed baseline and current
+applications immediately after Chocolatey import and did not include OS patching.
+
+Reproduce the requested sequence with native controller modules: both content
+imports must succeed before applying the April 2026 internal ceiling; independent,
+disjoint host-limited OS patch jobs run next; both must succeed before baseline
+application installation and then upgrade. Keep existing deployment, activation,
+repository and synchronization stages. Read back and assert the changed edges and
+both convergence settings. Protected inputs select only the existing Windows
+workflow and exact host limits. Configuration passed live read-back verification
+and an unchanged second application; production lint passed for all three changed
+Ansible files.
+
+The first teardown exposed an unrelated cost in the existing file inspection:
+`stat` calculated a whole-disk checksum although deletion authorization only uses
+regular-file/symlink metadata. Disable checksums and MIME reads for those checks.
+Retain the exact allowlist, ownership marker, sole writable disk, shared-reference,
+NVRAM and standalone-qcow2 guards. The initial external-server teardown completed;
+the queued remaining jobs were canceled to refresh this focused fix before reuse.
+
 ## 2026-10-20 — Verify completed April patching and apply memory at safe reboot boundaries
 
 Memory implementation: `7e206ce`; payload-serving repair: `f9883a8`;
