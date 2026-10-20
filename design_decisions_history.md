@@ -1,5 +1,22 @@
 # Design decisions history
 
+## 2026-10-20 — Prepare evaluation activation before isolation
+
+Documentation: `8f8539f`. The operator reported repeated Server 2025 shutdowns
+after installing downloaded media without manual activation. A read-only Ansible
+WinRM audit confirmed that both endnodes already use Datacenter Evaluation;
+Server 2022 has valid evaluation time, while Server 2025 has expired activation
+grace and WLMS explicitly initiates hourly shutdowns. How Server 2022 initially
+activated was not established.
+
+Document Microsoft's Internet activation prerequisite separately from WSUS
+patching. Activation connectivity and any recovery action need a separate
+authorized decision for an isolated guest. No activation, grace reset, licensing
+service change or network exception was performed. The same audit confirmed both
+endnodes' existing internal WSUS source policies. Full client Check completion
+and actual OS installation remain unverified; private guest evidence stays
+outside Git.
+
 ## 2026-10-20 — Keep policy-only changes on internal WSUS
 
 Implementation: `257f5bf`. When all selected baseline files already exist at the
