@@ -1,0 +1,62 @@
+---
+- name: Read the saved successfully enforced internal ceiling
+  ansible.windows.win_powershell:
+    error_action: stop
+    depth: 3
+    script: |
+      [CmdletBinding(SupportsShouldProcess)]
+      param([Parameter(Mandatory)][string]$StateRoot)
+      $ErrorActionPreference = 'Stop'
+      $Ansible.Changed = $false
+      $path = Join-Path $StateRoot 'patch-month-policy.json'
+      if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+          throw 'Set and verify an internal monthly WSUS ceiling before patching clients.'
+      }
+      $policy = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+      if ($policy.schema_version -ne 1 -or $policy.patch_month -notmatch '^2026-(0[1-9]|1[0-2])$') {
+          throw 'The saved internal ceiling marker is unsupported or invalid.'
+      }
+      $Ansible.Result = @{ schema_version = 1; patch_month = [string]$policy.patch_month }
+    parameters:
+      StateRoot: "{{ wsus_state_root }}"
+  delegate_to: "{{ groups['wsus_internal'][0] }}"
+  register: windows_patch_policy_marker
+  changed_when: false
+  no_log: "{{ windows_patch_no_log | bool }}"
+
+- name: Require a supported ceiling that has not changed during this job
+  ansible.builtin.assert:
+    that:
+      - windows_patch_policy_marker.result.patch_month in wsus_patch_month_choices
+      - windows_patch_active_month is not defined or windows_patch_policy_marker.result.patch_month == windows_patch_active_month
+    fail_msg: The saved internal WSUS ceiling is unavailable or changed during this patch job. Rerun after policy changes finish.
+  no_log: "{{ windows_patch_no_log | bool }}"
+
+- name: Revalidate approvals, declines, automatic policy and verified payloads without changing WSUS
+  ansible.windows.win_powershell:
+    error_action: stop
+    depth: 6
+    path: assets/set-internal-wsus-patch-month.ps1
+    parameters:
+      FunctionsSource: "{{ lookup('ansible.builtin.file', 'assets/wsus-patch-month-functions.ps1') }}"
+      Month: "{{ windows_patch_policy_marker.result.patch_month }}"
+      Products: "{{ wsus_products }}"
+      Classifications: "{{ wsus_classifications }}"
+      PrerequisiteMonths: "{{ wsus_patch_prerequisite_months }}"
+      ValidatePolicy: true
+  check_mode: true
+  delegate_to: "{{ groups['wsus_internal'][0] }}"
+  register: windows_patch_current_policy
+  changed_when: false
+  no_log: "{{ windows_patch_no_log | bool }}"
+
+- name: Require a verified policy with all required payloads present
+  ansible.builtin.assert:
+    that:
+      - windows_patch_current_policy.result.policy_verified | default(false) | bool
+      - windows_patch_current_policy.result.missing_content_bytes | int == 0
+      - windows_patch_current_policy.result.pending_license_updates | length == 0
+      - windows_patch_current_policy.result.selected_updates | length > 0
+      - windows_patch_allowed_updates is not defined or windows_patch_current_policy.result.selected_updates == windows_patch_allowed_updates
+    fail_msg: Internal WSUS is not ready or its selected identities changed. Verify the monthly ceiling before updating clients.
+  no_log: "{{ windows_patch_no_log | bool }}"

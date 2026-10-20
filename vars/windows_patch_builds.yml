@@ -1,0 +1,105 @@
+---
+# Public Microsoft release facts for the regular security CUs in this demo's
+# catalogue. These are B-release baselines, not the month's optional/OOB releases.
+# Index by the canonical release month, then CurrentBuildNumber (OS family).
+# Overview: https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info
+windows_patch_expected_builds:
+  '2026-01':
+    '20348':
+      kb: KB5073457
+      build: '20348.4648'
+      revision: 4648
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/01/january-13-2026-kb5073457-os-build-20348-4648
+    '26100':
+      kb: KB5073379
+      build: '26100.32230'
+      revision: 32230
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/01/january-13-2026-kb5073379-os-build-26100-32230
+  '2026-02':
+    '20348':
+      kb: KB5075906
+      build: '20348.4773'
+      revision: 4773
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/02/february-10-2026-kb5075906-os-build-20348-4773
+    '26100':
+      kb: KB5075899
+      build: '26100.32370'
+      revision: 32370
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/02/february-10-2026-kb5075899-os-build-26100-32370
+  '2026-03':
+    '20348':
+      kb: KB5078766
+      build: '20348.4893'
+      revision: 4893
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/03/march-10-2026-kb5078766-os-build-20348-4893
+    '26100':
+      kb: KB5078740
+      build: '26100.32522'
+      revision: 32522
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/03/march-10-2026-kb5078740-os-build-26100-32522
+  '2026-04':
+    '20348':
+      kb: KB5082142
+      build: '20348.5020'
+      revision: 5020
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/04/april-14-2026-kb5082142-os-build-20348-5020
+    '26100':
+      kb: KB5082063
+      build: '26100.32690'
+      revision: 32690
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/04/april-14-2026-kb5082063-os-build-26100-32690
+  '2026-05':
+    '20348':
+      kb: KB5087545
+      build: '20348.5139'
+      revision: 5139
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/05/may-12-2026-kb5087545-os-build-20348-5139
+    '26100':
+      kb: KB5087539
+      build: '26100.32860'
+      revision: 32860
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/05/may-12-2026-kb5087539-os-build-26100-32860
+  '2026-06':
+    '20348':
+      kb: KB5094128
+      build: '20348.5256'
+      revision: 5256
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/06/june-9-2026-kb5094128-os-build-20348-5256
+    '26100':
+      kb: KB5094125
+      build: '26100.32995'
+      revision: 32995
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/06/june-9-2026-kb5094125-os-build-26100-32995
+  '2026-07':
+    '20348':
+      kb: KB5099540
+      build: '20348.5386'
+      revision: 5386
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/07/july-14-2026-kb5099540-os-build-20348-5386
+    '26100':
+      kb: KB5099536
+      build: '26100.33158'
+      revision: 33158
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/07/july-14-2026-kb5099536-os-build-26100-33158
+  '2026-08':
+    '20348':
+      kb: KB5120242
+      build: '20348.5499'
+      revision: 5499
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/08/kb5120242-windows-server-2022-security-update
+    '26100':
+      kb: KB5120233
+      build: '26100.33296'
+      revision: 33296
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/08/kb5120233-windows-server-2025-security-update
+  '2026-09':
+    '20348':
+      kb: KB5122882
+      build: '20348.5622'
+      revision: 5622
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/09/kb5122882-windows-server-2022-security-update
+    '26100':
+      kb: KB5122871
+      build: '26100.33438'
+      revision: 33438
+      source: https://support.microsoft.com/en-us/servicing/os/windows-server/2026/09/kb5122871-windows-server-2025-security-update

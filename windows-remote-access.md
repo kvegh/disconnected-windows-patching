@@ -156,9 +156,11 @@ each needs its own version evidence.
 
 Installed build and hotfix assessment is implemented in
 [assess_windows_patch_level.yml](assess_windows_patch_level.yml) and its dedicated
-Job Template. Client applicability scans, internal approval and OS installation
-remain proposed stages in [TODO.md](TODO.md). Application baseline deployment
-and upgrades already have separate playbooks and Job Templates.
+Job Template. [Monthly Windows patching](docs/windows-os-patching.md) documents
+the implemented internal approval template and managed client update template,
+including read-only applicability checks and repeated install/reboot passes.
+Complete OS installation validation remains tracked in [TODO.md](TODO.md).
+Application baseline deployment and upgrades have separate playbooks and templates.
 
 ## Validation status and alternatives
 

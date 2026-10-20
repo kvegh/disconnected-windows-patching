@@ -1,0 +1,106 @@
+---
+- name: Process one freshly guarded update pass
+  when:
+    - not ansible_check_mode
+    - not (windows_patch_converged | bool)
+  block:
+    - name: Revalidate the current internal approval policy and content
+      ansible.builtin.include_tasks: tasks/validate_windows_patch_ceiling.yml
+
+    - name: Revalidate this endnode source before the next install pass
+      ansible.windows.win_powershell:
+        error_action: stop
+        depth: 5
+        path: assets/inspect-windows-update-client.ps1
+        parameters:
+          ExpectedWsusUrl: "{{ wsus_internal_url }}"
+      changed_when: false
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Discover the next applicable set without accepting licenses
+      ansible.windows.win_powershell:
+        error_action: stop
+        depth: 6
+        path: assets/search-managed-windows-updates.ps1
+      register: windows_patch_cycle_scan
+      retries: 3
+      delay: 15
+      until: windows_patch_cycle_scan is succeeded
+      changed_when: false
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Require review for hidden updates or unaccepted license terms
+      ansible.builtin.assert:
+        that:
+          - windows_patch_cycle_scan.result.hidden_update_count | int == 0
+          - windows_patch_cycle_scan.result.pending_eula_count | int == 0
+        fail_msg: Newly applicable updates are hidden or require license review. No installation was started for this pass.
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Reject a newly applicable release beyond the current month or an unknown prerequisite
+      ansible.builtin.assert:
+        that:
+          - item.value.title is search(windows_patch_eligibility_filters | join('|'))
+        fail_msg: A newly applicable update is outside the verified monthly ceiling. No installation was started for this pass.
+      loop: "{{ windows_patch_cycle_scan.result.updates | dict2items }}"
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Freeze the exact observed license-accepted client titles for this pass
+      ansible.builtin.set_fact:
+        windows_patch_cycle_accept_list: >-
+          {{ windows_patch_cycle_scan.result.updates | dict2items |
+             map(attribute='value.title') | map('regex_escape') |
+             map('regex_replace', '^', '^') | map('regex_replace', '$', '$') | list }}
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    # win_updates 3.8.0 filters accept_list before AcceptEula(). Restricting the
+    # native reboot/install loop to these exact client titles prevents newly
+    # applicable titles from accepting terms before the next read-only guard.
+    # Native win_updates still performs all required reboots and rescans for the
+    # known set; bounded outer passes admit newly applicable prerequisites safely.
+    - name: Install only this observed set through its required reboot cycles
+      ansible.windows.win_updates:
+        server_selection: managed_server
+        category_names: ['*']
+        accept_list: "{{ windows_patch_cycle_accept_list }}"
+        state: installed
+        reboot: true
+        reboot_timeout: "{{ windows_patch_reboot_timeout | int }}"
+        maximum_retries_on_failed_updates: "{{ windows_patch_failed_update_retries | int }}"
+      register: windows_patch_install
+      no_log: "{{ windows_patch_no_log | bool }}"
+      when: windows_patch_cycle_accept_list | length > 0
+
+    # An empty accept_list would mean unrestricted selection in win_updates.
+    # Finish an already-pending reboot explicitly when the read-only scan is empty.
+    - name: Finish an outstanding reboot when no updates are currently applicable
+      ansible.windows.win_reboot:
+        reboot_timeout: "{{ windows_patch_reboot_timeout | int }}"
+      register: windows_patch_pending_reboot
+      when:
+        - windows_patch_cycle_accept_list | length == 0
+        - windows_patch_cycle_scan.result.reboot_required | bool
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Wait for management after an install or pending reboot pass
+      ansible.builtin.wait_for_connection:
+        delay: 15
+        sleep: 10
+        timeout: "{{ windows_patch_reboot_timeout | int }}"
+      when: >-
+        (windows_patch_cycle_accept_list | length > 0) or
+        (windows_patch_cycle_scan.result.reboot_required | bool)
+
+    - name: Record this guarded update pass and stop after a settled empty scan
+      ansible.builtin.set_fact:
+        windows_patch_passes: >-
+          {{ windows_patch_passes + [{
+             'pass': windows_patch_pass_number,
+             'scan': windows_patch_cycle_scan.result,
+             'installation': windows_patch_install | default({}),
+             'pending_reboot': windows_patch_pending_reboot | default({})
+          }] }}
+        windows_patch_converged: >-
+          {{ (windows_patch_cycle_scan.result.found_update_count | int == 0) and
+             not (windows_patch_cycle_scan.result.reboot_required | bool) }}
+      no_log: "{{ windows_patch_no_log | bool }}"

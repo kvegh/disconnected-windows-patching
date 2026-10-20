@@ -41,9 +41,12 @@
 - Validate applicability and prerequisite/checkpoint coverage on both older base images.
 - Internal monthly approval/visibility ceilings are implemented in
   `set_internal_wsus_patch_month.yml`, with saved-policy reapplication after imports.
-  Client patch installation is a separate stage.
+  Client patch installation is implemented separately in `update_managed_windows.yml`.
 - Installed-state assessment is implemented in `assess_windows_patch_level.yml`.
-  Add client applicability scans as a separate read-only stage.
+  The managed update template provides read-only applicability scans in Check mode.
+- Validate a complete client OS baseline installation and a later-month upgrade
+  on both supported Windows versions, including intermediate reboots and final
+  installed-build evidence. Code tests and dry runs do not establish this result.
 - Reproducible named-month selection, historical content download and internal
   approval are implemented. Keep newer releases available externally for the
   next demonstration stage and add survey choices after auditing new catalogues.

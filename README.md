@@ -109,6 +109,8 @@ upgrades. Windows update installation on the endnodes is a separate step.
 - `assess_windows_patch_level.yml`: read-only installed OS build and hotfix evidence on managed endnodes.
 - `set_internal_wsus_patch_month.yml`: prepare a named monthly baseline and enforce its internal WSUS ceiling.
 - `configure_wsus_patch_ceiling_template.yml`: reproduce the ceiling Job Template and month-name survey with Ansible.
+- `update_managed_windows.yml`: install the current internal WSUS baseline with guarded install, reboot and rescan passes.
+- `configure_windows_patching_template.yml`: reproduce the managed Windows update Job Template with Ansible.
 - `sync_external_wsus.yml`: Microsoft metadata synchronization and selected file downloads.
 - `export_external_wsus.yml`: WSUS metadata export and management-only IIS publication.
 - `replicate_and_import.yml`: direct external-to-internal HTTP transfer and offline WSUS import.
@@ -116,14 +118,15 @@ upgrades. Windows update installation on the endnodes is a separate step.
 - [WSUS vs Satellite](docs/wsus-vs-satellite.md): patching, repository management, Content Views and staged content promotion.
 - [Monthly Windows patching](docs/windows-os-patching.md): named-month selection, content preparation, approval policy and repeatable Job Template configuration.
 
-The internal WSUS role comes from the protected inventory. Its autonomous,
-locally stored content and manual-import policy are enforced independently of
-the upstream-selection flag retained by the existing offline setup.
 - `collections/requirements.yml`: pinned Ansible collection dependencies.
 - `docs/application-deployment.md`: application architecture, inputs, and remaining work.
 - `windows-remote-access.md`: suggested Linux-laptop console access over SSH/VNC, demo evidence, and proposed staged OS patch levels.
 - `vars/main.yml`: base images and sizing configuration.
 - `assets/deploy-vm-survey.json`: AAP survey specification.
+
+The internal WSUS role comes from the protected inventory. Its autonomous,
+locally stored content and manual-import policy are enforced independently of
+the upstream-selection flag retained by the existing offline setup.
 
 Install `ansible-core` in the execution environment. Validate without deployment:
 
@@ -131,8 +134,10 @@ Install `ansible-core` in the execution environment. Validate without deployment
 ansible-playbook -i 'hypervisor,' 01-win-vm-setup.yml --syntax-check
 ```
 
-Use standard Ansible YAML formatting (two-space indentation). VM creation, Windows basics and WSUS configuration have been exercised against
-the demo guests. Nexus/Chocolatey deployment still needs a live test.
+Use standard Ansible YAML formatting (two-space indentation). VM creation, Windows
+basics, WSUS configuration and the Nexus/Chocolatey pipeline have been exercised
+against the demo guests. Client OS update installation requires a separate normal
+run; code tests and Check mode do not prove installation.
 
 ## Network prerequisites
 

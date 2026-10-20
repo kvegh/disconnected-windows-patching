@@ -1,0 +1,119 @@
+---
+- name: Validate the current internal WSUS ceiling
+  hosts: wsus_internal
+  gather_facts: false
+  any_errors_fatal: true
+  vars_files:
+    - vars/wsus_pipeline.yml
+    - vars/wsus_patch_month.yml
+    - vars/windows_patching.yml
+    - vars/windows_patch_builds.yml
+    - vars/wsus_environment_vault.yml
+  tasks:
+    - name: Require distinct managed endnodes and one protected internal WSUS
+      ansible.builtin.assert:
+        that:
+          - groups.get('wsus_internal', []) | length == 1
+          - groups.get('windows_managed', []) | length > 0
+          - groups['windows_managed'] | intersect(groups.get('wsus_internal', []) + groups.get('wsus_external', [])) | length == 0
+          - wsus_internal_url | default('') is match('^https?://[^/\s]+/?$')
+          - windows_patch_reboot_timeout | int >= 1200
+          - windows_patch_failed_update_retries | int >= 1
+          - windows_patch_failed_update_retries | int <= 3
+          - windows_patch_max_passes | int >= 1
+          - windows_patch_max_passes | int <= 12
+        fail_msg: Supply distinct managed Windows endnodes, one internal WSUS and the vaulted internal WSUS URL.
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Read and strictly revalidate the saved internal monthly ceiling
+      ansible.builtin.include_tasks: tasks/validate_windows_patch_ceiling.yml
+
+- name: Validate every managed Windows update source before any installation
+  hosts: windows_managed
+  gather_facts: false
+  any_errors_fatal: true
+  vars_files:
+    - vars/wsus_pipeline.yml
+    - vars/wsus_patch_month.yml
+    - vars/windows_patching.yml
+    - vars/windows_patch_builds.yml
+    - vars/wsus_environment_vault.yml
+  tasks:
+
+    - name: Retain the verified month and exact allowed identities for every client
+      ansible.builtin.set_fact:
+        windows_patch_active_month: "{{ hostvars[groups['wsus_internal'][0]].windows_patch_policy_marker.result.patch_month }}"
+        windows_patch_allowed_updates: "{{ hostvars[groups['wsus_internal'][0]].windows_patch_current_policy.result.selected_updates }}"
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    # WUA can expose .NET component titles/IDs rather than their WSUS bundle
+    # parent. Validate release months through the ceiling here; installation
+    # passes separately freeze the exact observed, license-accepted client titles.
+    - name: Build the release-month ceiling filter for applicability validation
+      ansible.builtin.set_fact:
+        windows_patch_active_month_name: >-
+          {{ wsus_patch_month_labels | dict2items |
+             selectattr('value', 'equalto', windows_patch_active_month) |
+             map(attribute='key') | first }}
+        windows_patch_release_filter: >-
+          {{ '^(?:(?:' ~ (range(2000, 2026) | map('string') | join('|')) ~
+             ')-(?:0[1-9]|1[0-2])|2026-(?:' ~
+             (wsus_patch_month_choices | select('le', windows_patch_active_month) |
+              map('regex_replace', '^2026-', '') | join('|')) ~ '))(?:\s|$)' }}
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Include exact audited prerequisite titles when no release prefix is present
+      ansible.builtin.set_fact:
+        windows_patch_eligibility_filters: >-
+          {{ [windows_patch_release_filter] +
+             (windows_patch_allowed_updates | map(attribute='title') |
+              reject('match', '^20[0-9]{2}-(0[1-9]|1[0-2])(?: |$)') |
+              map('regex_escape') | map('regex_replace', '^', '^') |
+              map('regex_replace', '$', '$') | list) }}
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Verify existing client source policies and record installed patch evidence
+      ansible.windows.win_powershell:
+        error_action: stop
+        depth: 5
+        path: assets/inspect-windows-update-client.ps1
+        parameters:
+          ExpectedWsusUrl: "{{ wsus_internal_url }}"
+      register: windows_patch_before
+      changed_when: false
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Select the audited OS baseline for the current ceiling and build family
+      ansible.builtin.set_fact:
+        windows_patch_expected_baseline: "{{ windows_patch_expected_builds[windows_patch_active_month][windows_patch_before.result.build_family] }}"
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Require the verified WSUS plan to include the audited OS baseline KB
+      ansible.builtin.assert:
+        that:
+          - windows_patch_expected_baseline.kb | regex_replace('^KB', '') in (windows_patch_allowed_updates | map(attribute='kb') | flatten | map('regex_replace', '^KB', '') | list)
+        fail_msg: The WSUS selection does not contain the audited OS baseline. Verify the ceiling before patching clients.
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Verify the protected internal client web service is reachable from each endnode
+      ansible.windows.win_uri:
+        url: "{{ wsus_internal_url | regex_replace('/$', '') }}/ClientWebService/client.asmx"
+        status_code: 200
+      check_mode: false
+      changed_when: false
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+- name: Update managed Windows endnodes to the updates currently permitted by internal WSUS
+  hosts: windows_managed
+  gather_facts: false
+  serial: 1
+  any_errors_fatal: true
+  vars_files:
+    - vars/wsus_pipeline.yml
+    - vars/wsus_patch_month.yml
+    - vars/windows_patching.yml
+    - vars/windows_patch_builds.yml
+    - vars/wsus_environment_vault.yml
+  tasks:
+    - name: Apply and verify the current managed Windows update set
+      ansible.builtin.include_tasks: tasks/update_managed_windows_host.yml

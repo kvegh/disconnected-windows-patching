@@ -77,6 +77,45 @@ corresponding update files are ready.
 
 ## Reproduce the Job Template configuration
 
+### Install the currently published baseline
+
+Run **Disconnected Windows Patching - Update Managed Windows** after the ceiling
+job succeeds. Its playbook, `update_managed_windows.yml`, reads the verified
+internal policy; it has no independent month selector. Run ceiling, transfer and
+client installation jobs sequentially so the served baseline remains stable.
+
+Before any installation it verifies every endnode's existing internal WSUS source
+policies, client web service access and supported OS family. It also revalidates
+internal approvals, declines and payloads. Conflicting sources stop the job for
+configuration review rather than changing the source during patch installation.
+
+Clients run serially. Each pass performs a read-only Windows Update Agent search,
+checks the release ceiling and license state, then gives the exact observed
+update titles to `ansible.windows.win_updates` with `reboot: true`. The native
+module handles installation, intermediate reboots and rescans for that set.
+Further bounded passes admit newly applicable prerequisites after fresh checks.
+An empty scan with an outstanding reboot uses `ansible.windows.win_reboot`.
+The default is eight passes, two retries for failed updates and an hour per reboot.
+
+A successful normal run requires no applicable approved updates, no pending
+reboot and an installed OS build at least as new as the audited monthly baseline.
+`vars/windows_patch_builds.yml` records the official OS KB/build pairs for each
+supported month and OS family. An empty update list alone is insufficient.
+Before/after builds, scans and pass results are retained in authenticated AAP
+artifacts. A client already above the ceiling remains above it.
+
+Choose AAP job type **Check** for source validation and applicability reporting
+without installation, reboot or license acceptance. This uses a read-only WUA
+PowerShell search because the pinned native update module can accept update
+licenses during a search. Native Ansible still performs installation and reboot
+management in normal runs. Failed or unaccepted licenses require separate review.
+
+```bash
+ansible-playbook -i YOUR_PROTECTED_INVENTORY update_managed_windows.yml --check
+```
+
+### Configure both templates
+
 `configure_wsus_patch_ceiling_template.yml` refreshes the project and configures
 the template, credential associations and survey using
 `ansible.controller.job_template`. Its separate optional controller administration
@@ -93,6 +132,8 @@ authentication environment variables can also supply the connection.
 ```bash
 ansible-playbook configure_wsus_patch_ceiling_template.yml \
   -e @YOUR_PROTECTED_CONTROLLER_CONFIGURATION
+ansible-playbook configure_windows_patching_template.yml \
+  -e @YOUR_PROTECTED_CONTROLLER_CONFIGURATION
 ```
 
 ## References and verification
@@ -107,3 +148,14 @@ ansible-playbook configure_wsus_patch_ceiling_template.yml \
 architecture and preview filtering, .NET fallback, prerequisites, explicit
 prerequisite mappings and shared-bundle conflicts. Run it with an existing
 Windows PowerShell 5.1 or PowerShell 7 installation; it needs no WSUS service.
+
+`tests/Test-WindowsUpdateClientPolicy.ps1` checks client source-policy rejection
+using mocks. With the existing pinned Ansible dependencies, run the filter and
+completion regression checks using:
+
+```bash
+python3 -m unittest discover -s tests -p test_windows_patching_filters.py -v
+```
+
+These tests do not install updates. Live Check mode validates integration;
+a normal client run is still required to validate actual OS installation.

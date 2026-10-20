@@ -1,0 +1,159 @@
+---
+- name: Install and verify the currently permitted update set
+  block:
+    - name: Initialize bounded update-cycle evidence for this endnode
+      ansible.builtin.set_fact:
+        windows_patch_passes: []
+        windows_patch_converged: false
+
+    - name: Recheck internal policy before starting this endnode
+      ansible.builtin.include_tasks: tasks/validate_windows_patch_ceiling.yml
+
+    - name: Inspect applicable managed updates without accepting licenses
+      ansible.windows.win_powershell:
+        error_action: stop
+        depth: 6
+        path: assets/search-managed-windows-updates.ps1
+      register: windows_patch_scan_before
+      retries: 3
+      delay: 15
+      until: windows_patch_scan_before is succeeded
+      changed_when: false
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Reject offered updates with an unknown or later release month
+      ansible.builtin.assert:
+        that:
+          - item.value.title is search(windows_patch_eligibility_filters | join('|'))
+        fail_msg: An applicable update is outside the verified monthly ceiling. No installation was started.
+      loop: "{{ windows_patch_scan_before.result.updates | dict2items }}"
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Process prerequisite and update passes with fresh license guards
+      ansible.builtin.include_tasks: tasks/update_managed_windows_pass.yml
+      loop: "{{ range(1, (windows_patch_max_passes | int) + 1) | list }}"
+      loop_control:
+        loop_var: windows_patch_pass_number
+      when: not ansible_check_mode
+
+    # Query WUA itself: a stopped trigger-start wuauserv can be healthy and the
+    # search starts it when needed. Retry readiness rather than service state.
+    - name: Search internal WSUS for remaining approved updates after all passes
+      ansible.windows.win_powershell:
+        error_action: stop
+        depth: 6
+        path: assets/search-managed-windows-updates.ps1
+      register: windows_patch_scan_after
+      retries: 3
+      delay: 15
+      until: windows_patch_scan_after is succeeded
+      changed_when: false
+      no_log: "{{ windows_patch_no_log | bool }}"
+      when: not ansible_check_mode
+
+    - name: Read final installed build and verify the source remains protected
+      ansible.windows.win_powershell:
+        error_action: stop
+        depth: 5
+        path: assets/inspect-windows-update-client.ps1
+        parameters:
+          ExpectedWsusUrl: "{{ wsus_internal_url }}"
+      register: windows_patch_after
+      changed_when: false
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Compare the actual installed OS revision with the audited monthly baseline
+      ansible.builtin.set_fact:
+        windows_patch_baseline_comparison: >-
+          {{ 'below' if (windows_patch_after.result.revision | int) < (windows_patch_expected_baseline.revision | int)
+             else ('above' if (windows_patch_after.result.revision | int) > (windows_patch_expected_baseline.revision | int)
+             else 'at') }}
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Ensure the saved WSUS ceiling and catalogue policy remained stable
+      ansible.builtin.include_tasks: tasks/validate_windows_patch_ceiling.yml
+
+    - name: Require the audited OS baseline and no outstanding update or reboot
+      ansible.builtin.assert:
+        that:
+          - windows_patch_after.result.build_family == windows_patch_before.result.build_family
+          - windows_patch_baseline_comparison in ['at', 'above']
+          - windows_patch_scan_after.result.found_update_count | int == 0
+          - not (windows_patch_scan_after.result.reboot_required | bool)
+          - not (windows_patch_after.result.reboot_pending | bool)
+        fail_msg: >-
+          Managed patching did not reach the audited OS baseline or still has
+          pending updates/reboots within the bounded passes. Zero update offers
+          alone does not prove baseline compliance. Inspect protected artifacts.
+      when: not ansible_check_mode
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Publish installed-state and guarded update-cycle evidence
+      ansible.builtin.set_stats:
+        data:
+          windows_managed_patch_results: >-
+            {{ {inventory_hostname: {
+              'schema_version': 1,
+              'patch_month': windows_patch_active_month,
+              'patch_month_name': windows_patch_active_month_name,
+              'expected_os_baseline': windows_patch_expected_baseline,
+              'os_baseline_comparison': windows_patch_baseline_comparison,
+              'check_mode': ansible_check_mode,
+              'status': 'search_only' if ansible_check_mode else 'os_baseline_met_and_no_applicable_approved_updates_remaining',
+              'before': windows_patch_before.result,
+              'after': windows_patch_after.result,
+              'scan_before': windows_patch_scan_before.result,
+              'installation_passes': windows_patch_passes,
+              'scan_after': windows_patch_scan_after.result | default({})
+            }} }}
+        aggregate: true
+        per_host: false
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Report the current ceiling and actual installed OS evidence
+      ansible.builtin.debug:
+        msg:
+          patch_month: "{{ windows_patch_active_month_name }}"
+          os: "{{ windows_patch_after.result.os_name }}"
+          before_build: "{{ windows_patch_before.result.installed_build }}"
+          after_build: "{{ windows_patch_after.result.installed_build }}"
+          expected_baseline_build: "{{ windows_patch_expected_baseline.build }}"
+          expected_baseline_kb: "{{ windows_patch_expected_baseline.kb }}"
+          baseline_comparison: "{{ windows_patch_baseline_comparison }}"
+          check_mode: "{{ ansible_check_mode }}"
+          applicable_updates_before: "{{ windows_patch_scan_before.result.found_update_count }}"
+          applicable_updates_remaining: "{{ windows_patch_scan_before.result.found_update_count if ansible_check_mode else windows_patch_scan_after.result.found_update_count }}"
+          pending_license_updates: "{{ windows_patch_scan_before.result.pending_eula_count }}"
+          hidden_updates: "{{ windows_patch_scan_before.result.hidden_update_count }}"
+          completed_passes: "{{ windows_patch_passes | length }}"
+          result: >-
+            {{ 'Search only; no updates installed or reboots requested.' if ansible_check_mode else
+               'Audited OS baseline met and all currently applicable approved updates installed. Already higher OS builds remain higher.' }}
+
+  rescue:
+    - name: Publish protected failure evidence and unfinished update passes
+      ansible.builtin.set_stats:
+        data:
+          windows_managed_patch_results: >-
+            {{ {inventory_hostname: {
+              'schema_version': 1,
+              'patch_month': windows_patch_active_month | default('unverified'),
+              'patch_month_name': windows_patch_active_month_name | default('unverified'),
+              'expected_os_baseline': windows_patch_expected_baseline | default({}),
+              'os_baseline_comparison': windows_patch_baseline_comparison | default('unverified'),
+              'status': 'failed',
+              'failed_task': ansible_failed_task.name,
+              'failure': ansible_failed_result,
+              'before': windows_patch_before.result | default({}),
+              'installation_passes': windows_patch_passes | default([]),
+              'latest_installation': windows_patch_install | default({}),
+              'scan_after': windows_patch_scan_after.result | default({}),
+              'after': windows_patch_after.result | default({})
+            }} }}
+        aggregate: true
+        per_host: false
+      no_log: "{{ windows_patch_no_log | bool }}"
+
+    - name: Stop this patch job after a failed update or policy check
+      ansible.builtin.fail:
+        msg: "Managed Windows patching failed during {{ ansible_failed_task.name }}. Inspect protected artifacts before rerunning."

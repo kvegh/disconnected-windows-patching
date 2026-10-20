@@ -1,0 +1,8 @@
+---
+# Patch only the managed source already configured by setup_wsus.yml.
+# Check mode searches that source without installing or rebooting.
+windows_patch_no_log: true
+windows_patch_reboot_timeout: 3600
+windows_patch_failed_update_retries: 2
+# Admit newly applicable prerequisites only after a fresh read-only license check.
+windows_patch_max_passes: 8
