@@ -20,6 +20,7 @@
           - windows_patch_reboot_timeout | int >= 1200
           - windows_patch_failed_update_retries | int >= 1
           - windows_patch_failed_update_retries | int <= 3
+          - windows_patch_failed_update_retries is integer
           - windows_patch_max_passes | int >= 1
           - windows_patch_max_passes | int <= 12
         fail_msg: Supply distinct managed Windows endnodes, one internal WSUS and the vaulted internal WSUS URL.

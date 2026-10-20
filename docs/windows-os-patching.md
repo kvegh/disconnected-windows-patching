@@ -146,6 +146,11 @@ Metadata import does not repeat those payload checksums.
 Clients run serially. Each pass performs a read-only Windows Update Agent search,
 checks the release ceiling and license state, then gives the exact observed
 update titles to `ansible.windows.win_updates` with `reboot: true`. The native
+allowlist handles both the exact title and the pinned module's concatenated
+title-plus-KB representation, with anchored patterns for the observed identities.
+The configured retry count must be a YAML integer from one to three; its type
+is retained for the native action plugin before Windows argument validation.
+The native
 module handles installation, intermediate reboots and rescans for that set.
 Further bounded passes admit newly applicable prerequisites after fresh checks.
 Read-only scans use Windows Update and Component Based Servicing registry reboot
@@ -213,7 +218,8 @@ do not hash payloads and that transfer preparation detects missing, truncated
 and same-length corrupt files while skipping already verified matching files.
 `tests/Test-ManagedUpdateSearch.ps1` reproduces restricted COM access with mocks,
 checks managed-source selection and pending licenses, verifies both reboot
-markers and rejects incomplete searches. These PowerShell tests run without a
+markers, exercises the native title-plus-KB representation and rejects incomplete
+searches. These PowerShell tests run without a
 WSUS service. With the existing pinned Ansible dependencies, run the filter and
 completion regression checks using:
 

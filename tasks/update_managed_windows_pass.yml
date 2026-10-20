@@ -49,8 +49,7 @@
       ansible.builtin.set_fact:
         windows_patch_cycle_accept_list: >-
           {{ windows_patch_cycle_scan.result.updates | dict2items |
-             map(attribute='value.title') | map('regex_escape') |
-             map('regex_replace', '^', '^') | map('regex_replace', '$', '$') | list }}
+             map(attribute='value.accept_pattern') | list }}
       no_log: "{{ windows_patch_no_log | bool }}"
 
     # win_updates 3.8.0 filters accept_list before AcceptEula(). Restricting the
@@ -66,7 +65,9 @@
         state: installed
         reboot: true
         reboot_timeout: "{{ windows_patch_reboot_timeout | int }}"
-        maximum_retries_on_failed_updates: "{{ windows_patch_failed_update_retries | int }}"
+        # Keep the scalar's integer type for the action plugin, which compares
+        # it before the Windows module's argument coercion can take effect.
+        maximum_retries_on_failed_updates: "{{ windows_patch_failed_update_retries }}"
       register: windows_patch_install
       no_log: "{{ windows_patch_no_log | bool }}"
       when: windows_patch_cycle_accept_list | length > 0

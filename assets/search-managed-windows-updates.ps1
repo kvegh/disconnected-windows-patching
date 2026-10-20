@@ -18,10 +18,17 @@ if ([int]$search.ResultCode -ne 2) {
 $updates = @{}
 foreach ($update in $search.Updates) {
     $id = [string]$update.Identity.UpdateID
+    $title = [string]$update.Title
+    $kbs = @($update.KBArticleIDs | ForEach-Object { "KB$_" })
+    # The pinned native module concatenates its title string and KB array for
+    # accept_list matching. Accept only the observed title or that exact native
+    # representation, retaining anchors and rejecting additional title text.
+    $nativeMatchText = $title + $kbs
     $updates[$id] = @{
         id = $id
-        title = [string]$update.Title
-        kb = @($update.KBArticleIDs | ForEach-Object { "KB$_" })
+        title = $title
+        kb = $kbs
+        accept_pattern = '^(?:' + [regex]::Escape($title) + '|' + [regex]::Escape($nativeMatchText) + ')$'
         revision = [int]$update.Identity.RevisionNumber
         hidden = [bool]$update.IsHidden
         eula_accepted = [bool]$update.EulaAccepted

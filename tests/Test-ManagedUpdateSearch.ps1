@@ -55,6 +55,11 @@ Assert-True ($Ansible.Result.pending_eula_count -eq 1) 'Unaccepted licenses must
 Assert-True (-not $Ansible.Result.reboot_required) 'No update/CBS reboot marker means no pending update reboot.'
 Assert-True (-not $Ansible.Changed) 'Assessment must remain read-only.'
 Assert-True ($searcher.ServerSelection -eq 1 -and $searcher.Online) 'Search must use the managed server.'
+$observed = $Ansible.Result.updates['example-update']
+Assert-True ($observed.title -match $observed.accept_pattern) 'The exact observed title must match.'
+Assert-True (($observed.title + $observed.kb) -match $observed.accept_pattern) 'The native title-plus-KB representation must match.'
+Assert-True (($observed.title + ' newer') -notmatch $observed.accept_pattern) 'A title with additional text must remain excluded.'
+Assert-True (($observed.title + 'KB7654321') -notmatch $observed.accept_pattern) 'An unobserved appended KB must remain excluded.'
 
 Reset-TestState
 $script:cbsReboot = $true

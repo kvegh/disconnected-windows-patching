@@ -98,11 +98,22 @@ class WindowsPatchingFilters(unittest.TestCase):
             if "windows_patch_cycle_accept_list" in task.get("ansible.builtin.set_fact", {})
         )
         observed = "2026-04 Cumulative Update for .NET (KB5082427) [x64]"
-        variables = {"windows_patch_cycle_scan": {"result": {"updates": {"component-guid": {"title": observed}}}}}
+        pattern = "^(?:" + re.escape(observed) + "|" + re.escape(observed + "KB5082427") + ")$"
+        variables = {"windows_patch_cycle_scan": {"result": {"updates": {"component-guid": {"title": observed, "accept_pattern": pattern}}}}}
         filters = Templar(loader=DataLoader(), variables=variables).template(expression)
         self.assertTrue(self.accepted(filters, observed))
+        self.assertTrue(self.accepted(filters, observed + "KB5082427"))
         self.assertFalse(self.accepted(filters, observed + " newer"))
+        self.assertFalse(self.accepted(filters, observed + "KB5082425"))
         self.assertFalse(self.accepted(filters, "2026-04 Cumulative Update for .NET (KB5082425)"))
+
+    def test_native_action_receives_an_integer_retry_count(self):
+        tasks = yaml.safe_load((ROOT / "tasks/update_managed_windows_pass.yml").read_text())[0]["block"]
+        options = next(task["ansible.windows.win_updates"] for task in tasks if "ansible.windows.win_updates" in task)
+        defaults = yaml.safe_load((ROOT / "vars/windows_patching.yml").read_text())
+        value = Templar(loader=DataLoader(), variables=defaults).template(options["maximum_retries_on_failed_updates"])
+        self.assertIs(type(value), int)
+        self.assertEqual(value, 2)
 
     def test_zero_offers_do_not_pass_a_below_baseline_os_build(self):
         tasks = yaml.safe_load((ROOT / "tasks/update_managed_windows_host.yml").read_text())[0]["block"]

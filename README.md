@@ -113,6 +113,8 @@ isolation was restored and both clients retained their internal WSUS policies.
 The subsequent client Check run exposed a remote-incompatible Windows Update
 reboot-status API call. Searches now read the same Windows Update/CBS registry
 markers as the existing client inspection, preserving remote security controls.
+The install pass preserves integer retry arguments and exact-title matching
+through the pinned native module's title-plus-KB filtering representation.
 Full client Check completion and actual OS installation remain unverified.
 
 - `01-win-vm-setup.yml`: VM deployment playbook.
