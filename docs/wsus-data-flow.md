@@ -23,7 +23,8 @@ The deployment workflow runs:
 ```mermaid
 flowchart TD
   V[Four VM creation jobs in parallel] --> B[Windows basics: all four parents must succeed]
-  B --> P[Prepare repository features and offline Chocolatey MSI; finish reboots]
+  B --> A[Verify or activate evaluation clones and restore original topology]
+  A --> P[Prepare repository features and offline Chocolatey MSI; finish reboots]
   P --> W[Setup WSUS]
   P --> C[Setup Chocolatey and Nexus]
   W --> R[Check WSUS prerequisites]
@@ -37,7 +38,9 @@ flowchart TD
   CB --> CU[Switch feed and upgrade applications]
 ```
 
-All arrows are success transitions. The two setup branches run concurrently after
+All arrows are success transitions. The [activation stage](windows-evaluation-activation.md)
+uses its approved encrypted inputs and verifies licensing and original topology
+before repository preparation. The two setup branches run concurrently after
 the preparation stage finishes feature/MSI installation and all required reboots.
 This avoids one job rebooting a guest while the other configures it. The preparation
 playbook downloads and verifies the pinned Chocolatey MSI automatically. The

@@ -21,9 +21,11 @@ found an expired activation grace period on the Server 2025 endnode, while
 Server 2022 had a valid evaluation. This is separate from WSUS approval policy
 and update installation; detailed guest evidence stays outside Git.
 
-An existing isolated guest needs a separately authorized activation path before
-attempting online activation. Activation, grace-period resets, licensing-service
-changes and network exceptions are not performed by these playbooks. A trial
+The separate [clone deployment activation stage](windows-evaluation-activation.md)
+uses its encrypted, explicitly approved connectivity configuration. Monthly
+ceiling and client patching playbooks do not activate guests or change their
+network topology. An existing isolated guest needs an authorized activation
+path before attempting online activation. A trial
 that has already expired needs a supported recovery decision; do not assume
 restarting the VM renews it. Microsoft's
 [licensing command reference](https://learn.microsoft.com/en-us/windows-server/get-started/activation-slmgr-vbs-options)
@@ -260,14 +262,41 @@ succeeded in 2m00s: the build remained at the April baseline, no applicable
 updates remained and no reboot was pending. That second run measures a settled
 client, not the initial installation time.
 
+System event record order confirms two patching restarts after the OS install
+started and before the RAM-maintenance shutdown: one initiated by Ansible and
+one planned upgrade restart by Windows TrustedInstaller. The full VM stop/start
+for memory allocation is separate. Guest clock offsets make event record order
+safer than comparing guest timestamps directly with Controller timestamps.
+
 The Server 2025 download initially stalled because IIS returned HTTP 404 for an
 existing complete MSU. The focused Setup WSUS tag `wsus_uup_mime` added the
 server-level MSU/WIM MIME mappings through a successful normal AAP job in 31s.
 HTTP HEAD then returned 200 with the exact expected file length from the client
-and both repository servers. The original download retried and completed;
-Delivery Optimization's log recorded 25%, 50%, 75%, 95% and completion, followed
-by active Windows servicing. No network isolation change or download service
-reset was needed. Final Server 2025 baseline and reboot verification is pending.
+and both repository servers. The original download retried and advanced;
+Delivery Optimization's log recorded progress and completion for requested
+transfer segments. Windows subsequently requested additional payload content
+and reconstructed component files before the OS installation-start event.
+Completion of one transfer is not completion of the entire update.
+The servicing stack KB5082062 then reached Installed while the main April
+update was being staged. No network isolation change or download service reset
+was needed.
+
+Server 2025 subsequently completed normal patch job 2258 successfully in
+1h38m52s, including the initial download retries and recovery. It upgraded from
+`26100.1742` to April build `26100.32690`, installing OS update KB5082063 and
+.NET update KB5082417. Three outer passes handled the OS update, newly applicable
+.NET update, and final empty scan. The final guard verified the internal WSUS
+source, audited OS baseline, zero remaining applicable/hidden updates or pending
+licenses, and no pending reboot. Four System restart records occurred after OS
+installation began: two initiated by Ansible and two planned upgrade restarts
+by TrustedInstaller. Use record order rather than skewed guest timestamps.
+
+At one Windows-requested reboot boundary, the operator-authorized memory change
+was applied by allowing the VM to stop and starting a fresh QEMU process with
+4 GiB. No active installation was forcibly powered off. The one-time live reboot
+action was replaced by the unchanged persistent restart policy on startup.
+Both managed VMs now have 4 GiB allocated and verified from Windows. This memory
+change does not establish that all servicing delays were caused by RAM.
 
 When a newer client stays at zero download progress, check that the actual
 payload is served through IIS as well as present on disk. Microsoft's required
@@ -278,11 +307,12 @@ download is separate from successful update installation and the final build.
 
 ## Measured job runtimes
 
-The ten latest successful jobs in this use case were inspected on 2026-10-20.
+The ten latest successful jobs in this use case were inspected on 2026-10-20,
+before the installation runs described above completed.
 Durations below use AAP execution time, excluding the delay between job creation
 and execution. Task spans come from matching per-host start and completion
 events; asynchronous wait spans include the monitored Windows operation.
-Failed jobs and the current incomplete client installation are outside this
+Failed jobs and the later client installation runs are outside this historical
 successful-job sample.
 
 | Job | Date | Operation | Execution time | Measured main cost |

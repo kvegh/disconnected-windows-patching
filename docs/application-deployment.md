@@ -24,7 +24,8 @@ Template names have the prefix **Disconnected Windows Patching -**.
 ```mermaid
 flowchart TD
     V[Four VM deployment jobs] --> B[Configure Windows server basics]
-    B --> P[Prepare features, Chocolatey MSI and reboots]
+    B --> A[Verify or activate evaluation clones and restore original topology]
+    A --> P[Prepare features, Chocolatey MSI and reboots]
     P --> W[Setup WSUS]
     P --> C[Setup Chocolatey and Nexus]
     W --> WP[WSUS readiness, sync, export and import]
@@ -35,7 +36,8 @@ flowchart TD
     O --> U[Switch to current feed and upgrade applications]
 ```
 
-Every edge requires success. Four VM jobs converge before Windows basics. WSUS and
+Every edge requires success. Four VM jobs converge before Windows basics and
+the separate [evaluation activation stage](windows-evaluation-activation.md). WSUS and
 Chocolatey setup run in parallel after the feature/MSI/reboot preparation barrier.
 The workflow deploys new clones; use individual configuration templates for
 existing VMs. Application stages do not patch Windows through WSUS.
@@ -210,17 +212,31 @@ pipelines and application upgrades. Guarded destroy jobs 1233, 1235, 1240 and
 other VM definitions and states and base-image metadata matched the captured
 baseline. The workflow ran for approximately 2 hours 20 minutes.
 
+The latest successful baseline and upgrade runs completed on 2026-10-07:
+baseline job 1281 at 05:05 UTC and upgrade job 1289 at 05:08 UTC. A read-only
+audit on 2026-10-20 confirmed Chocolatey CLI `2.7.4` on both endnodes, with
+7-Zip `26.4.0` and Git `2.56.0.2` installed and the internal current feed as the
+sole source. A separate authenticated query to internal Nexus confirmed
+`7zip.install` `26.3.0` and `git.install` `2.55.0.5` in `chocolatey-baseline`,
+and `26.4.0` / `2.56.0.2` respectively in `chocolatey-current`. These audit
+checks did not redeploy or downgrade applications. Repeating the full
+baseline-to-current demo requires a supported reset to baseline: the baseline
+playbook deliberately refuses unexpected installed versions rather than
+silently downgrading an already upgraded host.
+
 Both repository guests retain the requested demo allocation of 2 vCPUs and 8 GiB
-RAM; endnodes retain 2 vCPUs and 2 GiB RAM. Disk sizing stays unchanged. Check shared
+RAM; endnodes now use 2 vCPUs and 4 GiB RAM. Disk sizing stays unchanged. Check shared
 WSUS/Nexus memory and disk capacity during live validation. This initial setup
 refuses implicit Nexus distribution upgrades and does not automatically remove
 old export archives or release content.
 
 ## Remaining work
 
-- Validate Nexus startup, upload/import APIs and both application upgrades live.
-- Exercise the corrected Windows basics stage in the fresh environment workflow.
-- Add WSUS client approvals and Windows patch installation as separate stages.
+- Validate the newly added per-clone activation stage during a controlled fresh
+  deployment; the earlier complete workflow predates that stage.
+- Keep application demonstration resets separate from OS patching; monthly WSUS
+  approvals and guarded client installation are now implemented and verified
+  through their own Job Templates.
 - Decide retention for old application archives and repository releases.
 - Implement a broader package/dependency selection only if the demo needs it.
 

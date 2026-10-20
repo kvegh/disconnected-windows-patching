@@ -142,10 +142,13 @@ markers as the existing client inspection, preserving remote security controls.
 The install pass preserves integer retry arguments and exact-title matching
 through the pinned native module's title-plus-KB filtering representation.
 Normal installation has now upgraded Server 2022 to April build `20348.5020`
-with its OS and .NET updates. After a full VM restart applied 4 GiB RAM, a
-targeted normal patch job succeeded with zero remaining applicable updates and
-no pending reboot. Server 2025's download resumed after the IIS MIME repair
-and native servicing is in progress; its final baseline is still being verified.
+and Server 2025 to `26100.32690`, including their applicable .NET updates.
+Both passed the final internal-source, baseline, empty-update and pending-reboot
+guards. Server 2022's initial verified result took about 39m49s; its settled
+verification run took 2m00s. Server 2025 took 1h38m52s including the IIS download
+retry/recovery period. System event order confirms two patch restarts for Server
+2022 and four for Server 2025. Both now have 4 GiB allocated, confirmed in
+libvirt and Windows after clean full VM restarts at safe servicing boundaries.
 See the [live verification details](docs/windows-os-patching.md#references-and-verification).
 
 - `01-win-vm-setup.yml`: VM deployment playbook.
@@ -209,9 +212,9 @@ ansible-playbook -i 'hypervisor,' 01-win-vm-setup.yml --syntax-check
 ```
 
 Use standard Ansible YAML formatting (two-space indentation). VM creation, Windows
-basics, WSUS configuration and the Nexus/Chocolatey pipeline have been exercised
-against the demo guests. Client OS update installation requires a separate normal
-run; code tests and Check mode do not prove installation.
+basics, WSUS configuration, the Nexus/Chocolatey pipeline and managed OS patching
+have been exercised against the demo guests. Client OS update installation uses
+its separate normal Job Template; code tests and Check mode do not prove installation.
 
 ## Network prerequisites
 
@@ -233,13 +236,15 @@ Run these job templates independently or through the deployment workflow:
 | Stage | Playbook | AAP job template |
 | --- | --- | --- |
 | Windows basics | `configure_windows_server_basics.yml` | Disconnected Windows Patching - Configure Windows Server Basics |
+| Evaluation activation and topology verification | `activate_windows_evaluations.yml` | Disconnected Windows Patching - Activate Windows Evaluations |
 | Preparation and reboots | `prepare_repository_servers.yml` | Disconnected Windows Patching - Prepare Repository Servers |
 | WSUS | `setup_wsus.yml` | Disconnected Windows Patching - Setup WSUS |
 | Application repositories and clients | `setup_chocolatey.yml` | Disconnected Windows Patching - Setup Chocolatey |
 
 The existing **Deploy Windows + WSUS environment** workflow creates four VMs in
-parallel and waits for all four to succeed before Windows basics. A preparation
-stage completes feature/MSI installation and reboots. WSUS setup and Chocolatey/Nexus
+parallel and waits for all four to succeed before Windows basics. Evaluation
+activation and topology verification then run before the preparation stage
+completes feature/MSI installation and reboots. WSUS setup and Chocolatey/Nexus
 setup then run in parallel. The Chocolatey branch proceeds through external package
 synchronization, HTTP export, internal import, baseline installation and upgrade.
 The WSUS branch continues through prerequisite checks,
@@ -248,8 +253,10 @@ See [WSUS data flow](docs/wsus-data-flow.md) for the full graph and inputs.
 Use an individual configuration template to reconfigure existing VMs; rerunning
 the deployment workflow attempts creation and its existing-VM guard will stop it.
 
-All configuration templates use WinRM and a Windows Machine credential. Their
-execution environment needs `pywinrm` and the pinned Ansible collections.
+Guest configuration templates use WinRM and a Windows Machine credential.
+The activation template instead combines Hypervisor SSH and Vault credentials,
+with existing encrypted Windows credentials for its in-memory WinRM connections.
+Their execution environment needs `pywinrm` and the pinned Ansible collections.
 Required disjoint inventory groups are `wsus_external`, `wsus_internal`, and
 `windows_managed`. Keep environment assignments protected and out of plaintext Git.
 
@@ -329,7 +336,8 @@ use internal WSUS with Internet update locations blocked and automatic updating
 disabled, leaving patch installation to AAP. Product selection, synchronization, download-only
 approvals, metadata export/import and update binary transfer are implemented in
 the separate [WSUS population playbooks](docs/wsus-data-flow.md). Internal client
-approvals and patch installation remain separate work.
+approvals and patch installation use the separate monthly-ceiling and managed-update
+Job Templates documented above.
 
 Validate without executing against Windows:
 
