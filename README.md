@@ -111,6 +111,7 @@ upgrades. Windows update installation on the endnodes is a separate step.
 - `export_external_wsus.yml`: WSUS metadata export and management-only IIS publication.
 - `replicate_and_import.yml`: direct external-to-internal HTTP transfer and offline WSUS import.
 - `docs/wsus-data-flow.md`: inputs, workflow, integrity checks, module use and live validation status.
+- [WSUS vs Satellite](docs/wsus-vs-satellite.md): patching, repository management, Content Views and staged content promotion.
 - `collections/requirements.yml`: pinned Ansible collection dependencies.
 - `docs/application-deployment.md`: application architecture, inputs, and remaining work.
 - `windows-remote-access.md`: suggested Linux-laptop console access over SSH/VNC, demo evidence, and proposed staged OS patch levels.
@@ -181,6 +182,10 @@ The default comparison is the April 2026 monthly OS cumulative update:
 | --- | --- | --- |
 | Server 2022 | KB5082142 | 20348.5020 |
 | Server 2025 | KB5082063 | 26100.32690 |
+
+Live read-only AAP runs exercised the assessment and artifact collection on both
+Windows versions, with no host changes. This validates the assessment, not OS
+patch installation.
 
 Sources: [Server 2022 release](https://support.microsoft.com/en-us/servicing/os/windows-server/2026/04/april-14-2026-kb5082142-os-build-20348-5020)
 and [Server 2025 release](https://support.microsoft.com/en-us/servicing/os/windows-server/2026/04/april-14-2026-kb5082063-os-build-26100-32690).
