@@ -291,6 +291,15 @@ It does not change Windows networking or hostnames. `wsus_internal_url` and
 matching Vault credential to this template. Optional `wsus_content_path` defaults
 to `C:\WSUS`. Existing initialized content locations are protected against moves.
 
+Setup also adds Microsoft's required server-level IIS MIME mappings for UUP:
+`.msu` as `application/octet-stream` and `.wim` as `application/x-ms-wim`.
+Without these mappings, an update file can exist on disk while IIS returns
+HTTP 404 and newer Windows clients remain at zero download progress.
+Run the Setup WSUS Job Template with the `wsus_uup_mime` job tag to repair
+only these inherited mappings on existing repository servers, without rerunning
+installation, synchronization or client policy tasks. See
+[Microsoft's WSUS deployment requirements](https://learn.microsoft.com/en-us/windows-server/administration/windows-server-update-services/plan/plan-your-wsus-deployment#manually-add-the-required-mime-types-for-uup).
+
 Both WSUS servers are standalone and synchronization is manual. Managed guests
 use internal WSUS with Internet update locations blocked and automatic updating
 disabled, leaving patch installation to AAP. Product selection, synchronization, download-only

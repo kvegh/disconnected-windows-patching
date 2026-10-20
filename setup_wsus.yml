@@ -106,6 +106,39 @@
               $Ansible.Changed = $true
           }
 
+    - name: Serve UUP update file types through inherited IIS MIME mappings
+      ansible.windows.win_powershell:
+        error_action: stop
+        script: |
+          [CmdletBinding(SupportsShouldProcess)]
+          param()
+          $Ansible.Changed = $false
+          Import-Module WebAdministration
+          $root = 'MACHINE/WEBROOT/APPHOST'
+          $types = @{
+              '.msu' = 'application/octet-stream'
+              '.wim' = 'application/x-ms-wim'
+          }
+          foreach ($extension in $types.Keys) {
+              $filter = "system.webServer/staticContent/mimeMap[@fileExtension='$extension']"
+              $existing = @(Get-WebConfigurationProperty -PSPath $root -Filter $filter -Name '.')
+              if ($existing.Count -eq 0) {
+                  $Ansible.Changed = $true
+                  if ($PSCmdlet.ShouldProcess($extension, 'Add inherited server MIME mapping')) {
+                      Add-WebConfigurationProperty -PSPath $root -Filter 'system.webServer/staticContent' `
+                          -Name '.' -Value @{fileExtension = $extension; mimeType = $types[$extension]}
+                  }
+              } elseif ([string]$existing[0].mimeType -ne $types[$extension]) {
+                  $Ansible.Changed = $true
+                  if ($PSCmdlet.ShouldProcess($extension, 'Correct inherited server MIME mapping')) {
+                      Set-WebConfigurationProperty -PSPath $root -Filter $filter `
+                          -Name 'mimeType' -Value $types[$extension]
+                  }
+              }
+          }
+          $Ansible.Result = @{ RequiredMimeTypes = $types; Scope = 'Server' }
+      tags: wsus_uup_mime
+
     - name: Configure manual synchronization and local update storage
       ansible.windows.win_powershell:
         error_action: stop
