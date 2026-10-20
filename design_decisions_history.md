@@ -1,5 +1,25 @@
 # Design decisions history
 
+## 2026-10-20 — Run independent per-server patch jobs concurrently
+
+Implementation and timing analysis: `476f4e8`. The operator selected separate
+Job Template launches for each Windows version instead of changing the
+playbook's sequential client strategy. Enable launch-time limits and simultaneous
+jobs. Each limit includes one managed host plus the shared internal WSUS group
+so read-only preflight facts remain available. Managed-host targets must not
+overlap. Existing running jobs retain their original target list and strategy.
+The applied Controller settings and a targeted launch were independently verified
+through MCP; update/reboot guards and collection pins are unchanged.
+
+The ten latest successful Windows jobs were analyzed using AAP per-host event
+timestamps. Three WSUS runs accounted for about 91% of execution time. They
+predate the checksum cleanup and combined real synchronization, downloads,
+verification and import work. Record measured phases and startup/launch delays
+without attributing combined verification/import time to one unmeasured cause.
+The guide documents that a repeat import checked unchanged content, and that
+current code removes redundant verification and skips unnecessary transfer.
+Detailed environment-specific event captures remain outside Git.
+
 ## 2026-10-20 — Preserve native action types and observed update identities
 
 Fix: `ce142d4`. Live installation job 2249 reached native win_updates after
