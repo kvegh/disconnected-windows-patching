@@ -1,5 +1,19 @@
 # Design decisions history
 
+## 2026-10-20 — Keep repeated client preflights practical and stable
+
+Fix: `d490042`. Windows PowerShell 5.1 does not sort hashtable keys using a named
+property, so explicitly sort selected identities by key before drift comparisons.
+Add a Windows-executed regression assertion for canonical ordering.
+
+Hash the full baseline once at client preflight, then revalidate identities,
+approvals, declines, file lengths and WSUS readiness between passes without
+rereading the entire baseline each time. Ceiling mutations and transfer stages
+still require full content hashes. Allow a bounded readiness wait after approval;
+read-only client checks reject content that WSUS has not marked ready.
+Windows parsing and all eighteen selection plus thirteen client-policy assertions
+passed on both repository servers after these changes.
+
 ## 2026-10-20 — Publish subsequent WSUS manifests atomically
 
 Fix: `9d7c082`. Preparing the historical baseline completed its external downloads
