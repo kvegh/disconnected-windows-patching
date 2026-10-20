@@ -14,10 +14,18 @@ def interfaces(xml):
         source = interface.find("source")
         model = interface.find("model")
         link = interface.find("link")
+        source_attributes = dict(source.attrib) if source is not None else {}
+        if interface.get("type") == "network":
+            # Live XML resolves a virtual network to its host bridge and
+            # allocates a runtime port UUID. Neither belongs to inactive XML.
+            # Keep network/portgroup and all unknown source attributes; a
+            # bridge-type interface still needs its bridge source identity.
+            source_attributes.pop("bridge", None)
+            source_attributes.pop("portid", None)
         result.append({
             "mac": mac.get("address", "").lower() if mac is not None else "",
             "type": interface.get("type"),
-            "source": dict(source.attrib) if source is not None else {},
+            "source": source_attributes,
             "model": model.get("type") if model is not None else None,
             "link": link.get("state", "up") if link is not None else "up",
         })

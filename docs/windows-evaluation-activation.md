@@ -23,6 +23,10 @@ The playbook first checks the installed operating-system license and matches
 the guest version, permanent addresses, DNS, default routes and adapter MACs to
 encrypted configuration. It verifies the domain's demo ownership marker and
 that live and persistent libvirt adapters match the protected deployment mapping.
+For virtual-network adapters, the comparison excludes only libvirt's generated
+live `portid` and resolved `bridge` source attributes. Network identity, other
+source attributes, MAC, interface type, model and link state remain checked;
+bridge-type adapters retain their source bridge identity.
 
 Already-licensed clones remain read-only: no licensing call, policy write,
 temporary adapter or cleanup timer. A normal run on an unlicensed evaluation:

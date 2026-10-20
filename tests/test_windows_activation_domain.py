@@ -44,6 +44,39 @@ class ActivationDomainTests(unittest.TestCase):
         self.assertNotEqual(before, after)
         self.assertEqual(before[0]['mac'], after[0]['mac'])
 
+    def test_generated_live_network_port_and_bridge_do_not_change_network_identity(self):
+        inactive = XML.format(extra='')
+        live = inactive.replace('network="isolated-example"',
+                                'network="isolated-example" portid="00000000-0000-0000-0000-000000000002" bridge="virbr-example"')
+        self.assertEqual(DOMAIN.interfaces(inactive), DOMAIN.interfaces(live))
+
+    def test_network_mismatch_with_generated_live_attributes_remains_detectable(self):
+        inactive = XML.format(extra='')
+        live = inactive.replace('network="isolated-example"',
+                                'network="connected-example" portid="00000000-0000-0000-0000-000000000002" bridge="virbr-example"')
+        self.assertNotEqual(DOMAIN.interfaces(inactive), DOMAIN.interfaces(live))
+
+    def test_unknown_network_source_attributes_are_not_discarded(self):
+        inactive = XML.format(extra='')
+        for extra in ('portgroup="another-group"', 'unexpected="value"'):
+            with self.subTest(attribute=extra):
+                live = inactive.replace('network="isolated-example"', 'network="isolated-example" ' + extra)
+                self.assertNotEqual(DOMAIN.interfaces(inactive), DOMAIN.interfaces(live))
+
+    def test_bridge_interface_retains_its_source_bridge_identity(self):
+        first = XML.format(extra='').replace('type="network"', 'type="bridge"').replace('network="isolated-example"', 'bridge="bridge-first"')
+        second = first.replace('bridge-first', 'bridge-second')
+        self.assertNotEqual(DOMAIN.interfaces(first), DOMAIN.interfaces(second))
+
+    def test_model_mac_type_and_link_changes_remain_detectable(self):
+        inactive = XML.format(extra='')
+        for before, after in [('type="network"', 'type="bridge"'),
+                              ('type="e1000e"', 'type="virtio"'),
+                              ('52:54:00:11:22:33', '52:54:00:44:55:66'),
+                              ('</interface>', '<link state="down"/></interface>')]:
+            with self.subTest(change=(before, after)):
+                self.assertNotEqual(DOMAIN.interfaces(inactive), DOMAIN.interfaces(inactive.replace(before, after)))
+
     def test_xml_interface_order_does_not_hide_or_invent_changes(self):
         first = DOMAIN.interfaces(XML.format(extra=EXTRA))
         reordered = XML.format(extra=EXTRA).replace('52:54:00:11:22:33', '52:54:00:AA:BB:CC')
