@@ -115,6 +115,10 @@ upgrades. Windows update installation on the endnodes is a separate step.
 - `docs/wsus-data-flow.md`: inputs, workflow, integrity checks, module use and live validation status.
 - [WSUS vs Satellite](docs/wsus-vs-satellite.md): patching, repository management, Content Views and staged content promotion.
 - [Monthly Windows patching](docs/windows-os-patching.md): named-month selection, content preparation, approval policy and repeatable Job Template configuration.
+
+The internal WSUS role comes from the protected inventory. Its autonomous,
+locally stored content and manual-import policy are enforced independently of
+the upstream-selection flag retained by the existing offline setup.
 - `collections/requirements.yml`: pinned Ansible collection dependencies.
 - `docs/application-deployment.md`: application architecture, inputs, and remaining work.
 - `windows-remote-access.md`: suggested Linux-laptop console access over SSH/VNC, demo evidence, and proposed staged OS patch levels.

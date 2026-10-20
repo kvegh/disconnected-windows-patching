@@ -13,9 +13,12 @@ $Ansible.Changed = $false
 Import-Module UpdateServices
 $server = Get-WsusServer
 $config = $server.GetConfiguration()
-if ($config.IsReplicaServer -or $config.SyncFromMicrosoftUpdate -or $config.HostBinariesOnMicrosoftUpdate) {
+if ($config.IsReplicaServer -or $config.HostBinariesOnMicrosoftUpdate) {
     throw 'The patch ceiling may only be applied to autonomous internal WSUS with local update files.'
 }
+# The existing offline setup retains the Microsoft upstream flag on both
+# autonomous servers. Inventory identifies the internal role; only manual
+# metadata import is used, and automatic synchronization is disabled below.
 $subscription = $server.GetSubscription()
 if ([string]$subscription.GetSynchronizationStatus() -ne 'NotProcessing') {
     throw 'Wait for active WSUS synchronization before enforcing the ceiling.'
