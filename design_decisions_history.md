@@ -1,5 +1,26 @@
 # Design decisions history
 
+## 2026-10-20 — Preserve native action types and observed update identities
+
+Fix: `ce142d4`. Live installation job 2249 reached native win_updates after
+successful source, approval and license guards, then stopped before installing
+anything. The action plugin compared an integer counter with a templated string;
+Windows-side argument validation had converted its separate copy, but could not
+repair the controller-side value. Require an integer configuration value and
+preserve the direct scalar's type when passing it to the action plugin.
+
+The same result exposed that the pinned native module concatenates a title
+string and KB array before filtering. Strict title-only end anchors therefore
+excluded the intended updates. Build anchored patterns during the read-only WUA
+scan for the observed title and its exact native title-plus-KB representation.
+Retain rejection of extra title text and unobserved KBs. This does not broaden
+the month ceiling or accept new license terms.
+
+The actual Ansible templating engine reproduced the string conversion and
+confirmed the fixed integer argument. Eight Python checks passed, and all
+fifty-one PowerShell assertions plus eleven script parses passed on each
+repository server, including native filtering representation regressions.
+
 ## 2026-10-20 — Keep managed update assessment compatible with WinRM
 
 Fix: `a47bd1c`. After both clients became reachable, live Check job 2238 completed
