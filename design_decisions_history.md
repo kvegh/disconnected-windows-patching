@@ -1,5 +1,21 @@
 # Design decisions history
 
+## 2026-10-21 — Brighten the walkthrough and increase text size
+
+Implementation: `6e423d6`. The user found the original muted green palette too
+subdued and requested a livelier appearance and text enlarged by 20%. Use clear
+blue accents, light cyan network areas and warm amber export details. Retain
+green for final verification rather than as the overall visual theme.
+
+Increase text throughout the page, including diagram labels, responsive sizes
+and Ansible previews. Make the action button, preview panel and close controls
+roomier to accommodate the larger text. Preserve the existing workflow, motion
+and interactions. Both README files describe the updated presentation.
+
+All four existing focused checks passed. A comparison against the preceding
+stylesheet verified every font-size value at exactly 120% of its original size.
+Browser visual QA remains unavailable in the authoring environment.
+
 ## 2026-10-21 — Add an interactive, presenter-paced Windows walkthrough
 
 Implementation: `452c2db`. Keep the browser demo in `demo/` and publish its public
