@@ -72,7 +72,12 @@
                     raise RuntimeError('Address is leased to another NIC.')
             exists=any(h.get('ip')==address and h.get('mac','').lower()==mac.lower() for h in hosts)
             xml=E.tostring(E.Element('host',{'mac':mac,'ip':address,'name':name}),encoding='unicode')
-            print(json.dumps({'exists':exists,'xml':xml}))
+            dns_hosts=root.findall('dns/host')
+            named=[h for h in dns_hosts if name in [x.text for x in h.findall('hostname')]]
+            if any(h.get('ip')!=address for h in named):raise RuntimeError('The LDAPS name belongs to a different DNS address.')
+            dns_host=E.Element('host',{'ip':address})
+            E.SubElement(dns_host,'hostname').text=name
+            print(json.dumps({'exists':exists,'xml':xml,'dns_exists':bool(named),'dns_xml':E.tostring(dns_host,encoding='unicode')}))
           - "{{ active_directory.libvirt_network }}"
           - "{{ active_directory.mac }}"
           - "{{ active_directory.ipv4 }}"
@@ -80,6 +85,13 @@
       register: ad_reservation_inspection
       changed_when: false
       check_mode: false
+      no_log: true
+
+    - name: Publish the exact LDAPS DNS name on the management network
+      ansible.builtin.command:
+        argv: [virsh, net-update, "{{ active_directory.libvirt_network }}", add-last, dns-host, "{{ (ad_reservation_inspection.stdout | from_json).dns_xml }}", --live, --config]
+      when: not (ad_reservation_inspection.stdout | from_json).dns_exists
+      changed_when: true
       no_log: true
 
     - name: Add only the dedicated guest's persistent and live reservation

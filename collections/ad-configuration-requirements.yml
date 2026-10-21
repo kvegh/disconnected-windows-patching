@@ -1,0 +1,8 @@
+---
+# Existing supported execution-image collections used by AD AAP configuration.
+# Guest collection requirements remain in requirements.yml.
+collections:
+  - name: ansible.controller
+    version: '4.8.8'
+  - name: ansible.platform
+    version: '2.7.20260812'

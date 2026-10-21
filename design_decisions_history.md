@@ -1,5 +1,17 @@
 # Design decisions history
 
+## Add AD to fresh Windows provisioning and keep its AAP target separate
+
+Implementation: `bfb5110`.
+
+The existing Windows workflow gains an independent eight-stage AD branch with
+updates before promotion and successful TLS verification before LDAP activation.
+An encrypted credential supplies API and SSH target settings at job launch so
+fresh imports can address their receiving platform. The validation profile
+remains available for dedicated testing. Live configuration preserved all 21
+existing Windows nodes and edges and created the eight new nodes without
+launching the workflow. Seven regional-model and workflow tests passed.
+
 ## Reconnect across promotion and wait for directory readiness
 
 Implementation: `3091664`.

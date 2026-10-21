@@ -62,6 +62,8 @@ collections; Windows guest jobs retain their existing runtime dependencies.
 and persistent DHCP reservation after checking clone ownership, NIC topology,
 subnet membership and conflicting reservations. It changes no other DHCP host
 entries. The protected profile records the MAC and address reused by deployment.
+The same guarded step publishes the exact LDAPS DNS name, rejects conflicting
+DNS records and live DHCP leases, and preserves unrelated network records.
 
 `inspect_active_directory_guest.yml` reads OS, servicing, license, network and
 certificate metadata and parses the directory PowerShell asset without executing
@@ -115,6 +117,14 @@ remain literal until AAP launches a job. LDAP readiness comes from the preceding
 verification stages; configuration import alone does not enable LDAP.
 Two workflow tests check reachability, cycles and the required patching and TLS
 barriers before LDAP activation.
+The supported execution image already provides the configuration collections
+listed in `collections/ad-configuration-requirements.yml`; guest requirements
+remain in `collections/requirements.yml`.
+
+AD group membership selects AAP teams at login. Resource permissions remain AAP
+role assignments maintained by Ansible; AAP does not import Windows directory
+ACLs as resource permissions. Removing directory membership revokes the mapped
+membership on the user's next authentication.
 
 ## Interactive demo
 
