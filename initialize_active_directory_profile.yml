@@ -1,0 +1,67 @@
+---
+- name: Initialize the encrypted Active Directory profile once
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Require protected seed inputs and encrypted output paths
+      ansible.builtin.assert:
+        that:
+          - ad_profile_seed is mapping
+          - ad_profile_encrypted_output | default('') | length > 0
+          - ad_profile_vault_password_file | default('') | length > 0
+      no_log: true
+
+    - name: Inspect the destination before generating identities or keys
+      ansible.builtin.stat:
+        path: "{{ ad_profile_encrypted_output }}"
+      register: ad_profile_existing
+      no_log: true
+
+    - name: Refuse to regenerate an existing deployment identity or CA
+      ansible.builtin.assert:
+        that: not ad_profile_existing.stat.exists
+        fail_msg: The encrypted profile already exists; preserve it or perform an explicit rotation.
+
+    - name: Create a private temporary profile file
+      ansible.builtin.tempfile:
+        prefix: ad-profile-
+        suffix: .yml
+      register: ad_profile_temporary
+      no_log: true
+
+    - name: Generate and encrypt the private profile
+      block:
+        - name: Generate credentials, nested groups and a dedicated LDAPS certificate
+          ansible.builtin.command:
+            argv: [python3, "{{ playbook_dir }}/assets/generate-active-directory-profile.py"]
+            stdin: "{{ ad_profile_seed | to_json }}"
+          register: ad_profile_generated
+          changed_when: true
+          no_log: true
+
+        - name: Write the temporary profile with owner-only permissions
+          ansible.builtin.copy:
+            dest: "{{ ad_profile_temporary.path }}"
+            content: "{{ {'active_directory': ad_profile_generated.stdout | from_json} | to_nice_yaml }}"
+            mode: '0600'
+          no_log: true
+
+        - name: Write only Ansible Vault ciphertext into the repository
+          ansible.builtin.command:
+            argv:
+              - ansible-vault
+              - encrypt
+              - --vault-password-file
+              - "{{ ad_profile_vault_password_file }}"
+              - --output
+              - "{{ ad_profile_encrypted_output }}"
+              - "{{ ad_profile_temporary.path }}"
+          changed_when: true
+          no_log: true
+      always:
+        - name: Remove the temporary plaintext profile
+          ansible.builtin.file:
+            path: "{{ ad_profile_temporary.path }}"
+            state: absent
+          no_log: true

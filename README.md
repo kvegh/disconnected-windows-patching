@@ -27,6 +27,21 @@ Pass `ad_windows_hostname` and `ad_direct_microsoft_updates_approved` as protect
 inputs. Windows Update does not provide third-party application or driver updates
 through this module.
 
+`initialize_active_directory_profile.yml` creates the initial identities,
+passwords and dedicated LDAPS CA/certificate from protected seed inputs. It
+requires the existing Python `cryptography` package and Ansible Vault. It refuses
+to replace an existing encrypted profile, and removes its temporary plaintext.
+Keep the profile and its issuing private key encrypted and reuse it on reruns.
+
+`deploy_active_directory.yml` installs AD DS/DNS, promotes the selected patched
+guest and creates the regional directory. Its Windows-native AD cmdlets run
+through `ansible.windows.win_powershell`, using the existing declared runtime.
+The encrypted `vars/active_directory_vault.yml` supplies deployed identities.
+Denmark and Norway receive their matching role in EU through nested groups;
+New Zealand has separate reader/executor/admin access and no EU inheritance.
+Existing unrelated directory objects are refused. Four focused model tests check
+the effective group graph, including cross-region and privilege-escalation cases.
+
 ## Interactive demo
 
 [`demo/`](demo/README.md) contains a presenter-paced browser walkthrough with

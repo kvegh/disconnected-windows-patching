@@ -1,0 +1,145 @@
+---
+- name: Promote the dedicated patched guest and install its regional directory
+  hosts: all
+  gather_facts: false
+  serial: 1
+  vars_files:
+    - vars/active_directory_vault.yml
+  vars:
+    ansible_user: "{{ active_directory.bootstrap_username }}"
+    ansible_password: "{{ active_directory.bootstrap_password }}"
+  tasks:
+    - name: Require exactly one dedicated domain controller
+      ansible.builtin.assert:
+        that:
+          - ansible_play_hosts_all | length == 1
+          - active_directory.hostname is match('^[A-Za-z][A-Za-z0-9-]{0,14}$')
+          - active_directory.prefix is match('^[A-Za-z][A-Za-z0-9-]{0,7}$')
+      no_log: true
+
+    - name: Connect with the bootstrap identity or the established domain identity
+      block:
+        - name: Check the original management identity
+          ansible.builtin.wait_for_connection:
+            timeout: 45
+      rescue:
+        - name: Use the existing protected domain identity on a rerun
+          ansible.builtin.set_fact:
+            ansible_user: "{{ active_directory.domain_admin_username }}"
+            ansible_password: "{{ active_directory.domain_admin_password }}"
+          no_log: true
+        - name: Reconnect with the domain identity
+          ansible.builtin.wait_for_connection:
+            timeout: 180
+
+    - name: Verify guest identity, current membership and expected management address
+      ansible.windows.win_powershell:
+        parameters:
+          Hostname: "{{ active_directory.hostname }}"
+          Domain: "{{ active_directory.dns_domain }}"
+          Address: "{{ active_directory.ipv4 }}"
+        script: |
+          param([string]$Hostname,[string]$Domain,[string]$Address)
+          $cs = Get-CimInstance Win32_ComputerSystem
+          if ($cs.Name -ne $Hostname) { throw 'Unexpected Windows hostname.' }
+          if ($cs.PartOfDomain -and $cs.Domain -ne $Domain) { throw 'The guest belongs to a different domain.' }
+          if (-not (Get-NetIPAddress -AddressFamily IPv4 | Where-Object IPAddress -eq $Address)) { throw 'Unexpected management address.' }
+          $Ansible.Changed = $false
+          $Ansible.Result = @{ IsDomainController=($cs.DomainRole -in @(4,5)) }
+      register: ad_guest_state
+      no_log: true
+
+    - name: Set the future domain administrator password before promotion
+      ansible.windows.win_user:
+        name: Administrator
+        password: "{{ active_directory.domain_admin_password }}"
+        account_disabled: false
+        state: present
+      when: not ad_guest_state.result.IsDomainController
+      no_log: true
+
+    - name: Update the management password when bootstrapping as Administrator
+      ansible.builtin.set_fact:
+        ansible_password: "{{ active_directory.domain_admin_password }}"
+      when:
+        - not ad_guest_state.result.IsDomainController
+        - active_directory.bootstrap_username | lower | regex_replace('^.*[\\\\/]', '') == 'administrator'
+      no_log: true
+
+    - name: Install AD DS, DNS and the supported Windows administration cmdlets
+      ansible.windows.win_feature:
+        name: [AD-Domain-Services, DNS]
+        include_management_tools: true
+        state: present
+      register: ad_features
+
+    - name: Complete required feature installation reboot
+      ansible.windows.win_reboot:
+        reboot_timeout: 1200
+      when: ad_features.reboot_required
+
+    - name: Create the requested new forest without bypassing prerequisite checks
+      ansible.windows.win_powershell:
+        parameters:
+          Domain: "{{ active_directory.dns_domain }}"
+          Netbios: "{{ active_directory.netbios }}"
+          DsrmPassword: "{{ active_directory.dsrm_password }}"
+        script: |
+          param([string]$Domain,[string]$Netbios,[string]$DsrmPassword)
+          $cs = Get-CimInstance Win32_ComputerSystem
+          if ($cs.DomainRole -in @(4,5)) {
+              if ($cs.Domain -ne $Domain) { throw 'Unexpected existing forest.' }
+              $Ansible.Changed = $false
+              $Ansible.Result = @{ RebootRequired=$false }
+          } else {
+              Import-Module ADDSDeployment
+              $safe = ConvertTo-SecureString $DsrmPassword -AsPlainText -Force
+              Install-ADDSForest -DomainName $Domain -DomainNetbiosName $Netbios -DomainMode Win2025 -ForestMode Win2025 -InstallDns:$true -CreateDnsDelegation:$false -SafeModeAdministratorPassword $safe -NoRebootOnCompletion:$true -Force:$true -ErrorAction Stop
+              $Ansible.Changed = $true
+              $Ansible.Result = @{ RebootRequired=$true }
+          }
+      register: ad_promotion
+      no_log: true
+
+    - name: Schedule the promotion reboot independently of the WinRM identity change
+      ansible.windows.win_command:
+        argv: [shutdown.exe, /r, /t, '20', /d, 'p:2:4', /c, Complete Active Directory promotion]
+      when: ad_promotion.result.RebootRequired
+
+    - name: Use the protected domain administrator for subsequent management
+      ansible.builtin.set_fact:
+        ansible_user: "{{ active_directory.domain_admin_username }}"
+        ansible_password: "{{ active_directory.domain_admin_password }}"
+      no_log: true
+
+    - name: Reset the management connection after promotion
+      ansible.builtin.meta: reset_connection
+
+    - name: Wait for the promoted domain controller
+      ansible.builtin.wait_for_connection:
+        delay: "{{ 45 if ad_promotion.result.RebootRequired else 0 }}"
+        timeout: 1200
+
+    - name: Use AD-integrated DNS on the domain controller
+      ansible.windows.win_dns_client:
+        adapter_names: '*'
+        dns_servers: ["{{ active_directory.ipv4 }}"]
+      no_log: true
+
+    - name: Create owned OUs, users and nested regional access groups
+      ansible.windows.win_powershell:
+        script: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
+        parameters:
+          ProfileJson: "{{ active_directory | to_json }}"
+      register: ad_identities
+      no_log: true
+
+    - name: Save identity verification without credentials
+      ansible.builtin.set_stats:
+        data:
+          active_directory_identity_verification: "{{ ad_identities.result }}"
+        aggregate: false
+
+    - name: Report verified regional identity setup
+      ansible.builtin.debug:
+        msg: Four regions, three roles per region, and nested Denmark/Norway access to EU are configured and verified.

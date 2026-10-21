@@ -1,5 +1,15 @@
 # Design decisions history
 
+## Prepare the dedicated domain-controller clone before promotion
+
+Implementation: `5e3cabb`.
+
+The operator requested a separate Server 2025 clone and every currently offered
+Microsoft patch. Preparation uses a dedicated single-host inventory, changes
+only that guest's update-source policies, includes optional software updates,
+handles installer reboots and requires an empty final scan. The existing
+disconnected hosts retain their own update-source configuration.
+
 ## Measure current swap traffic alongside KSM savings
 
 Implementation: `7583775`.
