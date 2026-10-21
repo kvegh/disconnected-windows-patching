@@ -1,5 +1,15 @@
 # Design decisions history
 
+## Reset management authentication after selecting the administrator password
+
+Implementation: `4c83ea9`.
+
+Promotion selects the protected administrator password before installing roles.
+Resetting the WinRM connection at that point ensures subsequent commands use
+the current credential rather than relying on an older authenticated session.
+The playbook YAML passed validation; live promotion follows the successful
+completion of the Microsoft update stage.
+
 ## Pin configuration collections and use existing reviewed PAH sources
 
 Implementation: `6e9246f`.
