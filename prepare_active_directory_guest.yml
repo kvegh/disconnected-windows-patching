@@ -1,0 +1,113 @@
+---
+- name: Prepare and fully update the dedicated Active Directory guest
+  hosts: all
+  gather_facts: false
+  serial: 1
+  tasks:
+    - name: Require one explicitly selected Windows guest
+      ansible.builtin.assert:
+        that:
+          - ansible_play_hosts_all | length == 1
+          - ad_windows_hostname | default('') is match('^[A-Za-z][A-Za-z0-9-]{0,14}$')
+          - ad_direct_microsoft_updates_approved | default(false) | bool
+        fail_msg: Select only the dedicated AD guest and approve its direct Microsoft updates.
+      no_log: true
+
+    - name: Wait for existing WinRM management
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
+    - name: Verify Windows Server 2025 and available system disk space
+      ansible.windows.win_powershell:
+        script: |
+          $os = Get-CimInstance Win32_OperatingSystem
+          $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$($env:SystemDrive)'"
+          if ($os.BuildNumber -ne '26100' -or $os.ProductType -eq 1) {
+              throw 'The selected guest must be Windows Server 2025.'
+          }
+          if ($disk.FreeSpace -lt 12GB) { throw 'At least 12 GiB free system disk space is required.' }
+          $Ansible.Changed = $false
+          $Ansible.Result = @{ Build = $os.BuildNumber; FreeBytes = $disk.FreeSpace }
+      no_log: true
+
+    - name: Set the dedicated guest hostname
+      ansible.windows.win_hostname:
+        name: "{{ ad_windows_hostname }}"
+      register: ad_hostname_result
+      no_log: true
+
+    - name: Finish the hostname change
+      ansible.windows.win_reboot:
+        reboot_timeout: 1200
+      when: ad_hostname_result.reboot_required
+
+    - name: Select public Microsoft update sources only on the dedicated guest
+      ansible.windows.win_regedit:
+        path: "{{ item.path }}"
+        name: "{{ item.name }}"
+        data: 0
+        type: dword
+      loop:
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU'
+          name: UseWUServer
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+          name: DoNotConnectToWindowsUpdateInternetLocations
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+          name: DisableWindowsUpdateAccess
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+          name: SetPolicyDrivenUpdateSourceForQualityUpdates
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+          name: SetPolicyDrivenUpdateSourceForFeatureUpdates
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+          name: SetPolicyDrivenUpdateSourceForOtherUpdates
+        - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+          name: SetPolicyDrivenUpdateSourceForDriverUpdates
+
+    - name: Make Windows Update available for the explicit update run
+      ansible.windows.win_service:
+        name: wuauserv
+        start_mode: manual
+        state: started
+
+    - name: Install every offered software update category and complete required reboots
+      ansible.windows.win_updates:
+        category_names: ['*']
+        server_selection: windows_update
+        skip_optional: false
+        state: installed
+        reboot: true
+        reboot_timeout: 1800
+      register: ad_windows_updates
+      no_log: true
+
+    - name: Rescan the public update source after installation
+      ansible.windows.win_updates:
+        category_names: ['*']
+        server_selection: windows_update
+        skip_optional: false
+        state: searched
+      register: ad_windows_update_scan
+      no_log: true
+
+    - name: Require successful installation and an empty final software update scan
+      ansible.builtin.assert:
+        that:
+          - ad_windows_updates.failed_update_count | default(0) | int == 0
+          - ad_windows_update_scan.found_update_count | int == 0
+        fail_msg: Microsoft still offers updates or an update failed; inspect the protected task result before promotion.
+      no_log: true
+
+    - name: Save update evidence in authenticated job artifacts
+      ansible.builtin.set_stats:
+        data:
+          active_directory_update_result:
+            installed_count: "{{ ad_windows_updates.installed_update_count | default(0) }}"
+            remaining_count: "{{ ad_windows_update_scan.found_update_count }}"
+            updates: "{{ ad_windows_updates.updates | default({}) }}"
+            reboot_required: "{{ ad_windows_update_scan.reboot_required | default(false) }}"
+        aggregate: false
+      no_log: true
+
+    - name: Report completion without guest identities or credentials
+      ansible.builtin.debug:
+        msg: All offered Microsoft software updates were installed and the final scan was empty.

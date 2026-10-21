@@ -1,5 +1,16 @@
 # Design decisions history
 
+## Measure current swap traffic alongside KSM savings
+
+Implementation: `7583775`.
+
+The operator requested the hypervisor memory and KSM report from an earlier
+session and recurring measurements during deployment. The report samples swap
+traffic for five seconds because allocated swap alone cannot establish current
+memory pressure. It distinguishes gross KSM savings from the kernel's net-profit
+counter, reports unavailable counters honestly, and avoids adding KSM savings to
+MemAvailable a second time. Detailed snapshots remain in authenticated artifacts.
+
 ## Start the dedicated AD integration test platform
 
 Implementation: `8ee617b`.

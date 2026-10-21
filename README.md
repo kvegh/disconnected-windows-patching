@@ -18,6 +18,15 @@ AAP job artifacts. Available RAM already includes KSM's benefit; do not add KSM
 savings again. Gross deduplication savings and kernel-reported net savings are
 reported separately. Missing kernel counters are reported as unavailable.
 
+`prepare_active_directory_guest.yml` targets exactly one guest in a dedicated
+inventory, verifies Server 2025 and disk space, sets its protected hostname and
+installs every offered software update category, including optional updates,
+directly from Microsoft. It completes update reboots and requires an empty final
+scan. This does not change update sources on the disconnected demo's other hosts.
+Pass `ad_windows_hostname` and `ad_direct_microsoft_updates_approved` as protected
+inputs. Windows Update does not provide third-party application or driver updates
+through this module.
+
 ## Interactive demo
 
 [`demo/`](demo/README.md) contains a presenter-paced browser walkthrough with
