@@ -1,5 +1,19 @@
 # Design decisions history
 
+## Complete promotion restarts across the Windows identity transition
+
+Implementation: `1d61dc2`, `0ed66ba`, `e7081ab`.
+
+Live forest creation succeeded, but the following local-identity command was
+rejected before it could request the required restart. New promotions schedule
+their restart inside the original command. Recovery can use a controlled guest
+restart or an explicitly selected graceful hypervisor path after verifying the
+clone's ownership and network attachment. The hypervisor path requires an
+observed management-listener stop and return; an accepted request alone does
+not establish success. ACPI did not pass that check in the live recovery.
+The existing-guest-agent alternative and management-identity diagnostics allow
+focused investigation without changing access policy or forcing power off.
+
 ## Match the gateway's normalized LDAP group identifiers
 
 Implementation: `0bfe669`.
