@@ -5,6 +5,7 @@
   gather_facts: false
   vars:
     windows_patching_template_name: Disconnected Windows Patching - Update Managed Windows
+    windows_assessment_template_name: Disconnected Windows Patching - Assess Windows Patch Level
   tasks:
     - name: Require protected controller references
       ansible.builtin.assert:
@@ -54,9 +55,39 @@
       register: windows_patching_template_configuration
       no_log: true
 
-    - name: Report configured template
+    - name: Configure standalone assessment with the same existing Windows credentials
+      ansible.controller.job_template:
+        controller_host: "{{ wsus_controller_host | default(omit) }}"
+        controller_oauthtoken: "{{ wsus_controller_token | default(omit) }}"
+        validate_certs: true
+        name: "{{ windows_assessment_template_name }}"
+        description: >-
+          Read installed OS build, hotfix identifiers and pending reboot markers
+          on managed Windows endnodes. Does not scan for or install updates.
+        inventory: "{{ wsus_controller_inventory | string }}"
+        project: "{{ wsus_controller_project | string }}"
+        execution_environment: "{{ wsus_controller_execution_environment | string }}"
+        credentials: "{{ wsus_controller_credentials | map('string') | list }}"
+        playbook: assess_windows_patch_level.yml
+        job_type: run
+        become_enabled: false
+        survey_enabled: false
+        ask_variables_on_launch: true
+        ask_job_type_on_launch: true
+        ask_limit_on_launch: true
+        allow_simultaneous: false
+        timeout: 900
+        verbosity: 0
+        state: present
+      register: windows_assessment_template_configuration
+      no_log: true
+
+    - name: Report configured update and assessment templates
       ansible.builtin.debug:
         msg:
           name: "{{ windows_patching_template_name }}"
           id: "{{ windows_patching_template_configuration.id }}"
           changed: "{{ windows_patching_template_configuration.changed }}"
+          assessment_name: "{{ windows_assessment_template_name }}"
+          assessment_id: "{{ windows_assessment_template_configuration.id }}"
+          assessment_changed: "{{ windows_assessment_template_configuration.changed }}"

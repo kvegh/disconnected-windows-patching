@@ -193,9 +193,13 @@ ansible-playbook -i inventory.ini replicate_and_import.yml --syntax-check --vaul
 ```
 
 The prerequisite job also parses all pipeline scripts with the actual Windows
-PowerShell parser without executing them. Syntax checks and readiness do not
-constitute an end-to-end synchronization/export/import test. These new population
-stages have not downloaded, exported or imported updates yet.
+PowerShell parser without executing them. Fresh workflow 2303 subsequently
+passed all 21 stages, including external WSUS synchronization job 2322, export
+2327 and internal pull/import 2329. Both content imports completed before the
+internal April ceiling and client patching. The final policy offered four April
+OS/.NET bundles with no missing payload bytes; both clients reached their audited
+builds with no applicable updates or pending reboot. See the
+[fresh end-to-end evidence](end-to-end-test-2026-10-20.md).
 
 Microsoft references:
 

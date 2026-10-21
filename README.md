@@ -107,9 +107,9 @@ adapter if the controller is lost. See
 The activation template and workflow handoff are deployed. Live Check job 2283
 and normal job 2286 passed on all four existing, already-licensed clones without
 host changes, verifying the normal licensed skip path as well as inspection.
-Twenty regression tests cover the activation guards and cleanup paths. A
-controlled fresh deployment is still required to verify the unlicensed path
-end to end; the earlier complete workflow run predates this stage.
+Twenty regression tests cover the activation guards and cleanup paths. Fresh
+workflow 2303 subsequently verified the unlicensed path: Server 2025 activated
+and returned to its original topology before repository preparation.
 
 `wait_for_dhcp` defaults to `false` because initial setup or the network layout
 may prevent immediate DHCP. Enable it to wait up to five minutes and discover
@@ -129,10 +129,21 @@ package synchronization, export, internal import, baseline installation and
 upgrades have passed live execution on both Windows endnodes. Baseline packages
 were 7-Zip `26.3.0` and Git `2.55.0.5`; verified upgrades were 7-Zip `26.4.0`
 and Git `2.56.0.2`, using only the selected internal feed.
+Application completion honors installer reboot codes/flags and Windows CBS/WU
+reboot markers, and verifies those markers clear before reporting success.
 On 2026-10-07, workflow 1252 passed all 17 nodes after guarded teardown and
 verification of the four Windows clones. This validates the complete fresh
 environment deployment and both content pipelines, including application
 upgrades. Windows update installation on the endnodes is a separate step.
+
+The new [fresh end-to-end test](docs/end-to-end-test-2026-10-20.md) runs the
+expanded 21-stage workflow through April OS patching before application baseline
+installation and upgrade. Workflow 2303 passed all 21 stages in 3h48m50s,
+finishing on 2026-10-21 at 01:01 UTC. Preservation checks passed before and after
+redeployment: seven unrelated VM definitions/states and both base images were
+unchanged. Both managed guests were created with 4096 MiB and verified from Windows.
+Follow-up assessment and application reboot corrections are recorded separately
+in the test report.
 
 On 2026-10-20, live publication verified the internal April 2026 ceiling with
 both OS and .NET baselines ready. A client Check run using the lighter validation
@@ -176,7 +187,7 @@ See the [live verification details](docs/windows-os-patching.md#references-and-v
 - `set_internal_wsus_patch_month.yml`: prepare a named monthly baseline and enforce its internal WSUS ceiling.
 - `configure_wsus_patch_ceiling_template.yml`: reproduce the ceiling Job Template and month-name survey with Ansible.
 - `update_managed_windows.yml`: install the current internal WSUS baseline with guarded install, reboot and rescan passes.
-- `configure_windows_patching_template.yml`: reproduce the managed Windows update Job Template with Ansible.
+- `configure_windows_patching_template.yml`: reproduce update and read-only assessment Job Templates with their existing Windows credentials.
 - `sync_external_wsus.yml`: Microsoft metadata synchronization and selected file downloads.
 - `export_external_wsus.yml`: WSUS metadata export and management-only IIS publication.
 - `replicate_and_import.yml`: direct external-to-internal HTTP transfer and offline WSUS import.
@@ -294,6 +305,12 @@ Live read-only AAP runs exercised the assessment and artifact collection on both
 Windows versions, with no host changes. This validates the assessment, not OS
 patch installation.
 
+Apply `configure_windows_patching_template.yml` with the existing Windows Machine
+and Vault credential references to configure both the update and standalone
+assessment templates. An assessment template without its Windows credential
+cannot authenticate even when WinRM is healthy. Diagnostic logging remains
+protected by default.
+
 Sources: [Server 2022 release](https://support.microsoft.com/en-us/servicing/os/windows-server/2026/04/april-14-2026-kb5082142-os-build-20348-5020)
 and [Server 2025 release](https://support.microsoft.com/en-us/servicing/os/windows-server/2026/04/april-14-2026-kb5082063-os-build-26100-32690).
 Override `windows_patch_baseline_name` and `windows_patch_baselines` together
@@ -379,26 +396,22 @@ provide a WinRM jump host automatically. The demo execution-node connectivity ha
 
 ## Implementation status
 
-The deployment, preparation, setup and WSUS population playbooks are written
-and syntax-checked.
-VM creation, networking, DNS, hostnames, WSUS initialization and client policies
-have completed successfully in the demo. The split preserves those tasks; the
-new modular templates need their first separate live runs. External WSUS readiness
-passed read-only job 1072; the new synchronization/export/import stages need
-their first live runs. Nexus/Chocolatey has
-not been deployed yet. Installers download automatically with pinned checksums;
-Nexus administrator and package-reader credentials are in the existing encrypted vault.
+Fresh workflow 2303 passed VM creation, networking, evaluation activation,
+repository preparation, WSUS and Nexus/Chocolatey setup, both external population
+pipelines and internal imports, the April ceiling, both managed OS patch jobs,
+baseline applications and upgrades. Installers download automatically with pinned
+checksums; administrator and package-reader credentials remain in the encrypted vault.
 
 AAP-controlled application synchronization, export, internal import, baseline
 installation and upgrade are implemented as separate playbooks/job templates.
 The targeted content is 7-Zip and Git with two pinned versions each. Native modules
 handle normal configuration and installation; small helpers build deterministic
 packages/exports, inspect archive integrity and upload binary packages on Windows.
-The full flow still needs live Nexus and endnode validation. The latest environment
-workflow stopped during Windows 2025 basics before service setup; its four VM
-creation jobs succeeded. The SYSTEM process-token launch failure (error 367) was
-corrected by using the native scheduled-task module, and static networking with
-reconnection passed a visible-log Windows Server 2025 test. See [application deployment](docs/application-deployment.md).
+The complete fresh run verified the application versions and sole internal source
+on both endnodes. Networking uses the scheduled-task/reconnection correction
+for the earlier SYSTEM process-token launch failure. See
+[application deployment](docs/application-deployment.md) and the
+[end-to-end evidence](docs/end-to-end-test-2026-10-20.md).
 
 AAP execution-node access to the isolated endnodes is required. Installer downloads
 and vaulted application credentials are configured for deployment. See the detailed

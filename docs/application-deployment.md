@@ -165,9 +165,13 @@ bootstrap from the Internet or silently downgrade an unexpected installed versio
 `upgrade_applications.yml` first requires both packages to be installed at a known
 baseline or current version. It switches that same source to the current URL and
 uses native `win_chocolatey` upgrade operations with exact pinned versions. A
-successful rerun at current versions makes no application changes. Both jobs
-reboot only if required, check the final installed Chocolatey package versions and
-selected source, and report the verified application versions.
+successful rerun at current versions makes no package changes. Both jobs honor
+installer reboot exit codes/flags and Windows CBS/Windows Update pending-reboot
+markers. They finish a required reboot and wait for those markers to clear before
+checking the installed package versions, selected source and final success.
+`tests/test_application_reboots.py` exercises the production Ansible conditions
+with mocked Windows operations, including a clean host, each reboot signal and
+refusal to report success while a marker remains.
 
 The feeds have different URLs; there is no mutable alias that silently changes
 what an older deployment installs.
@@ -220,7 +224,7 @@ pipelines and application upgrades. Guarded destroy jobs 1233, 1235, 1240 and
 other VM definitions and states and base-image metadata matched the captured
 baseline. The workflow ran for approximately 2 hours 20 minutes.
 
-The latest successful baseline and upgrade runs completed on 2026-10-07:
+Before the new fresh end-to-end test, successful baseline and upgrade runs completed on 2026-10-07:
 baseline job 1281 at 05:05 UTC and upgrade job 1289 at 05:08 UTC. A read-only
 audit on 2026-10-20 confirmed Chocolatey CLI `2.7.4` on both endnodes, with
 7-Zip `26.4.0` and Git `2.56.0.2` installed and the internal current feed as the
@@ -232,6 +236,14 @@ baseline-to-current demo requires a supported reset to baseline: the baseline
 playbook deliberately refuses unexpected installed versions rather than
 silently downgrading an already upgraded host.
 
+Fresh workflow 2303 finished all 21 stages on 2026-10-21 at 01:01 UTC in
+3h48m50s. Both imports completed before the internal April ceiling; both OS patch
+jobs completed before baseline application job 2336. That job verified the exact
+older package versions on both endnodes, followed by job 2338 verifying the
+current versions and sole internal source. A post-run read-only audit reconfirmed
+Chocolatey `2.7.4`, 7-Zip `26.4.0`, Git `2.56.0.2` and both internal feeds.
+See the [complete test evidence](end-to-end-test-2026-10-20.md).
+
 Both repository guests retain the requested demo allocation of 2 vCPUs and 8 GiB
 RAM; endnodes now use 2 vCPUs and 4 GiB RAM. Disk sizing stays unchanged. Check shared
 WSUS/Nexus memory and disk capacity during live validation. This initial setup
@@ -240,8 +252,6 @@ old export archives or release content.
 
 ## Remaining work
 
-- Validate the newly added per-clone activation stage during a controlled fresh
-  deployment; the earlier complete workflow predates that stage.
 - Keep application demonstration resets separate from OS patching; monthly WSUS
   approvals and guarded client installation are now implemented and verified
   through their own Job Templates.

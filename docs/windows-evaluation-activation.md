@@ -166,8 +166,14 @@ absent from persistent XML. Target selection now requires one resolved host;
 network comparison ignores only those generated fields for network interfaces.
 Twenty regression tests pass, including real captured topology comparisons and
 refusal of actual network, portgroup, unknown-attribute, model, MAC or link changes.
-The unlicensed activation and failure cleanup paths have mocked test coverage;
-a controlled fresh-clone run is still needed to prove that path end to end.
+Fresh workflow 2303 subsequently passed all 21 stages. Its activation job 2311
+took 3m32s: the three Server 2022 clones were already licensed and skipped
+activation; the fresh Server 2025 clone began unlicensed, activated successfully,
+and passed licensed-state and original-topology verification after temporary
+connectivity cleanup. Repository preparation started only after that success.
+This proves the normal unlicensed path on a fresh clone. Failure cleanup retains
+the focused mocked coverage; the successful live test did not induce a licensing
+failure or controller loss.
 
 References:
 

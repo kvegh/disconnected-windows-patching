@@ -307,6 +307,15 @@ download is separate from successful update installation and the final build.
 
 ## Measured job runtimes
 
+The [fresh end-to-end test](end-to-end-test-2026-10-20.md) subsequently passed
+all 21 stages in 3h48m50s. Parallel patch jobs 2333 and 2334 reached the April
+Server 2022 and 2025 builds in 41m28s and 1h05m09s respectively, including the
+applicable .NET updates and final empty scans with no pending reboot. Both
+clients started with 4 GiB allocated. Event record order confirms two patch
+restarts on Server 2022 and four on Server 2025. Baseline and current application
+deployment followed only after both patch jobs finished. This new run includes
+the IIS MIME repair in normal setup and required no download-recovery intervention.
+
 The ten latest successful jobs in this use case were inspected on 2026-10-20,
 before the installation runs described above completed.
 Durations below use AAP execution time, excluding the delay between job creation
