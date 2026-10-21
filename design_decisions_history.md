@@ -1,5 +1,24 @@
 # Design decisions history
 
+## Repair a diagnosed Security platform registration with the signed cached installer
+
+Implementation: `1f65f00`.
+
+An optional repair verifies Microsoft's signature and the exact offered version
+of the cached installer, then runs it with the administrator's loaded profile.
+The normal installation and final update scan still follow the repair. This
+does not hide an offered update or change security policy. Live validation is
+still in progress.
+
+## Preserve nested security-platform inspection evidence
+
+Implementation: `2b51ccd`.
+
+The inspection result now preserves nested file and application metadata and
+includes the installed service executable's version. The live inspection
+confirmed that the cached installer and installed service had different
+versions, so an installer file alone was not treated as proof of installation.
+
 ## Inspect security-platform versions after a Windows Update loop
 
 Implementation: `d787853`.

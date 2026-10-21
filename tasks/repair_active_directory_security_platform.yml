@@ -42,11 +42,11 @@
   become_flags: logon_type=interactive logon_flags=with_profile
   vars:
     ansible_become_password: "{{ ansible_password }}"
-  register: ad_security_platform_repair
+  register: ad_security_platform_repair_result
   no_log: true
 
 - name: Complete a restart requested by the platform installer
   ansible.windows.win_reboot:
     reboot_timeout: 1800
     post_reboot_delay: 30
-  when: ad_security_platform_repair.result.RebootRequired | bool
+  when: ad_security_platform_repair_result.result.RebootRequired | bool

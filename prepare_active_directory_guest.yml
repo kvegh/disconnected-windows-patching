@@ -81,7 +81,7 @@
         start_mode: manual
         state: started
 
-    - name: Install every offered software update category and complete required reboots
+    - name: Repair diagnosed Security platform registration when explicitly requested
       ansible.builtin.include_tasks: tasks/repair_active_directory_security_platform.yml
       when: ad_security_platform_repair | default(false) | bool
 

@@ -95,7 +95,7 @@ Windows Update offer.
 Nested version metadata is serialized explicitly for inspection rather than
 being reduced to PowerShell object descriptions.
 For a diagnosed Security-platform install loop, a focused preparation retry can
-set `ad_security_platform_repair: true` and the exact
+set `ad_security_platform_repair: true` (disabled by default) and the exact
 `ad_security_platform_repair_version` offered by Microsoft. It verifies the
 cached installer's version and Microsoft signature, runs it under the existing
 administrator's loaded profile, then performs the normal update installation
