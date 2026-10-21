@@ -43,12 +43,12 @@
       flow: 'IIS publishes .xml.gz metadata, a manifest and separate update files.'
     },
     {
-      title: 'Transfer and import internally',
-      description: 'Internal WSUS pulls directly from external IIS over the management connection, verifies SHA256 checksums, and imports the metadata locally. Application packages have a separate Nexus import.',
-      short: 'Verified content crosses the controlled transfer link.',
+      title: 'Pull and import internally',
+      description: 'The internal repository initiates the connection and pulls the published export: WSUS metadata and update files from external IIS, and application packages from external Nexus. It verifies checksums before importing locally.',
+      short: 'Internal requests the export. External returns the data.',
       source: 'replicate_and_import.yml',
-      example: '- name: Download and verify an export file\n  ansible.windows.win_get_url:\n    url: "{{ export_file_url }}"\n    dest: "{{ internal_file }}"\n    checksum: "{{ trusted_sha256 }}"\n    checksum_algorithm: sha256\n    use_proxy: false\n    follow_redirects: none',
-      flow: 'External IIS → internal WSUS. Update bytes do not pass through AAP.'
+      example: '- name: Pull an export from the internal side\n  hosts: internal_repository\n  gather_facts: false\n  tasks:\n    - name: Request and verify the external export\n      ansible.windows.win_get_url:\n        url: "{{ external_export_url }}"\n        dest: "{{ internal_file }}"\n        checksum: "{{ trusted_sha256 }}"\n        checksum_algorithm: sha256\n        use_proxy: false\n        follow_redirects: none',
+      flow: 'PULL: internal requests → external serves → data returns internally.'
     },
     {
       title: 'Publish the patch baseline',

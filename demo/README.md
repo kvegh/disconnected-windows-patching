@@ -32,7 +32,11 @@ The arrows illustrate data direction, not measured throughput or real-time job
 progress. WSUS downloads come from Microsoft. The IIS export consists of compressed
 `.xml.gz` metadata, a manifest and separate update binaries, **not one WSUS ZIP**.
 The separate application ZIP is served through Nexus. Transfer uses the internal
-repository's management connection; the diagram does not claim a physical air gap.
+repository's management connection and is initiated as a **pull from the internal
+side**. The transfer step first animates an internal-to-external HTTP GET request,
+then the external-to-internal export response. Both arrows remain labelled after
+the action. Server details and the Ansible preview identify the internal caller.
+The diagram does not claim a physical air gap.
 OS patching, application installation and application upgrades remain distinct.
 The eleven illustrated actions group the underlying workflow jobs.
 

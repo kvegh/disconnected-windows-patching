@@ -8,7 +8,8 @@ in a simulated disconnected environment.
 [`demo/`](demo/README.md) contains a presenter-paced browser walkthrough with
 Next/Previous controls, a workflow that grows after each action, and a datacenter
 architecture that gains servers, services and content. Directional animations
-show Microsoft downloads, management-only IIS transfers and internal delivery.
+show Microsoft downloads, internal-initiated HTTP pulls over the management
+connection, export data returning from external IIS, and internal delivery.
 Workflow items expose in-page illustrative Ansible previews and links to the
 real playbooks. This is a visual walkthrough; it does not execute AAP jobs or
 represent live environment state. Clear blue and cyan accents, amber export

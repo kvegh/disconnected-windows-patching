@@ -49,7 +49,7 @@
               <g class="reveal" data-at="1" style="--delay:45ms"><rect class="network-zone isolated-zone" x="370" y="30" width="566" height="565" rx="22"/><text class="zone-label" x="392" y="60">ISOLATED CLIENT NETWORK</text><text class="zone-subtitle" x="392" y="80">Updates stay under your control</text></g>
 
               <g class="reveal" data-at="2"><path class="network-link" d="M646 345V389M646 389H514V425M646 389H803V425"/><circle cx="646" cy="389" r="4" fill="#afc5df"/><text class="connection-label" x="664" y="383">Internal update sources</text></g>
-              <g class="reveal" data-at="2"><path class="management-link" d="M314 237H500"/><text class="connection-label" x="329" y="219">Management link</text></g>
+              <g class="reveal management-connection" data-at="2"><path class="management-link" d="M314 237H500"/><text class="connection-label" x="329" y="219">Management link</text></g>
 
               <g class="reveal" data-at="4" style="--delay:0ms"><rect class="publisher" x="68" y="105" width="212" height="50" rx="12"/><use href="#windows-mark" x="83" y="121" width="18" height="18" class="microsoft-mark"/><text class="publisher-title" x="113" y="127">Microsoft Update</text><text class="tiny-label" x="113" y="143">Selected OS + .NET content</text><path class="flow-path download-flow" id="download-path" d="M174 155V192" marker-end="url(#arrow)"/><text class="flow-label" x="191" y="177">Download</text><circle class="flow-particle" data-flow="4" r="3.2"><animateMotion dur="1.25s" repeatCount="indefinite"><mpath href="#download-path"/></animateMotion></circle></g>
 
@@ -64,7 +64,16 @@
 
               <g class="reveal server-node" data-at="1" data-node="internal" tabindex="-1" role="button" aria-label="Explore the internal repository" style="--delay:120ms"><rect class="server-shadow" x="503" y="171" width="286" height="174" rx="17"/><rect class="server-surface" x="500" y="167" width="292" height="174" rx="17"/><rect class="icon-background" x="518" y="184" width="33" height="33" rx="9"/><use href="#server-mark" class="server-icon" x="524" y="190" width="21" height="21"/><text class="node-eyebrow" x="564" y="195">WINDOWS SERVER 2022</text><text class="node-title" x="564" y="215">Internal repository</text><line class="card-rule" x1="518" y1="232" x2="774" y2="232"/><text class="node-status" id="internal-status" x="518" y="258">Freshly deployed</text><g class="reveal" data-at="3"><rect class="service-pill" x="518" y="274" width="59" height="25" rx="7"/><text class="service-text" x="530" y="291">WSUS</text><rect class="service-pill" x="584" y="274" width="65" height="25" rx="7"/><text class="service-text" x="596" y="291">Nexus</text></g><g class="reveal" data-at="7"><rect class="baseline-pill" x="657" y="274" width="116" height="25" rx="7"/><text class="baseline-text" x="668" y="291">April baseline</text></g><text class="tiny-label" x="518" y="323" id="internal-detail">Prepared Windows base image</text></g>
 
-              <g class="reveal" data-at="6"><path class="flow-path transfer-flow" id="transfer-path" d="M315 247H498" marker-end="url(#arrow)"/><rect class="transfer-caption" x="334" y="258" width="146" height="39" rx="9"/><text class="flow-label" x="348" y="275">Direct HTTP transfer</text><text class="tiny-label" x="348" y="289">Manifest + SHA256 checks</text><g class="flow-particle" data-flow="6"><rect class="moving-package" x="-7" y="-7" width="14" height="14" rx="3"/><animateMotion dur="1.7s" repeatCount="indefinite"><mpath href="#transfer-path"/></animateMotion></g></g>
+              <g class="reveal" data-at="6">
+                <text class="flow-label" x="333" y="213">PULL · HTTP GET</text>
+                <path class="flow-path pull-request-flow" id="pull-request-path" d="M498 226H316" marker-end="url(#arrow)"/>
+                <circle class="flow-particle pull-request-particle" data-flow="6" cx="498" cy="226" r="2.8"/>
+                <path class="flow-path transfer-flow" id="transfer-path" d="M315 247H498" marker-end="url(#arrow)"/>
+                <g class="flow-particle pull-data-particle" data-flow="6"><rect class="moving-package" x="308" y="240" width="14" height="14" rx="3"/></g>
+                <rect class="transfer-caption" x="334" y="258" width="146" height="39" rx="9"/>
+                <text class="flow-label" x="348" y="275">Export data returned</text>
+                <text class="tiny-label" x="348" y="289">SHA256 verified</text>
+              </g>
 
               <g class="reveal" data-at="8"><path class="flow-path client-flow" id="client-path-2022" d="M646 344V389H514V423" marker-end="url(#arrow)"/><path class="flow-path client-flow" id="client-path-2025" d="M646 344V389H803V423" marker-end="url(#arrow)"/><circle class="flow-particle" data-flow="8,9,10" r="3.2"><animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#client-path-2022"/></animateMotion></circle><circle class="flow-particle" data-flow="8,9,10" r="3.2"><animateMotion dur="1.8s" begin="-.6s" repeatCount="indefinite"><mpath href="#client-path-2025"/></animateMotion></circle></g>
 

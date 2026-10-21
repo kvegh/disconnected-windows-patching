@@ -140,11 +140,12 @@
     });
     diagram.classList.toggle('flow-running', state.stage === 4);
     diagram.classList.toggle('transfer-running', state.stage === 6);
+    diagram.classList.toggle('transfer-shown', state.imported);
     diagram.classList.toggle('client-running', [8, 9, 10].includes(state.stage));
 
     setText('external-status', state.exported ? 'Export published' : state.acquired ? 'Selected content downloaded' : state.services ? 'Repository services ready' : state.configured ? 'Windows configured' : 'Freshly deployed');
     setText('external-detail', state.exported ? 'Management-only HTTP publication' : state.acquired ? 'OS · .NET · 7-Zip · Git' : 'Prepared Windows base image');
-    setText('internal-status', state.baseline ? 'April 2026 baseline selected' : state.imported ? 'Imported and checksum-verified' : state.services ? 'Ready to receive content' : state.configured ? 'Windows configured' : 'Freshly deployed');
+    setText('internal-status', state.baseline ? 'April 2026 baseline selected' : state.imported ? 'Pulled, verified and imported' : state.services ? 'Ready to pull external exports' : state.configured ? 'Windows configured' : 'Freshly deployed');
     setText('internal-detail', state.imported ? 'Autonomous WSUS · internal package feeds' : state.configured ? 'Management NIC + isolated client NIC' : 'Prepared Windows base image');
     for (const year of ['2022', '2025']) {
       setText(`server${year}-status`, state.verified ? 'Final checks passed' : state.patched ? 'April OS + .NET baseline' : state.configured ? 'Internal sources configured' : 'Freshly deployed');
@@ -172,11 +173,12 @@
     const repository = external || id === 'internal';
     const year = id === 'server2025' ? '2025' : '2022';
     setText('server-dialog-title', repository ? `${external ? 'External' : 'Internal'} repository` : `Windows Server ${year}`);
-    setText('server-dialog-description', repository ? (external ? 'Acquires selected content on the connected network and publishes a controlled export.' : 'Receives verified content over its management NIC and serves the isolated client network.') : 'Receives OS updates and application packages from the internal repository.');
+    setText('server-dialog-description', repository ? (external ? 'Acquires selected content on the connected network and serves exports requested by the internal repository.' : 'Initiates downloads over its management NIC, verifies the exports and serves the isolated client network.') : 'Receives OS updates and application packages from the internal repository.');
     const rows = [['Operating system', `Windows Server ${year}`], ['Configuration', state.configured ? 'Windows configured' : 'Fresh base image']];
     if (repository) {
       rows.push(['Services', state.services ? `WSUS + Nexus${external && state.exported ? ' + IIS export' : ''}` : 'Not configured yet']);
       rows.push(['Content', external ? (state.acquired ? 'Selected downloads present' : 'Not acquired yet') : (state.imported ? 'Imported and verified' : 'Not imported yet')]);
+      if (state.imported) rows.push(['Export transfer', external ? 'Serves internal HTTP GET requests' : 'Initiates the HTTP pull']);
       if (external && state.exported) rows.push(['WSUS export', '.xml.gz metadata + separate files']);
       if (!external && state.baseline) rows.push(['Patch policy', 'April 2026 ceiling']);
     } else {

@@ -80,6 +80,13 @@ h1 { font-size:clamp(26.4px,2.64vw,38.4px); letter-spacing:-.045em; font-weight:
 .publisher { fill:#fff; stroke:#d5e2f5; }.publisher-title { font-size:13.2px; font-weight:600; fill:#335f93; }.microsoft-mark { color:#3478de; }
 .flow-path { fill:none; stroke:#2563eb; stroke-width:1.8; stroke-linejoin:round; }.flow-label { fill:#346db6; font-size:10.8px; font-weight:550; }.flow-particle { fill:#2563eb; visibility:hidden; }.flow-particle.flow-active { visibility:visible; }.moving-package { fill:#e9a32f; stroke:#fff; stroke-width:2; }
 .download-flow,.transfer-flow,.client-flow { stroke-dasharray:4 5; }.flow-running .download-flow,.transfer-running .transfer-flow,.client-running .client-flow { animation:flow-dash .7s linear infinite; }@keyframes flow-dash { to { stroke-dashoffset:-18; } }
+.transfer-shown .management-connection { opacity:0; visibility:hidden; pointer-events:none; }
+.pull-request-flow { stroke-width:1.3; stroke-dasharray:3 6; }
+.transfer-running .pull-request-flow { animation:flow-dash .7s linear infinite; }
+.transfer-running .pull-request-particle { animation:pull-request 2.8s linear infinite; }
+.transfer-running .pull-data-particle { animation:pull-response 2.8s linear infinite; }
+@keyframes pull-request { 0% { opacity:1; transform:translateX(0); } 27% { opacity:1; transform:translateX(-182px); } 28%,100% { opacity:0; transform:translateX(-182px); } }
+@keyframes pull-response { 0%,32% { opacity:0; transform:translateX(0); } 34% { opacity:1; transform:translateX(0); } 88% { opacity:1; transform:translateX(183px); } 90%,100% { opacity:0; transform:translateX(183px); } }
 .content-item { fill:#fff; stroke:#d8e4f5; }.content-label { fill:#446c9a; font-size:13.2px; font-weight:600; }.export-bundle { fill:#fff6e5; stroke:#f2ddb5; }.file-icon { fill:none; stroke:#b27d2b; stroke-width:1.2; stroke-linejoin:round; }.transfer-caption { fill:#f8fbff; stroke:#d2e1f6; }
 .client-windows { color:#4484df; }.client-title { fill:#587ba6; font-size:12px; }.client-year { fill:#244d85; font-size:25.2px; font-weight:600; letter-spacing:-.7px; }.patch-tag { fill:#dff7f5; }.patch-tag-text { fill:#127b80; font-size:10.8px; font-weight:600; }.app-name { fill:#5d7ea5; font-size:12px; }.app-version { fill:#2563bd; font-size:12px; font-weight:650; }
 .version-pop { animation:version-pop .31s cubic-bezier(.18,.85,.27,1.12); transform-box:fill-box; transform-origin:center; }@keyframes version-pop { 0% { opacity:.1; transform:translateY(-6px) scale(.85); } 75% { transform:scale(1.08); } 100% { opacity:1; transform:none; } }
