@@ -1,0 +1,56 @@
+---
+- name: Keep the domain time service available
+  ansible.windows.win_service:
+    name: W32Time
+    start_mode: auto
+    state: started
+
+- name: Use the existing manual NTP peer on the forest-root time authority
+  ansible.windows.win_powershell:
+    script: |
+      $parameters = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters'
+      $configuration = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Config'
+      if ([string]::IsNullOrWhiteSpace($parameters.NtpServer)) { throw 'No existing NTP peer is configured.' }
+      $Ansible.Changed = $false
+      if ($parameters.Type -ne 'NTP' -or $configuration.AnnounceFlags -ne 5) {
+          & w32tm.exe /config /syncfromflags:manual /reliable:yes /update | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw 'The Windows time-service configuration failed.' }
+          $Ansible.Changed = $true
+      }
+  no_log: true
+
+- name: Request synchronization with the existing external time source
+  ansible.windows.win_command:
+    argv: [w32tm.exe, /resync, /rediscover]
+  register: ad_time_resync
+  changed_when: false
+  until: ad_time_resync.rc == 0
+  retries: 6
+  delay: 10
+  no_log: true
+
+- name: Verify synchronized time against the automation runtime
+  ansible.windows.win_powershell:
+    parameters:
+      ReferenceUtc: "{{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}"
+    script: |
+      param([string]$ReferenceUtc)
+      $source = (& w32tm.exe /query /source | Out-String).Trim()
+      $reference = [DateTime]::Parse($ReferenceUtc).ToUniversalTime()
+      $offset = [Math]::Abs(([DateTime]::UtcNow - $reference).TotalSeconds)
+      $synchronized = $LASTEXITCODE -eq 0 -and $source -notin @('Local CMOS Clock','Free-running System Clock')
+      $Ansible.Changed = $false
+      $Ansible.Result = @{ Synchronized=$synchronized; AbsoluteOffsetSeconds=[Math]::Round($offset,2) }
+  register: ad_directory_clock
+  until:
+    - ad_directory_clock.result.Synchronized | default(false) | bool
+    - ad_directory_clock.result.AbsoluteOffsetSeconds | default(999999) | float < 120
+  retries: 12
+  delay: 10
+  no_log: true
+
+- name: Preserve verified domain clock health without its peer identity
+  ansible.builtin.set_stats:
+    data:
+      active_directory_clock_verification: "{{ ad_directory_clock.result }}"
+    aggregate: false

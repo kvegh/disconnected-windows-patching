@@ -47,6 +47,11 @@ guest and creates the regional directory. Its Windows-native AD cmdlets run
 through `ansible.windows.win_powershell`, using the existing declared runtime.
 The encrypted `vars/active_directory_vault.yml` supplies deployed identities.
 Promotion waits for AD Web Services and SYSVOL before creating identities.
+The forest-root controller uses its existing configured NTP peer as its manual
+time source, keeps Windows Time running, and requires synchronization within
+two minutes of the automation runtime before configuring identities. This
+prevents an inherited virtual hardware clock from becoming the domain's time
+authority. The playbook preserves the existing peer and correction limits.
 It schedules the restart inside the promotion command because local-account
 authentication can stop working as soon as the forest is created. After an
 interrupted earlier promotion, `ad_complete_promotion_reboot: true` completes a

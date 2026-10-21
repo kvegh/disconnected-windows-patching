@@ -145,6 +145,9 @@
       delay: 10
       no_log: true
 
+    - name: Configure and verify the new forest-root time authority
+      ansible.builtin.include_tasks: tasks/configure_active_directory_time.yml
+
     - name: Create owned OUs, users and nested regional access groups
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
