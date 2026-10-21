@@ -55,8 +55,8 @@ administration. Each grant targets its own region's resources. Mock templates
 have fixed inventories, credentials and variables and contact no external hosts.
 The optional LDAP stage requires verified LDAPS and gateway trust inputs before
 it creates ordered login, organization and nested-group team maps with revocation.
-Local authentication remains available. Use the separately pinned configuration
-collections; Windows guest jobs retain their existing runtime dependencies.
+Local authentication remains available. Project requirements pin the collection
+versions used by these jobs.
 
 `configure_active_directory_address.yml` adds the dedicated clone's exact live
 and persistent DHCP reservation after checking clone ownership, NIC topology,
@@ -134,9 +134,14 @@ The target CA bundle is injected as a private file because a complete trust
 bundle can exceed the operating system's limit for one environment variable.
 Two workflow tests check reachability, cycles and the required patching and TLS
 barriers before LDAP activation.
-The supported execution image already provides the configuration collections
-listed in `collections/ad-configuration-requirements.yml`; guest requirements
-remain in `collections/requirements.yml`.
+`collections/requirements.yml` pins the guest and AAP configuration collections.
+The configuration subset is also listed in
+`collections/ad-configuration-requirements.yml`. These configuration pins match
+the reviewed PAH catalog and the versions used for local API validation.
+Before syncing its project, the regional organization reuses the selected
+target's three existing PAH credential associations. It rejects missing or
+unexpected Hub sources and copies no tokens. `ad_galaxy_source_organization`
+selects the existing source organization when its name differs from `Default`.
 
 AD group membership selects AAP teams at login. Resource permissions remain AAP
 role assignments maintained by Ansible; AAP does not import Windows directory

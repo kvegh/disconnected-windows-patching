@@ -1,5 +1,15 @@
 # Design decisions history
 
+## Diagnose failed Microsoft update installations with protected defaults
+
+Implementation: `0cc9c1a`.
+
+The focused patch retry returned a Windows Update failure. A separate read-only
+inspection now includes System update events, which supplied the installation
+error codes without exposing credentials. An explicit diagnostic choice can
+show the update module's result for a focused retry; connection and profile
+tasks remain protected and normal update logging stays hidden.
+
 ## Allow long WinRM operations during servicing and startup
 
 Implementation: `5915d8e`.

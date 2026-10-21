@@ -1,0 +1,50 @@
+---
+- name: Read the selected target's existing source organization
+  ansible.builtin.uri:
+    url: "{{ ad_target_api_url }}/api/controller/v2/organizations/?name={{ ad_galaxy_source_organization | default('Default') | urlencode }}"
+    url_username: admin
+    url_password: "{{ ad_target_admin_password }}"
+    force_basic_auth: true
+    validate_certs: true
+    ca_path: "{{ ad_api_ca.path }}"
+  register: ad_galaxy_source_org
+  no_log: true
+
+- name: Require one existing source organization
+  ansible.builtin.assert:
+    that: ad_galaxy_source_org.json.count == 1
+    fail_msg: Select the existing organization with the reviewed PAH credentials.
+
+- name: Read its existing Galaxy credential associations
+  ansible.builtin.uri:
+    url: "{{ ad_target_api_url }}/api/controller/v2/organizations/{{ ad_galaxy_source_org.json.results[0].id }}/galaxy_credentials/?page_size=200"
+    url_username: admin
+    url_password: "{{ ad_target_admin_password }}"
+    force_basic_auth: true
+    validate_certs: true
+    ca_path: "{{ ad_api_ca.path }}"
+  register: ad_existing_galaxy_credentials
+  no_log: true
+
+- name: Select only the three existing platform Hub sources
+  ansible.builtin.set_fact:
+    ad_galaxy_sources: "{{ ad_existing_galaxy_credentials.json.results | selectattr('inputs.url', 'match', '^https://[^/]+/api/galaxy/content/(rh-certified|validated|community)/?$') | list }}"
+  no_log: true
+
+- name: Require reviewed certified, validated and community PAH sources
+  ansible.builtin.assert:
+    that:
+      - ad_galaxy_sources | length == 3
+      - ad_galaxy_sources | map(attribute='inputs.url') | map('regex_replace', '/$', '') | map('basename') | sort == ['community', 'rh-certified', 'validated']
+    fail_msg: Configure the existing PAH credentials before syncing regional project collections.
+  no_log: true
+
+- name: Associate the regional organization with those existing PAH credentials
+  ansible.controller.organization:
+    name: "{{ ad_organization }}"
+    galaxy_credentials: "{{ ad_galaxy_sources | map(attribute='id') | map('string') | list }}"
+    state: present
+  environment:
+    SSL_CERT_FILE: "{{ ad_api_ca.path }}"
+    REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
+  no_log: true

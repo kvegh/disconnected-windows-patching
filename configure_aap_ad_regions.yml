@@ -51,7 +51,10 @@
             description: AD regional access demonstration with isolated mock resources.
           no_log: true
 
-        - name: Create the regional mock source project
+        - name: Reuse reviewed Hub sources before regional project synchronization
+          ansible.builtin.include_tasks: tasks/configure_aap_ad_galaxy_sources.yml
+
+        - name: Create the regional mock source project with trusted collection sources
           ansible.controller.project:
             name: "{{ ad_project }}"
             organization: "{{ ad_organization }}"
