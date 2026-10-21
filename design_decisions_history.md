@@ -1,5 +1,38 @@
 # Design decisions history
 
+## 2026-10-21 — Add a separate AAP orchestration architecture edition
+
+Implementation: `71735be`. The user requested a second, independent edition in
+`demo-with-aap/`, with connected AAP and an internal execution node preceding
+Windows actions. Preserve the original page and its assets. Publish the new
+edition at its own `/demo-with-aap/` URL through the existing Pages workflow;
+the original remains at the project Pages root. Separate source copies allow
+the two visualizations to evolve independently.
+
+Show AAP scheduling before changes appear. Connected execution handles external
+work and initial VM provisioning through the existing virtualization host over
+SSH. The connected AAP card groups control and connected execution rather than
+implying that a controller-only node runs playbooks. Internal execution is a
+proposed Linux node, explicitly labelled as not deployed in this lab.
+
+Follow the AAP 2.7 mesh model: the internal node initiates outbound peering, then
+AAP dispatches jobs over the established bidirectional connection. Reuse that
+connection for later internal work. Show local Windows management through WinRM.
+Keep job delivery distinct from the existing internal-initiated HTTP pull of
+export data; update payloads still flow directly between repositories.
+
+Apply illustrated Windows changes after the scheduling/dispatch/execution phases.
+Reset cancels unfinished playback so old callbacks cannot repopulate a reset
+diagram. Preserve the existing controls, hover examples, source links, enlarged
+typography and palette. Production deployment and existing automation are outside
+this change. The edition README explains required future job routing, execution
+content and review of existing delegated external manifest reads.
+
+All twelve focused checks passed across both editions, including phase order,
+mesh reuse and cancellation. Static checks verified SVG structure and references,
+request/data directions and unchanged original page assets. Browser visual QA
+remains unavailable in the authoring environment.
+
 ## 2026-10-21 — Make the internal export pull explicit
 
 Implementation: `4dea4f5`. The user required the export transfer to be clearly
