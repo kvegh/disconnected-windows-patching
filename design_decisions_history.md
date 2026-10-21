@@ -1,5 +1,26 @@
 # Design decisions history
 
+## 2026-10-21 — Repeat the inside-out cue before every internal action
+
+Implementation: `a470e3c`. The user requested an arrow from the internal
+execution node to external AAP before each internal action. Animate and
+highlight that outward path, then show job dispatch back to the node before
+local execution. Apply the sequence to both internal-only and mixed actions;
+connected-only actions keep the internal mesh idle.
+
+Preserve the actual connection model: the first internal action establishes
+outbound mesh, and subsequent actions reuse the bidirectional connection.
+The repeated outward cue reminds the audience which node initiated the
+connection; it does not represent a fresh connection or task polling. Update
+phase explanations, node statuses, the accessible diagram description and both
+applicable README files to make that distinction clear.
+
+All fourteen checks passed across both editions, covering every internal action,
+connected-only actions and cancellation during the repeated cue. Static checks
+verified SVG references, arrow direction, motion handling and unchanged original
+demo assets. Browser visual QA remains unavailable in the authoring environment.
+This change affects the illustration only; no deployed automation was changed.
+
 ## 2026-10-21 — Show deployment ownership with four direct arrows
 
 Implementation: `75d9a83`. The user requested a simpler deployment explanation
