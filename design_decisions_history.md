@@ -1,5 +1,15 @@
 # Design decisions history
 
+## Inspect runtime dependencies without installing agent-side software
+
+Implementation: `7a3d176`.
+
+The AD guest inspector records collection versions from the actual execution
+environment. This distinguishes available runtime dependencies from the local
+agent's Python packages and avoids assuming a missing local package requires a
+new installation. The inspection remains read-only and keeps detailed metadata
+in authenticated artifacts.
+
 ## Install a dedicated LDAPS identity and verify gateway trust
 
 Implementation: `0233c61`.

@@ -45,9 +45,41 @@
         key: "{{ active_directory.test_install_username }}"
       no_log: true
 
+    - name: List existing service-account containers before selecting the gateway
+      ansible.builtin.command:
+        argv: [runuser, -u, "{{ active_directory.test_install_username }}", --, podman, ps, --format=json]
+        chdir: /
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[active_directory.test_install_username][1] }}"
+      register: ad_gateway_containers
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Require a successful rootless container inspection
+      ansible.builtin.assert:
+        that: ad_gateway_containers.rc == 0
+        fail_msg: "Rootless container inspection failed: {{ ad_gateway_containers.stderr }}"
+
+    - name: Select the existing non-proxy gateway container
+      ansible.builtin.set_fact:
+        ad_gateway_candidates: "{{ (ad_gateway_containers.stdout | from_json) | selectattr('Names', 'search', 'gateway') | rejectattr('Names', 'search', 'proxy') | list }}"
+      no_log: true
+
+    - name: Require exactly one existing gateway runtime
+      ansible.builtin.assert:
+        that: ad_gateway_candidates | length == 1
+        fail_msg: The selected service account does not own exactly one gateway container.
+
+    - name: Record the existing gateway runtime name
+      ansible.builtin.set_fact:
+        ad_gateway_container_name: "{{ ad_gateway_candidates[0].Names[0] }}"
+      no_log: true
+
     - name: Inspect the existing gateway container mounts
       ansible.builtin.command:
-        argv: [runuser, -u, "{{ active_directory.test_install_username }}", --, podman, inspect, automation-gateway]
+        argv: [runuser, -u, "{{ active_directory.test_install_username }}", --, podman, inspect, "{{ ad_gateway_container_name }}"]
+        chdir: /
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[active_directory.test_install_username][1] }}"
       register: ad_gateway_container
@@ -95,6 +127,7 @@
 
     - name: Verify the CA is readable inside the actual gateway container
       ansible.builtin.command:
+        chdir: /
         argv:
           - runuser
           - -u
@@ -102,7 +135,7 @@
           - --
           - podman
           - exec
-          - automation-gateway
+          - "{{ ad_gateway_container_name }}"
           - python3
           - -c
           - |
@@ -120,6 +153,7 @@
 
     - name: Verify named LDAPS with the gateway's normal certificate validation
       ansible.builtin.command:
+        chdir: /
         argv:
           - runuser
           - -u
@@ -127,7 +161,7 @@
           - --
           - podman
           - exec
-          - automation-gateway
+          - "{{ ad_gateway_container_name }}"
           - python3
           - -c
           - |

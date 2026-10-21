@@ -84,6 +84,13 @@ including KSM full-scan count. An AAP schedule was briefly created and removed
 after the operator clarified that chat reporting was intended; no recurring
 memory-report job or template remains deployed.
 
+`verify_aap_ad_regions.yml` independently reads every team grant and verifies
+exact object scope, view-only reader permissions and fixed mock launch inputs.
+Set `ad_verify_ldap_logins: true` after LDAP is enabled to authenticate all twelve
+directory identities, check allowed and denied regional access, exercise admin
+authorization with unchanged descriptions, and run only the permitted inert
+mock jobs. It waits for launched jobs to finish and rejects failed executions.
+
 ## Interactive demo
 
 [`demo/`](demo/README.md) contains a presenter-paced browser walkthrough with

@@ -1,0 +1,26 @@
+---
+- name: Independently verify regional AAP resource grants and optional LDAP logins
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - vars/active_directory_vault.yml
+  tasks:
+    - name: Check exact resource scopes and optionally exercise real login permissions
+      ansible.builtin.command:
+        argv: [python3, "{{ playbook_dir }}/assets/verify-aap-ad-regions.py"]
+        stdin: >-
+          {{ {'url': ad_aap_target_url | default(active_directory.test_aap_url),
+              'ca': ad_aap_target_ca | default(active_directory.test_aap_ca),
+              'admin_username': 'admin',
+              'admin_password': ad_aap_target_admin_password | default(active_directory.test_aap_admin_password),
+              'prefix': active_directory.prefix,
+              'users': active_directory.users,
+              'verify_logins': ad_verify_ldap_logins | default(false) | bool} | to_json }}
+      register: ad_rbac_verification
+      changed_when: false
+      no_log: true
+
+    - name: Report non-sensitive verification counts
+      ansible.builtin.debug:
+        msg: "{{ ad_rbac_verification.stdout | from_json }}"
