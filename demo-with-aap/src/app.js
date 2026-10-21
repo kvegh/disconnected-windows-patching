@@ -11,14 +11,15 @@
   let hideTimer;
   let busy = false;
   let runGeneration = 0;
+  let externalDeploymentReady = false;
   const popover = byId('code-popover');
   const list = byId('workflow-list');
   const diagram = document.querySelector('.architecture');
 
   function setText(id, text) { byId(id).textContent = text; }
 
-  function scopeLabel(scope) {
-    if (scope === 'hypervisor') return 'Connected execution → existing virtualization host (SSH)';
+  function scopeLabel(scope, target) {
+    if (target === 'deployment') return 'External AAP → external repository · internal node → three VMs';
     if (scope === 'both') return 'Connected execution + proposed internal execution node';
     if (scope === 'internal') return 'Proposed internal execution node → Windows hosts (WinRM)';
     return 'Connected execution → external repository (WinRM)';
@@ -60,7 +61,7 @@
     target.setAttribute('aria-expanded', 'true');
     setText('code-title', step.title);
     setText('code-example', step.example);
-    setText('code-executor', scopeLabel(step.scope));
+    setText('code-executor', scopeLabel(step.scope, step.target));
     setText('source-filename', step.source);
     const link = sourceUrl(step.source, location.href);
     const anchor = byId('code-link');
@@ -112,6 +113,8 @@
   }
 
   function render(stage) {
+    externalDeploymentReady = false;
+    diagram.dataset.externalDeployed = 'false';
     const previous = state;
     state = stateAt(stage);
     hideCode(true);
@@ -143,10 +146,10 @@
     diagram.dataset.phase = state.stage ? 'complete' : 'idle';
     diagram.dataset.scope = state.current?.scope || '';
     diagram.dataset.target = state.current?.target || '';
-    diagram.classList.toggle('mesh-visible', state.stage >= 2);
+    diagram.classList.toggle('mesh-visible', state.stage >= 1);
     setText('controller-status', 'Ready to schedule jobs');
-    setText('execution-status', state.stage >= 2 ? 'Mesh connected · ready for work' : 'Ready to initiate outbound mesh');
-    setText('execution-caption', state.current ? `Job complete · ${scopeLabel(state.current.scope)}` : 'AAP schedules. The execution node runs locally.');
+    setText('execution-status', state.stage >= 1 ? 'Mesh connected · ready for work' : 'Ready to initiate outbound mesh');
+    setText('execution-caption', state.current ? `Job complete · ${scopeLabel(state.current.scope, state.current.target)}` : 'AAP schedules. The execution node runs locally.');
     byId('execution-pending').hidden = true;
 
     document.querySelectorAll('[data-at]').forEach(element => {
@@ -208,20 +211,28 @@
     setText('next-label', 'AAP is running this action');
     byId('execution-pending').hidden = false;
     try {
-      await play(planFor(targetStage, state.stage >= 2), {
+      await play(planFor(targetStage, state.stage >= 1), {
         isCancelled: () => generation !== runGeneration,
         wait: milliseconds => reducedMotion ? Promise.resolve() : new Promise(resolve => setTimeout(resolve, milliseconds)),
         onPhase: phase => {
           diagram.dataset.phase = phase.key;
           diagram.dataset.scope = phase.scope;
           diagram.dataset.target = phase.target;
-          diagram.classList.toggle('mesh-visible', state.stage >= 2 || phase.key === 'connect' || phase.key === 'dispatch' || (phase.key === 'execute' && ['internal', 'both'].includes(phase.scope)));
+          diagram.classList.toggle('mesh-visible', state.stage >= 1 || phase.key === 'connect' || phase.key === 'dispatch' || (phase.key === 'execute' && ['internal', 'both'].includes(phase.scope)));
+          if (targetStage === 1 && ['connect', 'dispatch'].includes(phase.key)) {
+            externalDeploymentReady = true;
+            diagram.dataset.externalDeployed = 'true';
+            const external = document.querySelector('[data-node="external"]');
+            external.classList.add('is-visible');
+            external.setAttribute('tabindex', '0');
+            byId('architecture-empty').classList.add('is-hidden');
+          }
           setText('pending-title', phase.title);
           setText('pending-description', phase.description);
           setText('execution-caption', phase.title);
           setText('flow-caption', phase.description);
           setText('controller-status', phase.key === 'schedule' ? 'Scheduling the next job' : phase.key === 'connect' ? 'Awaiting outbound mesh' : phase.key === 'dispatch' ? 'Dispatching over the mesh' : 'Job running on its executor');
-          setText('execution-status', phase.key === 'connect' ? 'Opening outbound mesh' : phase.key === 'dispatch' ? 'Receiving the job over mesh' : phase.key === 'execute' && ['internal', 'both'].includes(phase.scope) ? 'Running the internal playbook' : state.stage >= 2 ? 'Mesh connected · ready for work' : 'Ready to initiate outbound mesh');
+          setText('execution-status', phase.key === 'connect' ? 'Opening outbound mesh' : phase.key === 'dispatch' ? 'Receiving the job over mesh' : phase.key === 'execute' && phase.target === 'deploy-internal' ? 'Deploying three internal VMs' : phase.key === 'execute' && ['internal', 'both'].includes(phase.scope) ? 'Running the internal playbook' : state.stage >= 1 ? 'Mesh connected · ready for work' : 'Ready to initiate outbound mesh');
           setText('announcer', `${phase.title}. ${phase.description}`);
           const scroll = byId('workflow-scroll');
           scroll.scrollTo({ top: scroll.scrollHeight, behavior: reducedMotion ? 'instant' : 'smooth' });
@@ -259,7 +270,7 @@
       byId('server-dialog').showModal();
       return;
     }
-    if (!state.servers) return;
+    if (!state.servers && !(id === 'external' && externalDeploymentReady)) return;
     hideCode(true);
     const external = id === 'external';
     const repository = external || id === 'internal';

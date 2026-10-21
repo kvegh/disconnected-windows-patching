@@ -2,11 +2,14 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { planFor, play } = require('../src/orchestration.js');
 
-test('VM creation uses connected execution and the hypervisor before guests exist', () => {
+test('external AAP deploys one repository before internal execution deploys three VMs', () => {
   const plan = planFor(1);
-  assert.deepEqual(plan.map(phase => phase.key), ['schedule', 'execute']);
-  assert.ok(plan.every(phase => phase.scope === 'hypervisor' && phase.target === 'hypervisor'));
-  assert.match(plan.at(-1).description, /SSH/);
+  assert.deepEqual(plan.map(phase => phase.key), ['schedule', 'execute', 'connect', 'dispatch', 'execute']);
+  const execution = plan.filter(phase => phase.key === 'execute');
+  assert.deepEqual(execution.map(phase => phase.scope), ['connected', 'internal']);
+  assert.deepEqual(execution.map(phase => phase.target), ['deploy-external', 'deploy-internal']);
+  assert.match(execution[1].description, /Three deployment arrows/);
+  assert.deepEqual(planFor(2, true).map(phase => phase.key), ['schedule', 'dispatch', 'execute']);
 });
 
 test('the first internal job opens outbound mesh before dispatch and local execution', () => {
@@ -22,11 +25,11 @@ test('the first internal job opens outbound mesh before dispatch and local execu
   assert.throws(() => planFor(0), RangeError);
 });
 
-test('infrastructure changes wait until every orchestration phase completes', async () => {
+test('complete deployment waits for both network-specific execution phases', async () => {
   const phases = [];
   const releases = [];
   let changed = false;
-  const plan = planFor(2, false);
+  const plan = planFor(1, false);
   const running = play(plan, {
     onPhase: phase => phases.push(phase.key),
     onComplete: () => { changed = true; },
@@ -40,7 +43,7 @@ test('infrastructure changes wait until every orchestration phase completes', as
   }
   assert.equal(await running, true);
   assert.equal(changed, true);
-  assert.deepEqual(phases, ['schedule', 'connect', 'dispatch', 'execute']);
+  assert.deepEqual(phases, ['schedule', 'execute', 'connect', 'dispatch', 'execute']);
 });
 
 test('reset cancels a pending action without applying a later infrastructure result', async () => {
@@ -48,15 +51,20 @@ test('reset cancels a pending action without applying a later infrastructure res
   let changed = false;
   let release;
   const phases = [];
-  const running = play(planFor(2, false), {
+  const running = play(planFor(1, false), {
     isCancelled: () => cancelled,
     onPhase: phase => phases.push(phase.key),
     onComplete: () => { changed = true; },
     wait: () => new Promise(resolve => { release = resolve; })
   });
+  release();
+  await Promise.resolve();
+  release();
+  await Promise.resolve();
+  assert.deepEqual(phases, ['schedule', 'execute', 'connect']);
   cancelled = true;
   release();
   assert.equal(await running, false);
   assert.equal(changed, false);
-  assert.deepEqual(phases, ['schedule']);
+  assert.deepEqual(phases, ['schedule', 'execute', 'connect']);
 });

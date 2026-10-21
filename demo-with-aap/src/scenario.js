@@ -1,16 +1,16 @@
 /* Public, illustrative data only. This walkthrough does not call AAP. */
 (() => {
   'use strict';
-  const scopes = ['hypervisor', 'both', 'both', 'connected', 'connected', 'internal', 'internal', 'internal', 'internal', 'internal', 'internal'];
-  const targets = ['hypervisor', 'all', 'repositories', 'external', 'external', 'repository', 'repository', 'clients', 'clients', 'clients', 'clients'];
+  const scopes = ['both', 'both', 'both', 'connected', 'connected', 'internal', 'internal', 'internal', 'internal', 'internal', 'internal'];
+  const targets = ['deployment', 'all', 'repositories', 'external', 'external', 'repository', 'repository', 'clients', 'clients', 'clients', 'clients'];
   const steps = [
     {
       title: 'Deploy the servers',
-      description: 'Create two repository servers and two managed Windows servers. The first pieces of the datacenter arrive.',
-      short: 'Four Windows servers, ready for configuration.',
+      description: 'External AAP deploys the external repository. The internal execution node then deploys the internal repository and the Windows Server 2022 and 2025 VMs. Deployment arrows show who creates each server.',
+      short: 'External AAP: one server. Internal execution: three VMs.',
       source: '01-win-vm-setup.yml',
-      example: '- name: Create an independent Windows disk\n  ansible.builtin.command:\n    argv:\n      - qemu-img\n      - convert\n      - -O\n      - qcow2\n      - "{{ base_image }}"\n      - "{{ clone_disk }}"\n    creates: "{{ clone_disk }}"\n\n# The VM is then created with virt-install.',
-      flow: 'Four servers. Two distinct network roles.'
+      example: '- name: Deploy the external repository\n  ansible.builtin.import_playbook: 01-win-vm-setup.yml\n  vars:\n    vm_role: wsus\n\n- name: Deploy an internal Windows server\n  ansible.builtin.import_playbook: 01-win-vm-setup.yml\n  vars:\n    vm_role: "{{ server_role }}"\n\n# AAP routes each deployment to its executor.',
+      flow: 'Deployment: external AAP → external repository; internal node → three internal VMs.'
     },
     {
       title: 'Configure Windows',

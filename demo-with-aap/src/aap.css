@@ -27,16 +27,18 @@
 @keyframes mesh-outbound { from { transform:translateX(0); } to { transform:translateX(-182px); } }
 @keyframes mesh-dispatch { from { transform:translateX(0); } to { transform:translateX(182px); } }
 .job-command { display:none; }
-.architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-scope="connected"],[data-scope="both"]) .external-control,
+.architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-scope="connected"],[data-scope="both"]):not([data-target^="deploy"]) .external-control,
 .architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-target="repository"],[data-target="repositories"],[data-target="all"]) .repository-control,
 .architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-target="clients"],[data-target="all"]) .client-control,
-.architecture:is([data-phase="execute"],[data-phase="complete"])[data-scope="hypervisor"] .hypervisor-control { display:block; }
+.architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-target="deploy-external"],[data-target="deployment"]) .deployment-external-control,
+.architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-target="deploy-internal"],[data-target="deployment"]) .deployment-internal-control,
+.architecture[data-external-deployed="true"] .deployment-external-control { display:block; }
 .command-path { fill:none; stroke:#9e83c5; stroke-width:1.3; stroke-dasharray:3 5; opacity:.65; stroke-linejoin:round; }
 .command-label { fill:#9678b9; font-size:10.8px; font-weight:500; }
 .command-particle { fill:#9574bc; }
 .architecture[data-phase="execute"] .command-particle { visibility:visible; }
+.architecture[data-target="deploy-internal"] .deployment-external-control .command-particle { visibility:hidden; }
 .architecture[data-phase="execute"] .command-path { opacity:1; }
-.hypervisor-pill { fill:#f7f3fc; stroke:#e2d8ef; }
 @media(min-width:1500px) { .workflow-scroll { height:805px; } }
 @media(max-width:860px) { .workflow-scroll { height:660px; }.execution-banner { font-size:11px; margin:0 13px 10px; } }
 @media(max-width:650px) { .workflow-scroll { height:340px; }.execution-banner { font-size:10.8px; }.edition-name { white-space:nowrap; }.architecture-canvas { min-height:0; } }

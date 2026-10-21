@@ -12,6 +12,11 @@
       title: 'AAP schedules the job',
       description: `Select the workflow job and its execution location: ${step.title.toLowerCase()}.`
     }];
+    if (number === 1) phases.push({
+      key: 'execute', duration: 600, scope: 'connected', target: 'deploy-external',
+      title: 'External AAP deploys the external repository',
+      description: 'The deployment arrow leads from external AAP to the external repository. That server appears first.'
+    });
     if (internal && !meshConnected) phases.push({
       key: 'connect', duration: 550,
       title: 'The execution node opens the connection',
@@ -24,14 +29,15 @@
     });
     phases.push({
       key: 'execute', duration: 450,
-      title: step.scope === 'hypervisor' ? 'Connected execution provisions the VMs' : internal ? 'The execution node runs the internal work' : 'Connected execution runs the external work',
-      description: step.scope === 'hypervisor'
-        ? 'An existing connected executor contacts the virtualization host over SSH before the Windows VMs appear.'
+      title: number === 1 ? 'The internal execution node deploys its three VMs' : internal ? 'The execution node runs the internal work' : 'Connected execution runs the external work',
+      description: number === 1
+        ? 'Three deployment arrows lead to the internal repository and the Windows Server 2022 and 2025 VMs. These three servers appear together.'
         : internal
           ? `The proposed Linux node runs the playbook and contacts internal Windows hosts through WinRM.${step.scope === 'both' ? ' Connected execution handles the external repository.' : ''}`
           : 'A connected executor runs the playbook against the external Windows repository through WinRM.'
     });
-    return Object.freeze(phases.map(phase => Object.freeze({ ...phase, scope: step.scope, target: step.target })));
+    if (number === 1) Object.assign(phases.at(-1), { duration: 600, scope: 'internal', target: 'deploy-internal' });
+    return Object.freeze(phases.map(phase => Object.freeze({ scope: step.scope, target: step.target, ...phase })));
   }
 
   async function play(plan, { onPhase, onComplete, isCancelled = () => false, wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)) }) {

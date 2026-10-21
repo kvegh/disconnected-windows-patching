@@ -79,17 +79,27 @@
                   <circle class="control-particle command-particle" r="3"><animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze"><mpath href="#managed-command-path"/></animateMotion></circle>
                   <circle class="control-particle command-particle" r="3"><animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze"><mpath href="#managed-command-path-2025"/></animateMotion></circle>
                 </g>
-                <g class="job-command hypervisor-control">
-                  <path class="command-path" id="hypervisor-command-path" d="M55 202V222" marker-end="url(#command-arrow)"/>
-                  <rect class="hypervisor-pill" x="46" y="225" width="260" height="36" rx="9"/>
-                  <text class="command-label" x="61" y="247">SSH → existing virtualization host</text>
+                <g class="job-command deployment-external-control">
+                  <path class="command-path" id="deploy-external-path" d="M55 202V315" marker-end="url(#command-arrow)"/>
+                  <text class="command-label" x="64" y="299">Deploy</text>
+                  <circle class="control-particle command-particle" r="3"><animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze"><mpath href="#deploy-external-path"/></animateMotion></circle>
                 </g>
-                <g class="reveal server-node aap-controller" data-at="0" data-node="controller" tabindex="0" role="button" aria-label="Explore connected AAP">
+                <g class="job-command deployment-internal-control">
+                  <path class="command-path" id="deploy-internal-repository-path" d="M646 202V285" marker-end="url(#command-arrow)"/>
+                  <text class="command-label" x="660" y="250">Deploy repository</text>
+                  <path class="command-path" id="deploy-internal-2022-path" d="M794 151H916V522H514V543" marker-end="url(#command-arrow)"/>
+                  <path class="command-path" id="deploy-internal-2025-path" d="M794 151H916V522H803V543" marker-end="url(#command-arrow)"/>
+                  <text class="command-label" x="800" y="482">Deploy internal VMs</text>
+                  <circle class="control-particle command-particle" r="3"><animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze"><mpath href="#deploy-internal-repository-path"/></animateMotion></circle>
+                  <circle class="control-particle command-particle" r="3"><animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze"><mpath href="#deploy-internal-2022-path"/></animateMotion></circle>
+                  <circle class="control-particle command-particle" r="3"><animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze"><mpath href="#deploy-internal-2025-path"/></animateMotion></circle>
+                </g>
+                <g class="reveal server-node aap-controller" data-at="0" data-node="controller" tabindex="0" role="button" aria-label="Explore external AAP">
                   <rect class="server-shadow" x="41" y="106" width="270" height="98" rx="17"/>
                   <rect class="server-surface control-surface" x="38" y="102" width="276" height="98" rx="17"/>
                   <rect class="aap-icon-background" x="56" y="120" width="33" height="33" rx="9"/>
                   <text class="aap-monogram" x="65" y="145">A</text>
-                  <text class="node-title" x="102" y="137">Connected AAP</text>
+                  <text class="node-title" x="102" y="137">External AAP</text>
                   <text class="tiny-label" x="102" y="158">Controller + connected execution</text>
                   <text class="node-status" id="controller-status" x="56" y="184">Ready to schedule jobs</text>
                 </g>

@@ -21,6 +21,8 @@ only the page and its public assets. See the demo README for local use and check
 the `/demo-with-aap/` Pages URL. It adds connected AAP and a clearly labelled,
 proposed Linux execution node in the secure network. Scheduling, outbound mesh
 establishment, job dispatch and local execution precede Windows changes. The
+deployment arrows show external AAP creating the external repository and internal
+execution creating the internal repository and two managed Windows VMs. The
 existing demo URL and assets remain independent. Both editions are illustrative;
 the new execution node has not been deployed in this lab.
 

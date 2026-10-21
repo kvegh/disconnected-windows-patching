@@ -20,10 +20,17 @@ then shows job dispatch over Receptor mesh and local execution against Windows
 hosts over WinRM. The first internal action also shows the execution node
 initiating the outbound mesh connection. Later actions reuse that connection:
 the connection is bidirectional, so jobs flow back over it. The diagram does not
-represent periodic HTTP polling for individual tasks. Initial VM creation runs
-through connected execution against the existing virtualization host over SSH.
+represent periodic HTTP polling for individual tasks. The connection is
+established during the first deployment action.
 
-The Windows/content state changes only after these short illustrative phases.
+Deployment is shown in two stages: external AAP deploys the external
+repository first, then the internal execution node deploys the internal repository
+and two managed Windows VMs. One external and three internal deployment arrows
+show those relationships. The external server appears after its arrow animation;
+the three internal VMs appear after their own deployment arrows. Low-level
+provisioning details are abstracted from the walkthrough.
+
+Other Windows/content state changes follow their short orchestration phases.
 Previous restores the earlier state. Start over also cancels pending phases, so
 a delayed result cannot repopulate a reset diagram. Reduced-motion preferences
 make the phase sequence immediate and hide moving particles.
