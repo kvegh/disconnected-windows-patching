@@ -3,6 +3,15 @@
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
 in a simulated disconnected environment.
 
+## Active Directory extension
+
+The AD extension uses a separate Windows Server 2025 VM and a separate test AAP
+for regional identity and permission validation. Implementation is in progress.
+`start_active_directory_test_platform.yml` starts only an explicitly approved,
+existing test AAP VM and waits for SSH. Supply `ad_start_test_platform_approved`,
+`ad_test_vm_name` and `ad_test_aap_address` through protected configuration.
+It accepts running or shut-off domains and refuses unexpected states.
+
 ## Interactive demo
 
 [`demo/`](demo/README.md) contains a presenter-paced browser walkthrough with

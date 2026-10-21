@@ -1,0 +1,48 @@
+---
+- name: Start the explicitly selected test AAP for the Active Directory demo
+  hosts: hypervisor
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Require the exact authorized test domain
+      ansible.builtin.assert:
+        that:
+          - ad_start_test_platform_approved | default(false) | bool
+          - ad_test_vm_name | default('') is match('^[A-Za-z][A-Za-z0-9-]{0,62}$')
+          - ad_test_aap_address | default('') | length > 0
+        fail_msg: Supply the approved test VM name and its management address.
+      no_log: true
+
+    - name: Read the test platform state
+      ansible.builtin.command:
+        argv: [virsh, domstate, "{{ ad_test_vm_name }}"]
+      register: ad_test_state
+      changed_when: false
+      check_mode: false
+      no_log: true
+
+    - name: Refuse unexpected VM states
+      ansible.builtin.assert:
+        that: ad_test_state.stdout | trim in ['running', 'shut off']
+      no_log: true
+
+    - name: Start the selected test platform
+      ansible.builtin.command:
+        argv: [virsh, start, "{{ ad_test_vm_name }}"]
+      when: ad_test_state.stdout | trim == 'shut off'
+      changed_when: true
+      no_log: true
+
+    - name: Wait for the test platform SSH listener
+      ansible.builtin.wait_for:
+        host: "{{ ad_test_aap_address }}"
+        port: 22
+        timeout: 300
+      delegate_to: localhost
+      become: false
+      when: not ansible_check_mode
+      no_log: true
+
+    - name: Report test platform startup
+      ansible.builtin.debug:
+        msg: The selected test AAP VM is running and its SSH listener is reachable.
