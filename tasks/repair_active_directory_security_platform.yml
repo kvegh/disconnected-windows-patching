@@ -1,0 +1,52 @@
+---
+- name: Require the exact version offered by Microsoft before platform repair
+  ansible.builtin.assert:
+    that: ad_security_platform_repair_version | default('') is match('^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$')
+    fail_msg: Supply the exact Security platform version from the failed update offer.
+
+- name: Verify the cached Microsoft installer and requested version
+  ansible.windows.win_powershell:
+    parameters:
+      ExpectedVersion: "{{ ad_security_platform_repair_version }}"
+    script: |
+      param([string]$ExpectedVersion)
+      $path = "$env:SystemRoot\System32\SecurityHealth\SecurityHealthSetup.exe"
+      $file = Get-Item $path -ErrorAction Stop
+      $signature = Get-AuthenticodeSignature $path
+      if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+          throw 'The cached Security platform installer does not have a valid Microsoft signature.'
+      }
+      if ($file.VersionInfo.FileVersion -ne $ExpectedVersion) {
+          throw 'The cached installer does not match the offered platform version.'
+      }
+      $Ansible.Changed = $false
+      $Ansible.Result = @{ Verified=$true }
+  no_log: true
+
+- name: Run the verified installer with the administrator's loaded user profile
+  ansible.windows.win_powershell:
+    script: |
+      $path = "$env:SystemRoot\System32\SecurityHealth\SecurityHealthSetup.exe"
+      $process = Start-Process -FilePath $path -PassThru
+      if (-not $process.WaitForExit(300000)) {
+          throw 'The Security platform installer did not finish within five minutes.'
+      }
+      if ($process.ExitCode -notin @(0,3010)) {
+          throw "Security platform installer exited with code $($process.ExitCode)."
+      }
+      $Ansible.Changed = $true
+      $Ansible.Result = @{ ExitCode=$process.ExitCode; RebootRequired=($process.ExitCode -eq 3010) }
+  become: true
+  become_method: runas
+  become_user: "{{ ansible_user }}"
+  become_flags: logon_type=interactive logon_flags=with_profile
+  vars:
+    ansible_become_password: "{{ ansible_password }}"
+  register: ad_security_platform_repair
+  no_log: true
+
+- name: Complete a restart requested by the platform installer
+  ansible.windows.win_reboot:
+    reboot_timeout: 1800
+    post_reboot_delay: 30
+  when: ad_security_platform_repair.result.RebootRequired | bool

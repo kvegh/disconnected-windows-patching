@@ -82,6 +82,10 @@
         state: started
 
     - name: Install every offered software update category and complete required reboots
+      ansible.builtin.include_tasks: tasks/repair_active_directory_security_platform.yml
+      when: ad_security_platform_repair | default(false) | bool
+
+    - name: Install every offered software update category and complete required reboots
       ansible.windows.win_updates:
         category_names: ['*']
         server_selection: windows_update
