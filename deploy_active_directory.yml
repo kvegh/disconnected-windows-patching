@@ -17,20 +17,8 @@
           - active_directory.prefix is match('^[A-Za-z][A-Za-z0-9-]{0,7}$')
       no_log: true
 
-    - name: Connect with the bootstrap identity or the established domain identity
-      block:
-        - name: Check the original management identity
-          ansible.builtin.wait_for_connection:
-            timeout: 45
-      rescue:
-        - name: Use the existing protected domain identity on a rerun
-          ansible.builtin.set_fact:
-            ansible_user: "{{ active_directory.domain_admin_username }}"
-            ansible_password: "{{ active_directory.domain_admin_password }}"
-          no_log: true
-        - name: Reconnect with the domain identity
-          ansible.builtin.wait_for_connection:
-            timeout: 180
+    - name: Connect safely before, during or after domain promotion
+      ansible.builtin.include_tasks: tasks/connect_active_directory_guest.yml
 
     - name: Verify guest identity, current membership and expected management address
       ansible.windows.win_powershell:
@@ -126,9 +114,35 @@
         dns_servers: ["{{ active_directory.ipv4 }}"]
       no_log: true
 
+    - name: Wait for AD Web Services and SYSVOL readiness
+      ansible.windows.win_powershell:
+        parameters:
+          Domain: "{{ active_directory.dns_domain }}"
+        sensitive_parameters:
+          - name: DomainCredential
+            username: "{{ active_directory.domain_admin_username }}"
+            password: "{{ active_directory.domain_admin_password }}"
+        script: |
+          param([string]$Domain,[PSCredential]$DomainCredential)
+          $Ansible.Changed = $false
+          try {
+              Import-Module ActiveDirectory
+              $d = Get-ADDomain -Server localhost -Credential $DomainCredential -ErrorAction Stop
+              $Ansible.Result = @{ Ready=($d.DNSRoot -eq $Domain -and (Test-Path "$env:SystemRoot\SYSVOL\domain")) }
+          } catch { $Ansible.Result = @{ Ready=$false } }
+      register: ad_directory_ready
+      until: ad_directory_ready.result.Ready | default(false) | bool
+      retries: 30
+      delay: 10
+      no_log: true
+
     - name: Create owned OUs, users and nested regional access groups
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
+        sensitive_parameters:
+          - name: DomainCredential
+            username: "{{ active_directory.domain_admin_username }}"
+            password: "{{ active_directory.domain_admin_password }}"
         parameters:
           ProfileJson: >-
             {{ {'dns_domain': active_directory.dns_domain,

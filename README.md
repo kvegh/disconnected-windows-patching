@@ -23,8 +23,10 @@ inventory, verifies Server 2025 and disk space, sets its protected hostname and
 installs every offered software update category, including optional updates,
 directly from Microsoft. It completes update reboots and requires an empty final
 scan. This does not change update sources on the disconnected demo's other hosts.
-Pass `ad_windows_hostname` and `ad_direct_microsoft_updates_approved` as protected
-inputs. Windows Update does not provide third-party application or driver updates
+The encrypted profile supplies its hostname and connection identities; pass
+`ad_direct_microsoft_updates_approved` as a protected input. Reruns can reconnect
+before or after domain promotion using the existing protected identities.
+Windows Update does not provide third-party application or driver updates
 through this module.
 
 `initialize_active_directory_profile.yml` creates the initial identities,
@@ -37,9 +39,12 @@ Keep the profile and its issuing private key encrypted and reuse it on reruns.
 guest and creates the regional directory. Its Windows-native AD cmdlets run
 through `ansible.windows.win_powershell`, using the existing declared runtime.
 The encrypted `vars/active_directory_vault.yml` supplies deployed identities.
+Promotion waits for AD Web Services and SYSVOL before creating identities.
+Directory cmdlets receive an explicit protected credential for local AD access
+over WinRM, without requiring delegated management credentials.
 Denmark and Norway receive their matching role in EU through nested groups;
 New Zealand has separate reader/executor/admin access and no EU inheritance.
-Existing unrelated directory objects are refused. Four focused model tests check
+Existing unrelated directory objects are refused. Five focused model tests check
 the effective group graph, including cross-region and privilege-escalation cases.
 
 `configure_aap_ad_regions.yml` creates a separate test organization with four

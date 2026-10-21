@@ -1,6 +1,10 @@
-param([Parameter(Mandatory)][string]$ProfileJson)
+param(
+    [Parameter(Mandatory)][string]$ProfileJson,
+    [Parameter(Mandatory)][PSCredential]$DomainCredential
+)
 $ErrorActionPreference = 'Stop'
 Import-Module ActiveDirectory
+$PSDefaultParameterValues = @{'*-AD*:Credential'=$DomainCredential; '*-AD*:Server'='localhost'}
 $p = $ProfileJson | ConvertFrom-Json
 if ((Get-ADDomain).DNSRoot -ne $p.dns_domain) { throw 'Unexpected directory domain.' }
 $marker = 'AAP Windows regional identity demo'

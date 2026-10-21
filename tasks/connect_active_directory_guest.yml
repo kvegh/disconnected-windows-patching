@@ -1,0 +1,30 @@
+---
+- name: Connect with the original bootstrap identity when it is still valid
+  block:
+    - name: Check the bootstrap management identity
+      ansible.builtin.wait_for_connection:
+        timeout: 30
+  rescue:
+    - name: Try the protected local administrator during a partial promotion
+      block:
+        - name: Use the existing local administrator's protected password
+          ansible.builtin.set_fact:
+            ansible_user: '.\Administrator'
+            ansible_password: "{{ active_directory.domain_admin_password }}"
+          no_log: true
+        - name: Reset the connection before checking the local administrator
+          ansible.builtin.meta: reset_connection
+        - name: Check the local administrator management identity
+          ansible.builtin.wait_for_connection:
+            timeout: 30
+      rescue:
+        - name: Use the established protected domain administrator
+          ansible.builtin.set_fact:
+            ansible_user: "{{ active_directory.domain_admin_username }}"
+            ansible_password: "{{ active_directory.domain_admin_password }}"
+          no_log: true
+        - name: Reset the connection before domain authentication
+          ansible.builtin.meta: reset_connection
+        - name: Reconnect with the domain administrator
+          ansible.builtin.wait_for_connection:
+            timeout: 180

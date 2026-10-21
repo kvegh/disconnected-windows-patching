@@ -1,5 +1,15 @@
 # Design decisions history
 
+## Verify regional grants and discover the deployed gateway runtime
+
+Implementation: `fb2db7b`.
+
+An independent verifier checks all 48 scoped team grants and the fixed mock
+launch inputs before LDAP activation, then supports positive and negative login
+tests after activation. Gateway trust discovers the actual non-proxy container
+and runs rootless container commands from a readable working directory. This
+fixed the initial container inspection failure; the focused trust retry passed.
+
 ## Inspect runtime dependencies without installing agent-side software
 
 Implementation: `7a3d176`.

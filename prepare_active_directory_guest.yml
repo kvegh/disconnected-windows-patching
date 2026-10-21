@@ -3,6 +3,12 @@
   hosts: all
   gather_facts: false
   serial: 1
+  vars_files:
+    - vars/active_directory_vault.yml
+  vars:
+    ansible_user: "{{ active_directory.bootstrap_username }}"
+    ansible_password: "{{ active_directory.bootstrap_password }}"
+    ad_windows_hostname: "{{ active_directory.hostname }}"
   tasks:
     - name: Require one explicitly selected Windows guest
       ansible.builtin.assert:
@@ -13,9 +19,8 @@
         fail_msg: Select only the dedicated AD guest and approve its direct Microsoft updates.
       no_log: true
 
-    - name: Wait for existing WinRM management
-      ansible.builtin.wait_for_connection:
-        timeout: 600
+    - name: Connect using the valid protected identity before or after promotion
+      ansible.builtin.include_tasks: tasks/connect_active_directory_guest.yml
 
     - name: Verify Windows Server 2025 and available system disk space
       ansible.windows.win_powershell:
