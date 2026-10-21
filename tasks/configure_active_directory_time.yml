@@ -17,7 +17,7 @@
           if ($LASTEXITCODE -ne 0) { throw 'The Windows time-service configuration failed.' }
           $Ansible.Changed = $true
       }
-  no_log: true
+  no_log: "{{ not (ad_time_diagnostics | default(false) | bool) }}"
 
 - name: Request synchronization with the existing external time source
   ansible.windows.win_command:
@@ -27,7 +27,7 @@
   until: ad_time_resync.rc == 0
   retries: 6
   delay: 10
-  no_log: true
+  no_log: "{{ not (ad_time_diagnostics | default(false) | bool) }}"
 
 - name: Verify synchronized time against the automation runtime
   ansible.windows.win_powershell:
@@ -47,7 +47,7 @@
     - ad_directory_clock.result.AbsoluteOffsetSeconds | default(999999) | float < 120
   retries: 12
   delay: 10
-  no_log: true
+  no_log: "{{ not (ad_time_diagnostics | default(false) | bool) }}"
 
 - name: Preserve verified domain clock health without its peer identity
   ansible.builtin.set_stats:

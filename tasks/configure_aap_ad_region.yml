@@ -75,7 +75,7 @@
     - {kind: credential, suffix: Mock Credential}
     - {kind: jobtemplate, suffix: read}
     - {kind: jobtemplate, suffix: simulate_change}
-  no_log: true
+  no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
 
 - name: Grant executor or admin roles to only this region's resources
   ansible.platform.role_team_assignment:
@@ -92,4 +92,4 @@
       - {kind: credential, suffix: Mock Credential, role_type: Credential, executor_role: Use}
       - {kind: jobtemplate, suffix: read, role_type: JobTemplate, executor_role: Execute}
       - {kind: jobtemplate, suffix: simulate_change, role_type: JobTemplate, executor_role: Execute}
-  no_log: true
+  no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
