@@ -79,6 +79,11 @@ subnet membership and conflicting reservations. It changes no other DHCP host
 entries. The protected profile records the MAC and address reused by deployment.
 The same guarded step publishes the exact LDAPS DNS name, rejects conflicting
 DNS records and live DHCP leases, and preserves unrelated network records.
+If interrupted promotion prevents guest authentication before its required
+restart, its existing-VM mode also supports the explicit recovery option
+`ad_promotion_recovery_acpi_reboot: true`. After the same ownership and NIC
+checks, it requests a graceful ACPI restart and verifies that the management
+listener stops and returns. Fresh reservations never take this recovery path.
 
 `inspect_active_directory_guest.yml` reads OS, servicing, license, network and
 certificate metadata and parses the directory PowerShell asset without executing

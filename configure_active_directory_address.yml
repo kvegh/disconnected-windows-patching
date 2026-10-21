@@ -104,3 +104,35 @@
     - name: Report stable addressing without environment values
       ansible.builtin.debug:
         msg: The dedicated domain controller has an exact persistent DHCP reservation; other leases are unchanged.
+
+    - name: Recover an interrupted promotion when guest authentication is unavailable
+      when:
+        - ad_promotion_recovery_acpi_reboot | default(false) | bool
+        - not (ad_address_reservation_before_create | default(false) | bool)
+      block:
+        - name: Request a graceful ACPI restart of the already verified dedicated clone
+          ansible.builtin.command:
+            argv: [virsh, reboot, "{{ active_directory.hostname }}", --mode, acpi]
+          changed_when: true
+          no_log: true
+
+        - name: Observe the dedicated guest's management listener stop
+          ansible.builtin.wait_for:
+            host: "{{ active_directory.ipv4 }}"
+            port: "{{ ad_guest_winrm_port | default(5986) }}"
+            state: stopped
+            timeout: 180
+          delegate_to: localhost
+          become: false
+          no_log: true
+
+        - name: Wait for the dedicated guest's management listener after recovery
+          ansible.builtin.wait_for:
+            host: "{{ active_directory.ipv4 }}"
+            port: "{{ ad_guest_winrm_port | default(5986) }}"
+            state: started
+            delay: 20
+            timeout: 900
+          delegate_to: localhost
+          become: false
+          no_log: true
