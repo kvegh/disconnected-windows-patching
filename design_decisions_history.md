@@ -1,5 +1,15 @@
 # Design decisions history
 
+## Independently inspect remaining Microsoft updates
+
+Implementation: `923cf11`.
+
+An optional inspection mode searches every offered software update category
+without installing updates or rebooting. Its live run succeeded and found two
+additional updates after the prerequisite cumulative update and reboot. This
+distinguishes an updated OS build from an empty current Microsoft update scan
+while diagnosing the initial job's stalled WinRM polling.
+
 ## Inspect servicing progress during long Windows updates
 
 Implementation: `23862c9`.

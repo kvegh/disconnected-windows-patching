@@ -76,6 +76,9 @@ servicing-process counters, available download counters and the latest servicing
 log metadata. It does not start a second update run or change servicing state.
 Set `ad_inspect_update_scan: true` to query all offered Microsoft software update
 categories without installing updates or rebooting.
+The AD Windows plays use a 120-second WinRM operation timeout to tolerate
+servicing and domain-controller startup. A focused preparation rerun scans and
+installs the remaining updates when an earlier management connection stalls.
 
 `configure_active_directory_ldaps.yml` imports the dedicated public CA and the
 leaf certificate's nonexportable machine key, removes staged PFX files, performs

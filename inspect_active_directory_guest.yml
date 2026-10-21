@@ -4,6 +4,7 @@
   gather_facts: false
   vars_files:
     - vars/active_directory_vault.yml
+    - vars/active_directory_connection.yml
   vars:
     ansible_user: "{{ active_directory.domain_admin_username if ad_inspect_domain_auth | default(false) | bool else active_directory.bootstrap_username }}"
     ansible_password: "{{ active_directory.domain_admin_password if ad_inspect_domain_auth | default(false) | bool else active_directory.bootstrap_password }}"

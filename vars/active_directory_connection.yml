@@ -1,0 +1,3 @@
+---
+# Allow servicing and domain-controller startup to answer a WinRM operation.
+ansible_winrm_connection_timeout: 120
