@@ -32,11 +32,28 @@
           $version = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
           $licenses = @(Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" | Select-Object Name,LicenseStatus,GracePeriodRemaining)
           $events = @(Get-WinEvent -LogName 'Microsoft-Windows-WindowsUpdateClient/Operational' -MaxEvents 8 -ErrorAction SilentlyContinue | Select-Object TimeCreated,Id,Message)
+          $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$($env:SystemDrive)'"
+          $servicing = @(Get-Process -Name TiWorker,TrustedInstaller,MoUsoCoreWorker,wuauclt -ErrorAction SilentlyContinue | Select-Object Name,Id,CPU,WorkingSet64,StartTime)
+          $delivery = @()
+          if (Get-Command Get-DeliveryOptimizationStatus -ErrorAction SilentlyContinue) {
+              try { $delivery = @(Get-DeliveryOptimizationStatus -ErrorAction Stop | Select-Object FileId,Status,FileSize,TotalBytesDownloaded,BytesFromHttp,BytesFromPeers) } catch {}
+          }
+          $bits = @()
+          if (Get-Command Get-BitsTransfer -ErrorAction SilentlyContinue) {
+              try { $bits = @(Get-BitsTransfer -AllUsers -ErrorAction Stop | Select-Object JobState,BytesTotal,BytesTransferred,CreationTime,ModificationTime) } catch {}
+          }
+          $cbsPath = "$env:SystemRoot\Logs\CBS\CBS.log"
+          $cbs = $null
+          if (Test-Path $cbsPath) {
+              $cbs = @{ File=(Get-Item $cbsPath | Select-Object Length,LastWriteTime); Tail=@(Get-Content $cbsPath -Tail 16 -ErrorAction SilentlyContinue) }
+          }
           $Ansible.Changed = $false
           $Ansible.Result = @{
               Build="$($version.CurrentBuildNumber).$($version.UBR)";
               DomainRole=$cs.DomainRole; Domain=$cs.Domain; Hostname=$cs.Name;
               Boot=$os.LastBootUpTime; Licenses=$licenses; UpdateEvents=$events;
+              FreeSystemBytes=$disk.FreeSpace; ServicingProcesses=$servicing;
+              DeliveryOptimization=$delivery; BitsTransfers=$bits; ServicingLog=$cbs;
               Network=@(Get-NetIPConfiguration | Select-Object InterfaceAlias,IPv4Address,IPv4DefaultGateway,DNSServer);
               PendingReboot=((Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'));
               Certificates=@(Get-ChildItem Cert:\LocalMachine\My | Select-Object Subject,Thumbprint,NotAfter,HasPrivateKey);
