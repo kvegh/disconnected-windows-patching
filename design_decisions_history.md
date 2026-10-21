@@ -1,5 +1,15 @@
 # Design decisions history
 
+## Inspect security-platform versions after a Windows Update loop
+
+Implementation: `d787853`.
+
+The cumulative OS update installed successfully, but Windows Update repeatedly
+offered the same Security platform package after success events. The inspector
+now reads the installed service, app, file versions and platform registration
+to diagnose that discrepancy. This gathers evidence before changing installed
+software or deciding whether an offer represents a missing package.
+
 ## Reset management authentication after selecting the administrator password
 
 Implementation: `4c83ea9`.

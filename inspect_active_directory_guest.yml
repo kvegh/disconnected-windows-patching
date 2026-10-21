@@ -21,6 +21,7 @@
 
     - name: Inspect OS, networking, servicing, licensing and certificate metadata
       ansible.windows.win_powershell:
+        depth: 5
         parameters:
           IdentityScript: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
         script: |
@@ -65,6 +66,8 @@
               })
           }
           $healthService = @(Get-CimInstance Win32_Service -Filter "Name='SecurityHealthService'" -ErrorAction SilentlyContinue | Select-Object Name,State,StartMode,PathName)
+          $healthServiceFile = Get-Item "$env:SystemRoot\System32\SecurityHealthService.exe" -ErrorAction SilentlyContinue
+          $healthServiceVersion = if ($healthServiceFile) { $healthServiceFile.VersionInfo.FileVersion } else { $null }
           $healthApp = @()
           try { $healthApp = @(Get-AppxPackage -AllUsers -Name Microsoft.SecHealthUI -ErrorAction Stop | Select-Object Name,Version,PackageFullName,InstallLocation,Status,PackageUserInformation) } catch {}
           $healthRegistry = $null
@@ -84,7 +87,7 @@
               UpdateAgent=$agentState; AnsibleScheduledTasks=$updateTasks;
               FreeSystemBytes=$disk.FreeSpace; ServicingProcesses=$servicing;
               DeliveryOptimization=$delivery; BitsTransfers=$bits; ServicingLog=$cbs;
-              SecurityHealth=@{ Files=$healthFiles; Service=$healthService; App=$healthApp; Registry=$healthRegistry };
+              SecurityHealth=@{ Files=$healthFiles; Service=$healthService; ServiceFileVersion=$healthServiceVersion; App=$healthApp; Registry=$healthRegistry };
               Network=@(Get-NetIPConfiguration | Select-Object InterfaceAlias,IPv4Address,IPv4DefaultGateway,DNSServer);
               PendingReboot=((Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'));
               Certificates=@(Get-ChildItem Cert:\LocalMachine\My | Select-Object Subject,Thumbprint,NotAfter,HasPrivateKey);

@@ -92,6 +92,8 @@ retry; ordinary preparation does not enable this recovery option.
 Security-platform inspection records installed service/app versions and platform
 registration, helping distinguish an actual missing update from a repeated
 Windows Update offer.
+Nested version metadata is serialized explicitly for inspection rather than
+being reduced to PowerShell object descriptions.
 
 `configure_active_directory_ldaps.yml` imports the dedicated public CA and the
 leaf certificate's nonexportable machine key, removes staged PFX files, performs
