@@ -6,6 +6,11 @@ and an architecture diagram that gains servers, services, content and connection
 Previous rewinds both the workflow and the illustrated environment; Start over
 returns to an empty datacenter. There is no autoplay or simulated waiting period.
 
+The visual palette uses clear blue accents, light cyan network areas and restrained
+amber export details. Text is 20% larger than the initial presentation, including
+diagram labels, responsive layouts and code previews. Controls and popovers have
+additional room for the larger text.
+
 This version is an **illustrative walkthrough**, not an AAP client. Clicking an
 action updates the visualization immediately. It does not launch jobs, connect to
 VMs or establish evidence about the current deployed environment. The displayed

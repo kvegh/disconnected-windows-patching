@@ -11,7 +11,9 @@ architecture that gains servers, services and content. Directional animations
 show Microsoft downloads, management-only IIS transfers and internal delivery.
 Workflow items expose in-page illustrative Ansible previews and links to the
 real playbooks. This is a visual walkthrough; it does not execute AAP jobs or
-represent live environment state. The GitHub Actions Pages workflow publishes
+represent live environment state. Clear blue and cyan accents, amber export
+details and text enlarged by 20% improve presentation readability.
+The GitHub Actions Pages workflow publishes
 only the page and its public assets. See the demo README for local use and checks.
 
 ## VM deployment
