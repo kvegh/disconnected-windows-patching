@@ -32,7 +32,7 @@
 
 - name: Construct the allowed full distinguished names
   ansible.builtin.set_fact:
-    ad_allowed_group_dns: "{{ (ad_allowed_group_dns | default([])) + ['CN=' ~ item.name ~ ',' ~ item.path] }}"
+    ad_allowed_group_dns: "{{ (ad_allowed_group_dns | default([])) + [('CN=' ~ item.name ~ ',' ~ item.path) | lower] }}"
   loop: "{{ active_directory.groups | selectattr('scope', 'equalto', 'DomainLocal') | list }}"
   no_log: true
 
@@ -74,7 +74,7 @@
     order: "{{ 100 + ad_map_index }}"
     triggers:
       groups:
-        has_or: ["CN={{ item.name }},{{ item.path }}"]
+        has_or: ["{{ ('CN=' ~ item.name ~ ',' ~ item.path) | lower }}"]
   loop: "{{ active_directory.groups | selectattr('scope', 'equalto', 'DomainLocal') | list }}"
   loop_control:
     index_var: ad_map_index

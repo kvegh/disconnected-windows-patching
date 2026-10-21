@@ -57,6 +57,8 @@ administration. Each grant targets its own region's resources. Mock templates
 have fixed inventories, credentials and variables and contact no external hosts.
 The optional LDAP stage requires verified LDAPS and gateway trust inputs before
 it creates ordered login, organization and nested-group team maps with revocation.
+Group identifiers in the maps use lowercase distinguished names, as required by
+the gateway's group trigger matching.
 Local authentication remains available. Project requirements pin the collection
 versions used by these jobs.
 
