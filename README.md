@@ -17,6 +17,13 @@ details and text enlarged by 20% improve presentation readability.
 The GitHub Actions Pages workflow publishes
 only the page and its public assets. See the demo README for local use and checks.
 
+[`demo-with-aap/`](demo-with-aap/README.md) is a separate architecture edition at
+the `/demo-with-aap/` Pages URL. It adds connected AAP and a clearly labelled,
+proposed Linux execution node in the secure network. Scheduling, outbound mesh
+establishment, job dispatch and local execution precede Windows changes. The
+existing demo URL and assets remain independent. Both editions are illustrative;
+the new execution node has not been deployed in this lab.
+
 ## VM deployment
 
 `01-win-vm-setup.yml` creates one VM per launch on the inventory's `hypervisor`

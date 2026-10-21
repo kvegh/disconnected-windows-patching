@@ -1,0 +1,43 @@
+/* The edition keeps the original typography and adds a clear control plane. */
+.edition-name { color:#477fce; font-weight:450; }
+.architecture { height:auto; min-height:0; max-height:none; }
+.architecture-canvas { min-height:0; flex:initial; }
+.workflow-scroll { height:760px; }
+.execution-banner { display:flex; gap:9px; align-items:center; margin:0 20px 12px; padding:11px 13px; border:1px solid #dce8fa; border-radius:10px; background:#f0f6ff; color:#4873ab; font-size:12px; line-height:1.5; }
+.execution-indicator { width:6px; height:6px; flex-shrink:0; border-radius:50%; background:#548ce0; }
+.execution-pending { display:flex; align-items:flex-start; gap:10px; margin:5px 0 10px; padding:13px; background:#f1f6ff; border:1px solid #d8e5fa; border-radius:11px; }
+.execution-pending[hidden] { display:none; }
+.pending-mark { width:26px; height:26px; display:grid; place-items:center; flex-shrink:0; border-radius:8px; color:#4b76bd; background:#e0ebff; font-weight:650; font-size:14px; }
+.execution-pending strong { font-size:12px; font-weight:600; line-height:1.5; display:block; }
+.execution-pending p { margin:5px 0 0; font-size:11px; line-height:1.7; color:#6b819f; }
+.code-executor { font-size:11px; line-height:1.7; background:#f2f5fc; border-left:2px solid #9bb7e7; padding:7px 10px; color:#5b76a0; margin:10px 0; }
+.aap-icon-background { fill:#e4efff; }.aap-monogram { fill:#3572d5; font-size:24px; font-weight:650; }
+.execution-icon-background { fill:#f2eafa; }.execution-icon { fill:none; stroke:#9273bd; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.proposed-node { stroke:#baa5d7; stroke-dasharray:5 3; }
+.mesh-channels { opacity:0; transition:opacity .2s; }.mesh-visible .mesh-channels { opacity:1; }
+.mesh-label { fill:#6487b4; font-size:10.8px; font-weight:550; }
+.mesh-request-path { fill:none; stroke:#8baddb; stroke-width:1.3; stroke-dasharray:3 5; }
+.mesh-dispatch-path { fill:none; stroke:#487ed8; stroke-width:1.6; }
+.control-particle { visibility:hidden; fill:#497ed5; }
+.mesh-job-particle { fill:#487ed8; stroke:#fff; stroke-width:2; }
+.architecture[data-phase="schedule"] .control-surface { animation:controller-pulse .28s ease-out; }
+.architecture[data-phase="connect"] .mesh-connect-particle { visibility:visible; animation:mesh-outbound .55s linear both; }
+.architecture[data-phase="dispatch"] .mesh-job-particle { visibility:visible; animation:mesh-dispatch .45s linear both; }
+@keyframes controller-pulse { 50% { fill:#e9f2ff; stroke:#6e9ce9; } }
+@keyframes mesh-outbound { from { transform:translateX(0); } to { transform:translateX(-182px); } }
+@keyframes mesh-dispatch { from { transform:translateX(0); } to { transform:translateX(182px); } }
+.job-command { display:none; }
+.architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-scope="connected"],[data-scope="both"]) .external-control,
+.architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-target="repository"],[data-target="repositories"],[data-target="all"]) .repository-control,
+.architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-target="clients"],[data-target="all"]) .client-control,
+.architecture:is([data-phase="execute"],[data-phase="complete"])[data-scope="hypervisor"] .hypervisor-control { display:block; }
+.command-path { fill:none; stroke:#9e83c5; stroke-width:1.3; stroke-dasharray:3 5; opacity:.65; stroke-linejoin:round; }
+.command-label { fill:#9678b9; font-size:10.8px; font-weight:500; }
+.command-particle { fill:#9574bc; }
+.architecture[data-phase="execute"] .command-particle { visibility:visible; }
+.architecture[data-phase="execute"] .command-path { opacity:1; }
+.hypervisor-pill { fill:#f7f3fc; stroke:#e2d8ef; }
+@media(min-width:1500px) { .workflow-scroll { height:805px; } }
+@media(max-width:860px) { .workflow-scroll { height:660px; }.execution-banner { font-size:11px; margin:0 13px 10px; } }
+@media(max-width:650px) { .workflow-scroll { height:340px; }.execution-banner { font-size:10.8px; }.edition-name { white-space:nowrap; }.architecture-canvas { min-height:0; } }
+@media(prefers-reduced-motion:reduce) { .control-particle { display:none; } }

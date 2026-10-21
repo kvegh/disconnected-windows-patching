@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'demo/**'
+      - 'demo-with-aap/**'
       - '.github/workflows/deploy-demo.yml'
   workflow_dispatch:
 
@@ -33,6 +34,10 @@ jobs:
           node --check demo/src/scenario.js
           node --check demo/src/app.js
           node --test demo/tests/scenario.test.cjs
+          node --check demo-with-aap/src/scenario.js
+          node --check demo-with-aap/src/orchestration.js
+          node --check demo-with-aap/src/app.js
+          node --test demo-with-aap/tests/*.test.cjs
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Prepare only public demo assets
@@ -40,6 +45,9 @@ jobs:
           mkdir -p "${RUNNER_TEMP}/windows-demo/src"
           cp demo/index.html "${RUNNER_TEMP}/windows-demo/index.html"
           cp demo/src/*.js demo/src/*.css "${RUNNER_TEMP}/windows-demo/src/"
+          mkdir -p "${RUNNER_TEMP}/windows-demo/demo-with-aap/src"
+          cp demo-with-aap/index.html "${RUNNER_TEMP}/windows-demo/demo-with-aap/index.html"
+          cp demo-with-aap/src/*.js demo-with-aap/src/*.css "${RUNNER_TEMP}/windows-demo/demo-with-aap/src/"
           touch "${RUNNER_TEMP}/windows-demo/.nojekyll"
       - name: Upload the demo
         uses: actions/upload-pages-artifact@v4

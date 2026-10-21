@@ -82,5 +82,9 @@ manually dispatched. It excludes the repository's automation configuration,
 Vault files, documentation and test files from the deployment artifact.
 The same workflow runs the focused Node checks before publishing.
 
+A separate `demo-with-aap/` edition is published under `/demo-with-aap/`. It adds
+illustrative AAP scheduling and a proposed internal execution node; this edition
+retains its original URL and its independent page assets.
+
 The page uses generic labels and carries no controller endpoint, inventory
 address, credential, authentication token or environment-specific hostname.
