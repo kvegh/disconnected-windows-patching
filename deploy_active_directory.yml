@@ -38,6 +38,14 @@
       register: ad_guest_state
       no_log: true
 
+    - name: Complete an explicitly requested recovery restart after interrupted promotion
+      ansible.windows.win_reboot:
+        reboot_timeout: 1200
+        post_reboot_delay: 30
+      when:
+        - ad_complete_promotion_reboot | default(false) | bool
+        - ad_guest_state.result.IsDomainController
+
     - name: Set the future domain administrator password before promotion
       ansible.windows.win_user:
         name: Administrator
@@ -87,16 +95,13 @@
               Import-Module ADDSDeployment
               $safe = ConvertTo-SecureString $DsrmPassword -AsPlainText -Force
               Install-ADDSForest -DomainName $Domain -DomainNetbiosName $Netbios -DomainMode Win2025 -ForestMode Win2025 -InstallDns:$true -CreateDnsDelegation:$false -SafeModeAdministratorPassword $safe -NoRebootOnCompletion:$true -Force:$true -ErrorAction Stop
+              & shutdown.exe /r /t 30 /d p:2:4 /c 'Complete Active Directory promotion'
+              if ($LASTEXITCODE -ne 0) { throw 'Could not schedule the promotion restart.' }
               $Ansible.Changed = $true
               $Ansible.Result = @{ RebootRequired=$true }
           }
       register: ad_promotion
       no_log: true
-
-    - name: Schedule the promotion reboot independently of the WinRM identity change
-      ansible.windows.win_command:
-        argv: [shutdown.exe, /r, /t, '20', /d, 'p:2:4', /c, Complete Active Directory promotion]
-      when: ad_promotion.result.RebootRequired
 
     - name: Use the protected domain administrator for subsequent management
       ansible.builtin.set_fact:
