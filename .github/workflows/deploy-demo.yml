@@ -1,0 +1,50 @@
+name: Publish Windows demo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'demo/**'
+      - '.github/workflows/deploy-demo.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-demo-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+      - name: Check the walkthrough
+        run: |
+          node --check demo/src/scenario.js
+          node --check demo/src/app.js
+          node --test demo/tests/scenario.test.cjs
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Prepare only public demo assets
+        run: |
+          mkdir -p "${RUNNER_TEMP}/windows-demo/src"
+          cp demo/index.html "${RUNNER_TEMP}/windows-demo/index.html"
+          cp demo/src/*.js demo/src/*.css "${RUNNER_TEMP}/windows-demo/src/"
+          touch "${RUNNER_TEMP}/windows-demo/.nojekyll"
+      - name: Upload the demo
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/windows-demo
+      - name: Publish GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

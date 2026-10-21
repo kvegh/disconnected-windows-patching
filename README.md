@@ -3,6 +3,17 @@
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
 in a simulated disconnected environment.
 
+## Interactive demo
+
+[`demo/`](demo/README.md) contains a presenter-paced browser walkthrough with
+Next/Previous controls, a workflow that grows after each action, and a datacenter
+architecture that gains servers, services and content. Directional animations
+show Microsoft downloads, management-only IIS transfers and internal delivery.
+Workflow items expose in-page illustrative Ansible previews and links to the
+real playbooks. This is a visual walkthrough; it does not execute AAP jobs or
+represent live environment state. The GitHub Actions Pages workflow publishes
+only the page and its public assets. See the demo README for local use and checks.
+
 ## VM deployment
 
 `01-win-vm-setup.yml` creates one VM per launch on the inventory's `hypervisor`

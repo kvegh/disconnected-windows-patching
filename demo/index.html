@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Explore a disconnected Windows datacenter, one Ansible action at a time.">
+    <meta name="color-scheme" content="light">
+    <title>Disconnected Windows · Interactive demo</title>
+    <link rel="stylesheet" href="src/styles.css">
+    <script src="src/scenario.js" defer></script>
+    <script src="src/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app">
+      <header class="masthead">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div><p class="eyebrow">Ansible Automation Platform</p><h1>Disconnected Windows<span class="title-dot">.</span></h1></div></div>
+        <div class="header-actions"><span class="mode-label">Interactive walkthrough</span><button class="quiet-button" id="reset" type="button">Start over <span aria-hidden="true">↺</span></button></div>
+      </header>
+
+      <section class="controls" aria-label="Demo controls">
+        <div class="action-context"><p class="eyebrow" id="action-count">Getting started</p><h2 id="current-title">An empty datacenter. A place to begin.</h2><p id="current-description">Each action builds a little more of the environment. You set the pace.</p></div>
+        <div class="navigation"><button class="previous-button" id="previous" type="button" disabled><span aria-hidden="true">←</span> Previous</button><button class="next-button" id="next" type="button"><span class="button-caption">Next action</span><span class="button-action" id="next-label">Deploy the servers</span><span class="button-arrow" aria-hidden="true">→</span></button></div>
+        <div class="progress-track" aria-hidden="true"><div id="progress-fill"></div></div>
+      </section>
+
+      <main class="workspace">
+        <section class="workflow-panel" aria-labelledby="workflow-title">
+          <div class="panel-heading"><div><p class="eyebrow">01 / The story</p><h2 id="workflow-title">Workflow</h2></div><span class="counter" id="workflow-count">0 actions</span></div>
+          <div class="workflow-scroll" id="workflow-scroll"><div class="workflow-empty" id="workflow-empty"><span class="empty-stem" aria-hidden="true"></span><h3>One action at a time.</h3><p>Your workflow grows here.<br>Hover over a step to see its Ansible code.</p></div><ol class="workflow-list" id="workflow-list"></ol></div>
+          <p class="panel-footnote"><span aria-hidden="true">⌘</span> Hover or select a step to explore its code.</p>
+        </section>
+
+        <section class="architecture-panel" aria-labelledby="architecture-title">
+          <div class="panel-heading"><div><p class="eyebrow">02 / The environment</p><h2 id="architecture-title">Datacenter</h2></div><span class="architecture-summary" id="architecture-summary">Ready to build</span></div>
+          <div class="architecture-canvas" id="architecture-canvas">
+            <div class="architecture-empty" id="architecture-empty"><div class="empty-cross" aria-hidden="true">+</div><p>A little space for what comes next.</p></div>
+            <svg class="architecture" viewBox="0 0 960 680" role="img" aria-labelledby="diagram-title diagram-description">
+              <title id="diagram-title">Disconnected Windows datacenter</title><desc id="diagram-description">The architecture fills as you advance the walkthrough. It contains an external repository, an internal repository and two managed Windows servers.</desc>
+              <defs>
+                <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="#d9dedb"/></pattern>
+                <marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 7 3.5 0 7" fill="none" stroke="#46776d" stroke-width="1.2"/></marker>
+                <symbol id="windows-mark" viewBox="0 0 24 24"><path d="M2 3h9v8H2zm11 0h9v8h-9zM2 13h9v8H2zm11 0h9v8h-9z" fill="currentColor"/></symbol>
+                <symbol id="server-mark" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="7" rx="2"/><rect x="4" y="14" width="16" height="7" rx="2"/><path d="M8 6.5h.1M8 17.5h.1M13 6.5h4M13 17.5h4"/></symbol>
+                <symbol id="file-mark" viewBox="0 0 24 24"><path d="M7 2h7l5 5v15H5V2zm7 0v6h5M11 11h3m-3 4h3m-3 4h3"/></symbol>
+              </defs>
+              <rect width="960" height="680" fill="url(#dots)"/>
+
+              <g class="reveal" data-at="1" style="--delay:0ms"><rect class="network-zone connected-zone" x="24" y="30" width="300" height="565" rx="22"/><text class="zone-label" x="46" y="60">CONNECTED NETWORK</text><text class="zone-subtitle" x="46" y="80">Content enters here</text></g>
+              <g class="reveal" data-at="1" style="--delay:45ms"><rect class="network-zone isolated-zone" x="370" y="30" width="566" height="565" rx="22"/><text class="zone-label" x="392" y="60">ISOLATED CLIENT NETWORK</text><text class="zone-subtitle" x="392" y="80">Updates stay under your control</text></g>
+
+              <g class="reveal" data-at="2"><path class="network-link" d="M646 345V389M646 389H514V425M646 389H803V425"/><circle cx="646" cy="389" r="4" fill="#c5cec8"/><text class="connection-label" x="664" y="383">Internal update sources</text></g>
+              <g class="reveal" data-at="2"><path class="management-link" d="M314 237H500"/><text class="connection-label" x="329" y="219">Management link</text></g>
+
+              <g class="reveal" data-at="4" style="--delay:0ms"><rect class="publisher" x="68" y="105" width="212" height="50" rx="12"/><use href="#windows-mark" x="83" y="121" width="18" height="18" class="microsoft-mark"/><text class="publisher-title" x="113" y="127">Microsoft Update</text><text class="tiny-label" x="113" y="143">Selected OS + .NET content</text><path class="flow-path download-flow" id="download-path" d="M174 155V192" marker-end="url(#arrow)"/><text class="flow-label" x="191" y="177">Download</text><circle class="flow-particle" data-flow="4" r="3.2"><animateMotion dur="1.25s" repeatCount="indefinite"><mpath href="#download-path"/></animateMotion></circle></g>
+
+              <g class="reveal server-node" data-at="1" data-node="external" tabindex="-1" role="button" aria-label="Explore the external repository" style="--delay:70ms"><rect class="server-shadow" x="41" y="201" width="270" height="174" rx="17"/><rect class="server-surface" x="38" y="197" width="276" height="174" rx="17"/><rect class="icon-background" x="56" y="214" width="33" height="33" rx="9"/><use href="#server-mark" class="server-icon" x="62" y="220" width="21" height="21"/><text class="node-eyebrow" x="102" y="225">WINDOWS SERVER 2022</text><text class="node-title" x="102" y="245">External repository</text><line class="card-rule" x1="56" y1="262" x2="295" y2="262"/><text class="node-status" id="external-status" x="56" y="288">Freshly deployed</text><g class="reveal" data-at="3"><rect class="service-pill" x="56" y="304" width="59" height="25" rx="7"/><text class="service-text" x="68" y="321">WSUS</text><rect class="service-pill" x="122" y="304" width="65" height="25" rx="7"/><text class="service-text" x="134" y="321">Nexus</text></g><g class="reveal" data-at="5"><rect class="service-pill export-pill" x="194" y="304" width="101" height="25" rx="7"/><text class="service-text" x="204" y="321">IIS · export</text></g><text class="tiny-label" x="56" y="353" id="external-detail">Prepared Windows base image</text></g>
+
+              <g class="reveal" data-at="4" style="--delay:50ms"><rect class="content-item" x="46" y="390" width="125" height="47" rx="10"/><text class="content-label" x="59" y="410">Windows</text><text class="tiny-label" x="59" y="426">OS updates</text></g>
+              <g class="reveal" data-at="4" style="--delay:105ms"><rect class="content-item" x="181" y="390" width="125" height="47" rx="10"/><text class="content-label" x="194" y="410">.NET</text><text class="tiny-label" x="194" y="426">Runtime updates</text></g>
+              <g class="reveal" data-at="4" style="--delay:160ms"><rect class="content-item" x="46" y="445" width="125" height="47" rx="10"/><text class="content-label" x="59" y="465">7-Zip</text><text class="tiny-label" x="59" y="481">Two pinned releases</text></g>
+              <g class="reveal" data-at="4" style="--delay:215ms"><rect class="content-item" x="181" y="445" width="125" height="47" rx="10"/><text class="content-label" x="194" y="465">Git</text><text class="tiny-label" x="194" y="481">Two pinned releases</text></g>
+
+              <g class="reveal" data-at="5"><rect class="export-bundle" x="46" y="508" width="260" height="64" rx="11"/><use href="#file-mark" class="file-icon" x="59" y="524" width="24" height="28"/><text class="content-label" x="95" y="532">Published through IIS</text><text class="tiny-label" x="95" y="551">.xml.gz + manifest + update files</text></g>
+
+              <g class="reveal server-node" data-at="1" data-node="internal" tabindex="-1" role="button" aria-label="Explore the internal repository" style="--delay:120ms"><rect class="server-shadow" x="503" y="171" width="286" height="174" rx="17"/><rect class="server-surface" x="500" y="167" width="292" height="174" rx="17"/><rect class="icon-background" x="518" y="184" width="33" height="33" rx="9"/><use href="#server-mark" class="server-icon" x="524" y="190" width="21" height="21"/><text class="node-eyebrow" x="564" y="195">WINDOWS SERVER 2022</text><text class="node-title" x="564" y="215">Internal repository</text><line class="card-rule" x1="518" y1="232" x2="774" y2="232"/><text class="node-status" id="internal-status" x="518" y="258">Freshly deployed</text><g class="reveal" data-at="3"><rect class="service-pill" x="518" y="274" width="59" height="25" rx="7"/><text class="service-text" x="530" y="291">WSUS</text><rect class="service-pill" x="584" y="274" width="65" height="25" rx="7"/><text class="service-text" x="596" y="291">Nexus</text></g><g class="reveal" data-at="7"><rect class="baseline-pill" x="657" y="274" width="116" height="25" rx="7"/><text class="baseline-text" x="668" y="291">April baseline</text></g><text class="tiny-label" x="518" y="323" id="internal-detail">Prepared Windows base image</text></g>
+
+              <g class="reveal" data-at="6"><path class="flow-path transfer-flow" id="transfer-path" d="M315 247H498" marker-end="url(#arrow)"/><rect class="transfer-caption" x="334" y="258" width="146" height="39" rx="9"/><text class="flow-label" x="348" y="275">Direct HTTP transfer</text><text class="tiny-label" x="348" y="289">Manifest + SHA256 checks</text><g class="flow-particle" data-flow="6"><rect class="moving-package" x="-7" y="-7" width="14" height="14" rx="3"/><animateMotion dur="1.7s" repeatCount="indefinite"><mpath href="#transfer-path"/></animateMotion></g></g>
+
+              <g class="reveal" data-at="8"><path class="flow-path client-flow" id="client-path-2022" d="M646 344V389H514V423" marker-end="url(#arrow)"/><path class="flow-path client-flow" id="client-path-2025" d="M646 344V389H803V423" marker-end="url(#arrow)"/><circle class="flow-particle" data-flow="8,9,10" r="3.2"><animateMotion dur="1.8s" repeatCount="indefinite"><mpath href="#client-path-2022"/></animateMotion></circle><circle class="flow-particle" data-flow="8,9,10" r="3.2"><animateMotion dur="1.8s" begin="-.6s" repeatCount="indefinite"><mpath href="#client-path-2025"/></animateMotion></circle></g>
+
+              <g class="reveal server-node" data-at="1" data-node="server2022" tabindex="-1" role="button" aria-label="Explore Windows Server 2022" style="--delay:170ms"><rect class="server-shadow" x="398" y="429" width="236" height="148" rx="17"/><rect class="server-surface client-surface" x="395" y="425" width="242" height="148" rx="17"/><use href="#windows-mark" x="414" y="445" width="23" height="23" class="client-windows"/><text class="client-title" x="449" y="454">Windows Server</text><text class="client-year" x="449" y="479">2022</text><g class="reveal" data-at="8"><rect class="patch-tag" x="548" y="446" width="71" height="24" rx="7"/><text class="patch-tag-text" x="561" y="462">Patched</text></g><line class="card-rule" x1="413" y1="490" x2="618" y2="490"/><text class="node-status" id="server2022-status" x="413" y="513">Freshly deployed</text><g class="reveal" data-at="9"><text class="app-name" x="413" y="539">7-Zip</text><text class="app-version" id="zip2022" x="454" y="539">26.03</text><text class="app-name" x="514" y="539">Git</text><text class="app-version" id="git2022" x="539" y="539">2.55</text></g><text class="tiny-label" id="server2022-detail" x="413" y="559">Managed Windows endpoint</text></g>
+              <g class="reveal server-node" data-at="1" data-node="server2025" tabindex="-1" role="button" aria-label="Explore Windows Server 2025" style="--delay:220ms"><rect class="server-shadow" x="687" y="429" width="236" height="148" rx="17"/><rect class="server-surface client-surface" x="684" y="425" width="242" height="148" rx="17"/><use href="#windows-mark" x="703" y="445" width="23" height="23" class="client-windows"/><text class="client-title" x="738" y="454">Windows Server</text><text class="client-year" x="738" y="479">2025</text><g class="reveal" data-at="8"><rect class="patch-tag" x="837" y="446" width="71" height="24" rx="7"/><text class="patch-tag-text" x="850" y="462">Patched</text></g><line class="card-rule" x1="702" y1="490" x2="907" y2="490"/><text class="node-status" id="server2025-status" x="702" y="513">Freshly deployed</text><g class="reveal" data-at="9"><text class="app-name" x="702" y="539">7-Zip</text><text class="app-version" id="zip2025" x="743" y="539">26.03</text><text class="app-name" x="803" y="539">Git</text><text class="app-version" id="git2025" x="828" y="539">2.55</text></g><text class="tiny-label" id="server2025-detail" x="702" y="559">Managed Windows endpoint</text></g>
+
+              <g class="reveal" data-at="11"><rect class="verification-strip" x="394" y="612" width="532" height="42" rx="11"/><circle cx="416" cy="633" r="9" fill="#477b69"/><path d="m412 633 3 3 5-6" fill="none" stroke="white" stroke-width="1.5"/><text class="verification-text" x="434" y="638">Internal sources · expected versions · no pending reboot</text></g>
+            </svg>
+          </div>
+          <div class="architecture-footer"><span class="flow-key"><i></i><span id="flow-caption">The architecture grows with the workflow.</span></span><span>Click a server to look inside <span aria-hidden="true">↗</span></span></div>
+        </section>
+      </main>
+      <footer class="page-footer"><span>Illustrative walkthrough · actions change the visualization.</span><span>← → to navigate <span class="footer-separator">/</span> R to start over</span></footer>
+    </div>
+
+    <aside class="code-popover" id="code-popover" role="dialog" aria-label="Ansible code preview" hidden><div class="popover-heading"><span class="eyebrow">Under the hood</span><button class="close-button" id="close-code" type="button" aria-label="Close code preview">×</button></div><h3 id="code-title"></h3><p class="mock-label">Illustrative Ansible · simplified for this step</p><pre><code id="code-example"></code></pre><a class="source-link" id="code-link" target="_blank" rel="noopener noreferrer">Click here for the real code <span aria-hidden="true">↗</span></a><span class="source-filename" id="source-filename"></span></aside>
+    <dialog class="server-dialog" id="server-dialog"><div class="dialog-heading"><p class="eyebrow">Inside the datacenter</p><button class="close-button" id="close-server" type="button" aria-label="Close server details">×</button></div><h2 id="server-dialog-title"></h2><p id="server-dialog-description"></p><dl id="server-dialog-details"></dl><p class="dialog-note">This is the illustrated state at the selected step.</p></dialog>
+    <div class="sr-only" id="announcer" role="status" aria-live="polite"></div>
+  </body>
+</html>
