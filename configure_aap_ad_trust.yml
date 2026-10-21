@@ -5,6 +5,7 @@
   gather_facts: false
   vars_files:
     - vars/active_directory_vault.yml
+    - vars/active_directory_target.yml
   tasks:
     - name: Create an owner-only temporary SSH trust directory
       ansible.builtin.tempfile:
@@ -16,7 +17,7 @@
     - name: Use the previously verified SSH host key
       ansible.builtin.copy:
         dest: "{{ ad_trust_workspace.path }}/known_hosts"
-        content: "{{ active_directory.test_ssh_known_hosts }}"
+        content: "{{ ad_target_ssh_known_hosts }}"
         mode: '0600'
       no_log: true
 
@@ -24,11 +25,11 @@
       ansible.builtin.add_host:
         name: ad_trust_target
         groups: ad_trust_targets
-        ansible_host: "{{ (ad_aap_target_url | default(active_directory.test_aap_url)) | ansible.builtin.urlsplit('hostname') }}"
+        ansible_host: "{{ (ad_target_api_url) | ansible.builtin.urlsplit('hostname') }}"
         ansible_connection: ssh
-        ansible_user: "{{ active_directory.test_ssh_username }}"
-        ansible_password: "{{ active_directory.test_ssh_password }}"
-        ansible_become_password: "{{ active_directory.test_ssh_password }}"
+        ansible_user: "{{ ad_target_ssh_username }}"
+        ansible_password: "{{ ad_target_ssh_password }}"
+        ansible_become_password: "{{ ad_target_ssh_password }}"
         ansible_ssh_common_args: "-o StrictHostKeyChecking=yes -o UserKnownHostsFile={{ ad_trust_workspace.path }}/known_hosts"
       no_log: true
 
@@ -38,19 +39,20 @@
   become: true
   vars_files:
     - vars/active_directory_vault.yml
+    - vars/active_directory_target.yml
   tasks:
     - name: Resolve the existing AAP service account
       ansible.builtin.getent:
         database: passwd
-        key: "{{ active_directory.test_install_username }}"
+        key: "{{ ad_target_install_username }}"
       no_log: true
 
     - name: List existing service-account containers before selecting the gateway
       ansible.builtin.command:
-        argv: [runuser, -u, "{{ active_directory.test_install_username }}", --, podman, ps, --format=json]
+        argv: [runuser, -u, "{{ ad_target_install_username }}", --, podman, ps, --format=json]
         chdir: /
       environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[active_directory.test_install_username][1] }}"
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[ad_target_install_username][1] }}"
       register: ad_gateway_containers
       changed_when: false
       failed_when: false
@@ -78,10 +80,10 @@
 
     - name: Inspect the existing gateway container mounts
       ansible.builtin.command:
-        argv: [runuser, -u, "{{ active_directory.test_install_username }}", --, podman, inspect, "{{ ad_gateway_container_name }}"]
+        argv: [runuser, -u, "{{ ad_target_install_username }}", --, podman, inspect, "{{ ad_gateway_container_name }}"]
         chdir: /
       environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[active_directory.test_install_username][1] }}"
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[ad_target_install_username][1] }}"
       register: ad_gateway_container
       changed_when: false
       no_log: true
@@ -131,7 +133,7 @@
         argv:
           - runuser
           - -u
-          - "{{ active_directory.test_install_username }}"
+          - "{{ ad_target_install_username }}"
           - --
           - podman
           - exec
@@ -147,7 +149,7 @@
             print('Gateway CA trust verified')
           - "{{ active_directory.prefix }} Demo CA"
       environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[active_directory.test_install_username][1] }}"
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[ad_target_install_username][1] }}"
       changed_when: false
       no_log: true
 
@@ -157,7 +159,7 @@
         argv:
           - runuser
           - -u
-          - "{{ active_directory.test_install_username }}"
+          - "{{ ad_target_install_username }}"
           - --
           - podman
           - exec
@@ -172,7 +174,7 @@
                     print('Gateway LDAPS chain and hostname verification passed')
           - "{{ active_directory.fqdn }}"
       environment:
-        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[active_directory.test_install_username][1] }}"
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[ad_target_install_username][1] }}"
       changed_when: false
       when: ad_trust_verify_ldaps | default(false) | bool
       no_log: true
@@ -180,6 +182,13 @@
     - name: Report verified gateway CA trust
       ansible.builtin.debug:
         msg: Gateway trust was verified inside the existing container with certificate validation enabled.
+
+    - name: Publish readiness only after gateway LDAPS verification
+      ansible.builtin.set_stats:
+        data:
+          ad_gateway_trust_ready: true
+        aggregate: false
+      when: ad_trust_verify_ldaps | default(false) | bool
 
 - name: Remove the temporary SSH trust files
   hosts: localhost

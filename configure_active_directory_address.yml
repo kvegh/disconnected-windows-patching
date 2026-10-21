@@ -4,8 +4,26 @@
   gather_facts: false
   become: true
   vars_files:
+    - vars/main.yml
     - vars/active_directory_vault.yml
   tasks:
+    - name: Require an absent VM and clone disk before a fresh reservation
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - |
+            import pathlib,subprocess,sys
+            name=sys.argv[1]
+            names=subprocess.check_output(['virsh','list','--all','--name'],text=True).splitlines()
+            if name in names or pathlib.Path(sys.argv[2]).exists():
+                raise RuntimeError('Fresh AD deployment requires an absent VM and clone disk.')
+          - "{{ active_directory.hostname }}"
+          - "{{ vm_dir }}/win-{{ active_directory.hostname }}-clone.disk.qcow2"
+      changed_when: false
+      when: ad_address_reservation_before_create | default(false) | bool
+      no_log: true
+
     - name: Verify the existing demo-owned domain and its single expected NIC
       ansible.builtin.command:
         argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/inspect-activation-domain.py') }}", "{{ active_directory.hostname }}"]
@@ -13,6 +31,7 @@
       changed_when: false
       check_mode: false
       no_log: true
+      when: not (ad_address_reservation_before_create | default(false) | bool)
 
     - name: Require the exact dedicated clone and network attachment
       ansible.builtin.assert:
@@ -26,6 +45,7 @@
       vars:
         ad_domain: "{{ ad_domain_inspection.stdout | from_json }}"
       no_log: true
+      when: not (ad_address_reservation_before_create | default(false) | bool)
 
     - name: Inspect network address ownership without modifying leases
       ansible.builtin.command:
@@ -33,7 +53,7 @@
           - python3
           - -c
           - |
-            import ipaddress,json,subprocess,sys,xml.etree.ElementTree as E
+            import ipaddress,json,re,subprocess,sys,xml.etree.ElementTree as E
             network,mac,address,name=sys.argv[1:]
             root=E.fromstring(subprocess.check_output(['virsh','net-dumpxml',network],text=True))
             ip=ipaddress.ip_address(address)
@@ -43,6 +63,13 @@
             for host in hosts:
                 if host.get('ip')==address and host.get('mac','').lower()!=mac.lower():raise RuntimeError('Address is reserved to another NIC.')
                 if host.get('mac','').lower()==mac.lower() and host.get('ip')!=address:raise RuntimeError('NIC has a different reservation.')
+                if host.get('ip')==address and host.get('name')!=name:raise RuntimeError('The existing reservation has a different DNS name.')
+            leases=subprocess.check_output(['virsh','net-dhcp-leases',network],text=True)
+            for line in leases.splitlines():
+                lease_mac=re.search(r'(?i)(?:[0-9a-f]{2}:){5}[0-9a-f]{2}',line)
+                lease_ip=re.search(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+',line)
+                if lease_mac and lease_ip and lease_ip.group().split('/')[0]==address and lease_mac.group().lower()!=mac.lower():
+                    raise RuntimeError('Address is leased to another NIC.')
             exists=any(h.get('ip')==address and h.get('mac','').lower()==mac.lower() for h in hosts)
             xml=E.tostring(E.Element('host',{'mac':mac,'ip':address,'name':name}),encoding='unicode')
             print(json.dumps({'exists':exists,'xml':xml}))

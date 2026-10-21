@@ -5,15 +5,16 @@
   gather_facts: false
   vars_files:
     - vars/active_directory_vault.yml
+    - vars/active_directory_target.yml
   tasks:
     - name: Check exact resource scopes and optionally exercise real login permissions
       ansible.builtin.command:
         argv: [python3, "{{ playbook_dir }}/assets/verify-aap-ad-regions.py"]
         stdin: >-
-          {{ {'url': ad_aap_target_url | default(active_directory.test_aap_url),
-              'ca': ad_aap_target_ca | default(active_directory.test_aap_ca),
+          {{ {'url': ad_target_api_url,
+              'ca': ad_target_api_ca,
               'admin_username': 'admin',
-              'admin_password': ad_aap_target_admin_password | default(active_directory.test_aap_admin_password),
+              'admin_password': ad_target_admin_password,
               'prefix': active_directory.prefix,
               'users': active_directory.users,
               'verify_logins': ad_verify_ldap_logins | default(false) | bool} | to_json }}

@@ -1,0 +1,58 @@
+---
+ad_workflow_stages:
+  - identifier: ad-reserve-address
+    template: Reserve AD Address
+    playbook: configure_active_directory_address.yml
+    kind: hypervisor
+    timeout: 600
+    extra_vars: {ad_address_reservation_before_create: true}
+    successors: [ad-create-vm]
+  - identifier: ad-create-vm
+    template: Create AD VM
+    playbook: create_active_directory_vm.yml
+    kind: hypervisor
+    timeout: 1800
+    extra_vars: {}
+    successors: [ad-patch-guest]
+  - identifier: ad-patch-guest
+    template: Prepare and Update AD Guest
+    playbook: prepare_active_directory_guest.yml
+    kind: windows
+    timeout: 43200
+    extra_vars: {ad_direct_microsoft_updates_approved: true}
+    successors: [ad-promote-directory]
+  - identifier: ad-promote-directory
+    template: Deploy Active Directory
+    playbook: deploy_active_directory.yml
+    kind: windows
+    timeout: 7200
+    extra_vars: {}
+    successors: [ad-configure-ldaps]
+  - identifier: ad-configure-ldaps
+    template: Configure AD LDAPS
+    playbook: configure_active_directory_ldaps.yml
+    kind: windows
+    timeout: 3600
+    extra_vars: {}
+    successors: [ad-verify-gateway-trust]
+  - identifier: ad-verify-gateway-trust
+    template: Configure AD Gateway Trust
+    playbook: configure_aap_ad_trust.yml
+    kind: target
+    timeout: 1200
+    extra_vars: {ad_trust_verify_ldaps: true}
+    successors: [ad-configure-aap-regions]
+  - identifier: ad-configure-aap-regions
+    template: Configure AD AAP Regions
+    playbook: configure_aap_ad_regions.yml
+    kind: target
+    timeout: 3600
+    extra_vars: {ad_aap_configure_authentication: true}
+    successors: [ad-verify-aap-access]
+  - identifier: ad-verify-aap-access
+    template: Verify AD AAP Access
+    playbook: verify_aap_ad_regions.yml
+    kind: target
+    timeout: 3600
+    extra_vars: {ad_verify_ldap_logins: true}
+    successors: []

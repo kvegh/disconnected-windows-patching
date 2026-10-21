@@ -1,0 +1,9 @@
+---
+# An encrypted AAP credential overrides the validation target on fresh imports.
+ad_target_api_url: "{{ ad_aap_target_url | default(lookup('ansible.builtin.env', 'AD_AAP_TARGET_URL'), true) | default(active_directory.test_aap_url, true) }}"
+ad_target_admin_password: "{{ ad_aap_target_admin_password | default(lookup('ansible.builtin.env', 'AD_AAP_TARGET_ADMIN_PASSWORD'), true) | default(active_directory.test_aap_admin_password, true) }}"
+ad_target_api_ca: "{{ ad_aap_target_ca | default(lookup('ansible.builtin.env', 'AD_AAP_TARGET_CA'), true) | default(active_directory.test_aap_ca, true) }}"
+ad_target_ssh_username: "{{ ad_aap_target_ssh_username | default(lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_USERNAME'), true) | default(active_directory.test_ssh_username, true) }}"
+ad_target_ssh_password: "{{ ad_aap_target_ssh_password | default(lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_PASSWORD'), true) | default(active_directory.test_ssh_password, true) }}"
+ad_target_ssh_known_hosts: "{{ ad_aap_target_ssh_known_hosts | default(lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_KNOWN_HOSTS'), true) | default(active_directory.test_ssh_known_hosts, true) }}"
+ad_target_install_username: "{{ ad_aap_target_install_username | default(lookup('ansible.builtin.env', 'AD_AAP_TARGET_INSTALL_USERNAME'), true) | default(active_directory.test_install_username, true) }}"

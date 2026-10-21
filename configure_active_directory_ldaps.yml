@@ -116,4 +116,5 @@
       ansible.builtin.set_stats:
         data:
           active_directory_ldaps_verification: "{{ ad_ldaps_verification.result }}"
+          ad_ldaps_ready: true
         aggregate: false

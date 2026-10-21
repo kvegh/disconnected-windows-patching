@@ -1,5 +1,16 @@
 # Design decisions history
 
+## Reconnect across promotion and wait for directory readiness
+
+Implementation: `3091664`.
+
+Preparation and promotion try the protected bootstrap, local administrator and
+domain administrator identities so a partial promotion can be rerun safely.
+Identity creation waits for AD Web Services and SYSVOL. AD cmdlets use explicit
+protected credentials rather than relying on WinRM delegation. Regional model
+tests and YAML validation passed before publication; live promotion follows the
+successful Microsoft patch stage.
+
 ## Verify regional grants and discover the deployed gateway runtime
 
 Implementation: `fb2db7b`.

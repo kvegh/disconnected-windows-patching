@@ -1,0 +1,20 @@
+---
+- name: Load the protected definition for the dedicated AD VM
+  hosts: hypervisor
+  gather_facts: false
+  tasks:
+    - name: Load the existing encrypted AD profile
+      ansible.builtin.include_vars: vars/active_directory_vault.yml
+      no_log: true
+
+- name: Create the dedicated Server 2025 clone with the existing guarded provisioner
+  ansible.builtin.import_playbook: 01-win-vm-setup.yml
+  vars:
+    vm_name: "{{ active_directory.hostname }}"
+    vm_role: managed
+    windows_version: '2025'
+    vm_network: "{{ active_directory.libvirt_network }}"
+    vm_management_network: ''
+    vm_mac: "{{ active_directory.mac }}"
+    vm_management_mac: ''
+    wait_for_dhcp: true

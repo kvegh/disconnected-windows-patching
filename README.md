@@ -96,6 +96,26 @@ directory identities, check allowed and denied regional access, exercise admin
 authorization with unchanged descriptions, and run only the permitted inert
 mock jobs. It waits for launched jobs to finish and rejects failed executions.
 
+`configure_windows_ad_workflow.yml` adds a separate eight-stage AD branch to the
+existing Windows workflow and verifies that its other nodes and edges are
+preserved. Fresh deployment reserves the address before cloning, creates the
+Server 2025 VM, patches it, promotes the directory, verifies LDAPS and gateway
+trust, configures regional access, and exercises the actual LDAP permissions.
+The provisioner refuses an existing VM or clone disk. Run the individual stages
+to recover a partial deployment; a complete workflow launch provisions fresh VMs.
+
+The `Windows AD AAP Target` credential supplies target API and SSH authentication
+through protected environment variables. Explicit `ad_aap_target_*` inputs take
+precedence; the encrypted validation profile is the fallback for local testing.
+The Windows CaC importer prepares this credential for the platform receiving
+the import, using public trust read through its existing installer connection.
+This keeps runtime passwords out of Job Template variables and prevents a fresh
+import from configuring an earlier test platform. Credential injector expressions
+remain literal until AAP launches a job. LDAP readiness comes from the preceding
+verification stages; configuration import alone does not enable LDAP.
+Two workflow tests check reachability, cycles and the required patching and TLS
+barriers before LDAP activation.
+
 ## Interactive demo
 
 [`demo/`](demo/README.md) contains a presenter-paced browser walkthrough with

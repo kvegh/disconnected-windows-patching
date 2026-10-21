@@ -1,0 +1,160 @@
+---
+- name: Add guarded AD provisioning to the existing Windows deployment workflow
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - vars/active_directory_workflow.yml
+    - vars/active_directory_target_credential.yml
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    ad_template_prefix: Disconnected Windows Patching -
+    ad_stage_inventories:
+      hypervisor: "{{ ad_control_hypervisor_inventory | string }}"
+      windows: "{{ ad_control_windows_inventory | string }}"
+      target: "{{ ad_control_hypervisor_inventory | string }}"
+    ad_stage_credentials:
+      hypervisor: "{{ ad_control_hypervisor_credentials | map('string') | list }}"
+      windows: "{{ ad_control_windows_credentials | map('string') | list }}"
+      target: "{{ ad_control_target_credentials | map('string') | list }}"
+  module_defaults:
+    group/ansible.controller.controller:
+      controller_host: "{{ ad_control_url | default(omit) }}"
+      controller_oauthtoken: "{{ ad_control_token | default(omit) }}"
+      validate_certs: true
+  tasks:
+    - name: Require exact existing Windows controller references
+      ansible.builtin.assert:
+        that:
+          - ad_control_workflow | default('') | string is match('^[0-9]+$')
+          - ad_control_project | default('') | string | length > 0
+          - ad_control_execution_environment | default('') | string | length > 0
+          - ad_control_windows_inventory | default('') | string | length > 0
+          - ad_control_hypervisor_inventory | default('') | string | length > 0
+          - ad_control_hypervisor_credentials | default([]) | length == 2
+          - ad_control_windows_credentials | default([]) | length == 2
+          - ad_control_target_credentials | default([]) | length == 2
+      no_log: true
+
+    - name: Read the existing workflow without launching deployment
+      ansible.builtin.set_fact:
+        ad_workflow_before: >-
+          {{ query('ansible.controller.controller_api', 'workflow_job_template_nodes',
+                    host=ad_control_url | default(omit),
+                    oauth_token=ad_control_token | default(omit), verify_ssl=true,
+                    return_all=true, query_params={'workflow_job_template': ad_control_workflow | string}) }}
+      no_log: true
+
+    - name: Require the expected Windows deployment and application stages
+      ansible.builtin.assert:
+        that: ad_workflow_before | selectattr('identifier', 'equalto', item) | list | length == 1
+      loop: [configure-windows-server-basics, upgrade-applications]
+      no_log: true
+
+    - name: Refresh the source before validating new playbook references
+      ansible.controller.project_update:
+        project: "{{ ad_control_project | string }}"
+        wait: true
+        timeout: 600
+      no_log: true
+
+    - name: Initialize the explicitly selected validation target credential
+      when: ad_control_initialize_validation_target | default(false) | bool
+      block:
+        - name: Load the existing encrypted validation profile
+          ansible.builtin.include_vars: vars/active_directory_vault.yml
+          no_log: true
+        - name: Define the credential fields without rendering runtime injector expressions
+          ansible.controller.credential_type:
+            name: "{{ ad_target_credential_type.name }}"
+            kind: "{{ ad_target_credential_type.kind }}"
+            inputs: "{{ ad_target_credential_type.inputs }}"
+            injectors: "{{ ad_target_credential_type.injectors }}"
+            state: present
+          no_log: true
+        - name: Store the selected target's authentication in encrypted credential fields
+          ansible.controller.credential:
+            name: Disconnected Windows AD Target
+            organization: "{{ ad_control_organization }}"
+            credential_type: "{{ ad_target_credential_type.name }}"
+            inputs:
+              target_url: "{{ active_directory.test_aap_url }}"
+              admin_password: "{{ active_directory.test_aap_admin_password }}"
+              ca_bundle: "{{ active_directory.test_aap_ca }}"
+              ssh_username: "{{ active_directory.test_ssh_username }}"
+              ssh_password: "{{ active_directory.test_ssh_password }}"
+              ssh_known_hosts: "{{ active_directory.test_ssh_known_hosts }}"
+              install_username: "{{ active_directory.test_install_username }}"
+            state: present
+          no_log: true
+
+    - name: Configure each AD stage with its own inventory and encrypted credentials
+      ansible.controller.job_template:
+        name: "{{ ad_template_prefix }} {{ item.template }}"
+        description: Dedicated AD deployment stage; protected target credentials select the receiving AAP.
+        project: "{{ ad_control_project | string }}"
+        execution_environment: "{{ ad_control_execution_environment | string }}"
+        inventory: "{{ ad_stage_inventories[item.kind] }}"
+        credentials: "{{ ad_stage_credentials[item.kind] }}"
+        playbook: "{{ item.playbook }}"
+        extra_vars: "{{ item.extra_vars }}"
+        ask_variables_on_launch: true
+        ask_credential_on_launch: true
+        allow_simultaneous: false
+        timeout: "{{ item.timeout }}"
+        verbosity: 0
+        job_type: run
+        state: present
+      loop: "{{ ad_workflow_stages }}"
+      no_log: true
+
+    - name: Create all AD nodes before assigning their success edges
+      ansible.controller.workflow_job_template_node:
+        workflow_job_template: "{{ ad_control_workflow | string }}"
+        identifier: "{{ item.identifier }}"
+        unified_job_template: "{{ ad_template_prefix }} {{ item.template }}"
+        extra_data: "{{ item.extra_vars }}"
+        all_parents_must_converge: false
+        state: present
+      loop: "{{ ad_workflow_stages }}"
+      no_log: true
+
+    - name: Link the AD stages only on success
+      ansible.controller.workflow_job_template_node:
+        workflow_job_template: "{{ ad_control_workflow | string }}"
+        identifier: "{{ item.identifier }}"
+        success_nodes: "{{ item.successors }}"
+        failure_nodes: []
+        always_nodes: []
+        state: present
+      loop: "{{ ad_workflow_stages }}"
+      no_log: true
+
+    - name: Read the resulting graph for preservation checks
+      ansible.builtin.set_fact:
+        ad_workflow_after: >-
+          {{ query('ansible.controller.controller_api', 'workflow_job_template_nodes',
+                    host=ad_control_url | default(omit),
+                    oauth_token=ad_control_token | default(omit), verify_ssl=true,
+                    return_all=true, query_params={'workflow_job_template': ad_control_workflow | string}) }}
+      no_log: true
+
+    - name: Verify every existing Windows node and edge is preserved
+      ansible.builtin.assert:
+        that:
+          - after.unified_job_template == item.unified_job_template
+          - after.extra_data == item.extra_data
+          - after.inventory == item.inventory
+          - after.limit == item.limit
+          - after.all_parents_must_converge == item.all_parents_must_converge
+          - after.success_nodes | sort == item.success_nodes | sort
+          - after.failure_nodes | sort == item.failure_nodes | sort
+          - after.always_nodes | sort == item.always_nodes | sort
+      vars:
+        after: "{{ ad_workflow_after | selectattr('identifier', 'equalto', item.identifier) | first }}"
+      loop: "{{ ad_workflow_before | rejectattr('identifier', 'match', '^ad-') | list }}"
+      no_log: true
+
+    - name: Report the configured branch without claiming it has run
+      ansible.builtin.debug:
+        msg: Eight AD stages are wired into fresh Windows deployment; existing Windows nodes and edges were preserved. No workflow was launched.
