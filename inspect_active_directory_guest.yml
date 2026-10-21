@@ -8,6 +8,16 @@
     ansible_user: "{{ active_directory.domain_admin_username if ad_inspect_domain_auth | default(false) | bool else active_directory.bootstrap_username }}"
     ansible_password: "{{ active_directory.domain_admin_password if ad_inspect_domain_auth | default(false) | bool else active_directory.bootstrap_password }}"
   tasks:
+    - name: Inspect available configuration collections in the execution environment
+      ansible.builtin.command:
+        argv: [ansible-galaxy, collection, list, --format=json]
+      delegate_to: localhost
+      vars:
+        ansible_connection: local
+      register: ad_execution_collections
+      changed_when: false
+      no_log: true
+
     - name: Inspect OS, networking, servicing, licensing and certificate metadata
       ansible.windows.win_powershell:
         parameters:
@@ -40,6 +50,7 @@
       ansible.builtin.set_stats:
         data:
           active_directory_guest_inspection: "{{ ad_read_only_inspection.result }}"
+          active_directory_execution_collections: "{{ ad_execution_collections.stdout | from_json }}"
         aggregate: false
       no_log: true
 

@@ -1,5 +1,16 @@
 # Design decisions history
 
+## Install a dedicated LDAPS identity and verify gateway trust
+
+Implementation: `0233c61`.
+
+The dedicated CA issues a hostname-bound LDAPS certificate. Only its public CA
+and leaf key reach the DC; issuing keys and target-platform credentials are
+excluded from directory task payloads. The gateway trust playbook preserves the
+existing bind-mounted bundle and verifies inside the actual container, using
+previously verified SSH host keys and normal certificate validation. The target
+API connection accepts explicit protected overrides for fresh deployments.
+
 ## Reserve the controller address and inspect Windows without changing it
 
 Implementation: `19e35b3`.

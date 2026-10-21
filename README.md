@@ -60,7 +60,9 @@ entries. The protected profile records the MAC and address reused by deployment.
 
 `inspect_active_directory_guest.yml` reads OS, servicing, license, network and
 certificate metadata and parses the directory PowerShell asset without executing
-it. Detailed evidence remains protected in authenticated job artifacts.
+it. It also records installed execution-environment collection versions without
+installing dependencies. Detailed evidence remains protected in authenticated
+job artifacts.
 
 `configure_active_directory_ldaps.yml` imports the dedicated public CA and the
 leaf certificate's nonexportable machine key, removes staged PFX files, performs
