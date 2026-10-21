@@ -32,5 +32,6 @@
           swap_used_gib: "{{ (hypervisor_memory_snapshot.memory_bytes.swap_used / 1073741824) | round(2) }}"
           swap_activity_bytes_per_second: "{{ hypervisor_memory_snapshot.swap_bytes_per_second }}"
           ksm_gross_saved_gib: "{{ (hypervisor_memory_snapshot.ksm_gross_saved_bytes / 1073741824) | round(2) }}"
+          ksm_full_scan_passes: "{{ hypervisor_memory_snapshot.ksm.full_scans | default('not exposed by this kernel') }}"
           ksm_net_saved_gib: "{{ ((hypervisor_memory_snapshot.ksm_net_saved_bytes / 1073741824) | round(2)) if hypervisor_memory_snapshot.ksm_net_saved_bytes is not none else 'not exposed by this kernel' }}"
           available_already_includes_ksm: true

@@ -1,0 +1,160 @@
+---
+- name: Prepare the verified SSH connection to the selected test platform
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - vars/active_directory_vault.yml
+  tasks:
+    - name: Create an owner-only temporary SSH trust directory
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: ad-platform-trust-
+      register: ad_trust_workspace
+      no_log: true
+
+    - name: Use the previously verified SSH host key
+      ansible.builtin.copy:
+        dest: "{{ ad_trust_workspace.path }}/known_hosts"
+        content: "{{ active_directory.test_ssh_known_hosts }}"
+        mode: '0600'
+      no_log: true
+
+    - name: Add only the selected platform's protected connection
+      ansible.builtin.add_host:
+        name: ad_trust_target
+        groups: ad_trust_targets
+        ansible_host: "{{ (ad_aap_target_url | default(active_directory.test_aap_url)) | ansible.builtin.urlsplit('hostname') }}"
+        ansible_connection: ssh
+        ansible_user: "{{ active_directory.test_ssh_username }}"
+        ansible_password: "{{ active_directory.test_ssh_password }}"
+        ansible_become_password: "{{ active_directory.test_ssh_password }}"
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=yes -o UserKnownHostsFile={{ ad_trust_workspace.path }}/known_hosts"
+      no_log: true
+
+- name: Configure CA trust on the selected platform and its gateway runtime
+  hosts: ad_trust_targets
+  gather_facts: false
+  become: true
+  vars_files:
+    - vars/active_directory_vault.yml
+  tasks:
+    - name: Resolve the existing AAP service account
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ active_directory.test_install_username }}"
+      no_log: true
+
+    - name: Inspect the existing gateway container mounts
+      ansible.builtin.command:
+        argv: [runuser, -u, "{{ active_directory.test_install_username }}", --, podman, inspect, automation-gateway]
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[active_directory.test_install_username][1] }}"
+      register: ad_gateway_container
+      changed_when: false
+      no_log: true
+
+    - name: Locate the existing read-only CA trust mount
+      ansible.builtin.set_fact:
+        ad_gateway_ca_mounts: "{{ (ad_gateway_container.stdout | from_json | first).Mounts | selectattr('Destination', 'equalto', '/etc/pki/ca-trust/extracted') | list }}"
+      no_log: true
+
+    - name: Require the expected bind-mounted certificate trust layout
+      ansible.builtin.assert:
+        that:
+          - ad_gateway_ca_mounts | length == 1
+          - ad_gateway_ca_mounts[0].Type == 'bind'
+          - ad_gateway_ca_mounts[0].Source.startswith('/home/')
+        fail_msg: Inspect the target's gateway trust layout before changing an unexpected mount.
+      no_log: true
+
+    - name: Add the dedicated public CA to the host's trust anchors
+      ansible.builtin.copy:
+        dest: "/etc/pki/ca-trust/source/anchors/{{ active_directory.prefix }}-ad-demo.crt"
+        content: "{{ active_directory.ca_certificate }}"
+        owner: root
+        group: root
+        mode: '0644'
+      register: ad_ca_anchor
+      no_log: true
+
+    - name: Refresh host trust after adding the anchor
+      ansible.builtin.command:
+        argv: [update-ca-trust, extract]
+      when: ad_ca_anchor.changed
+      changed_when: true
+
+    - name: Preserve existing gateway trust and add the dedicated public CA
+      ansible.builtin.blockinfile:
+        path: "{{ ad_gateway_ca_mounts[0].Source }}/pem/tls-ca-bundle.pem"
+        marker: "# {mark} ANSIBLE MANAGED {{ active_directory.prefix }} AD DEMO CA"
+        block: "{{ active_directory.ca_certificate | trim }}"
+        create: false
+        unsafe_writes: false
+      no_log: true
+
+    - name: Verify the CA is readable inside the actual gateway container
+      ansible.builtin.command:
+        argv:
+          - runuser
+          - -u
+          - "{{ active_directory.test_install_username }}"
+          - --
+          - podman
+          - exec
+          - automation-gateway
+          - python3
+          - -c
+          - |
+            import ssl,sys
+            context=ssl.create_default_context()
+            wanted=sys.argv[1]
+            if not any(wanted in str(cert.get('subject',())) for cert in context.get_ca_certs()):
+                raise RuntimeError('The gateway runtime does not trust the intended AD CA.')
+            print('Gateway CA trust verified')
+          - "{{ active_directory.prefix }} Demo CA"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[active_directory.test_install_username][1] }}"
+      changed_when: false
+      no_log: true
+
+    - name: Verify named LDAPS with the gateway's normal certificate validation
+      ansible.builtin.command:
+        argv:
+          - runuser
+          - -u
+          - "{{ active_directory.test_install_username }}"
+          - --
+          - podman
+          - exec
+          - automation-gateway
+          - python3
+          - -c
+          - |
+            import socket,ssl,sys
+            name=sys.argv[1]
+            with socket.create_connection((name,636),timeout=15) as tcp:
+                with ssl.create_default_context().wrap_socket(tcp,server_hostname=name) as tls:
+                    print('Gateway LDAPS chain and hostname verification passed')
+          - "{{ active_directory.fqdn }}"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[active_directory.test_install_username][1] }}"
+      changed_when: false
+      when: ad_trust_verify_ldaps | default(false) | bool
+      no_log: true
+
+    - name: Report verified gateway CA trust
+      ansible.builtin.debug:
+        msg: Gateway trust was verified inside the existing container with certificate validation enabled.
+
+- name: Remove the temporary SSH trust files
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Remove the protected temporary connection workspace
+      ansible.builtin.file:
+        path: "{{ ad_trust_workspace.path }}"
+        state: absent
+      when: ad_trust_workspace is defined
+      no_log: true

@@ -130,7 +130,15 @@
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
         parameters:
-          ProfileJson: "{{ active_directory | to_json }}"
+          ProfileJson: >-
+            {{ {'dns_domain': active_directory.dns_domain,
+                'prefix': active_directory.prefix,
+                'root_dn': active_directory.root_dn,
+                'ous': active_directory.ous,
+                'groups': active_directory.groups,
+                'users': active_directory.users,
+                'bind_username': active_directory.bind_username,
+                'bind_password': active_directory.bind_password} | to_json }}
       register: ad_identities
       no_log: true
 

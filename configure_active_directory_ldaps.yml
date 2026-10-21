@@ -1,0 +1,119 @@
+---
+- name: Install and verify the dedicated domain controller's LDAPS certificate
+  hosts: all
+  gather_facts: false
+  vars_files:
+    - vars/active_directory_vault.yml
+  vars:
+    ansible_user: "{{ active_directory.domain_admin_username }}"
+    ansible_password: "{{ active_directory.domain_admin_password }}"
+    ad_tls_directory: 'C:\ProgramData\AAP\ActiveDirectoryTLS'
+  tasks:
+    - name: Require the intended domain controller before importing certificates
+      ansible.windows.win_powershell:
+        parameters:
+          Domain: "{{ active_directory.dns_domain }}"
+          Hostname: "{{ active_directory.hostname }}"
+        script: |
+          param([string]$Domain,[string]$Hostname)
+          $cs = Get-CimInstance Win32_ComputerSystem
+          if ($cs.DomainRole -notin @(4,5) -or $cs.Domain -ne $Domain -or $cs.Name -ne $Hostname) { throw 'Unexpected domain controller.' }
+          $Ansible.Changed = $false
+      no_log: true
+
+    - name: Create the private certificate staging directory
+      ansible.windows.win_file:
+        path: "{{ ad_tls_directory }}"
+        state: directory
+
+    - name: Allow only administrators and SYSTEM to access certificate staging
+      ansible.windows.win_acl:
+        path: "{{ ad_tls_directory }}"
+        user: "{{ item }}"
+        rights: FullControl
+        type: allow
+        state: present
+        inherit: ContainerInherit, ObjectInherit
+      loop: [SYSTEM, 'BUILTIN\Administrators']
+
+    - name: Remove inherited access from the private staging directory
+      ansible.windows.win_acl_inheritance:
+        path: "{{ ad_tls_directory }}"
+        state: absent
+        reorganize: false
+
+    - name: Import the encrypted profile's leaf key and public issuing certificate
+      block:
+        - name: Stage the certificate bytes without exposing private material
+          ansible.windows.win_powershell:
+            parameters:
+              Directory: "{{ ad_tls_directory }}"
+              Certificate: "{{ active_directory.certificate_pfx_base64 }}"
+              Issuer: "{{ active_directory.ca_certificate }}"
+            script: |
+              param([string]$Directory,[string]$Certificate,[string]$Issuer)
+              [IO.File]::WriteAllBytes((Join-Path $Directory 'server.pfx'),[Convert]::FromBase64String($Certificate))
+              $base64 = $Issuer -replace '-----BEGIN CERTIFICATE-----','' -replace '-----END CERTIFICATE-----','' -replace '\s',''
+              [IO.File]::WriteAllBytes((Join-Path $Directory 'issuer.cer'),[Convert]::FromBase64String($base64))
+              $Ansible.Changed = $false
+          no_log: true
+
+        - name: Trust the dedicated issuing CA on the domain controller
+          ansible.windows.win_certificate_store:
+            path: '{{ ad_tls_directory }}\issuer.cer'
+            store_location: LocalMachine
+            store_name: Root
+            state: present
+          register: ad_ldaps_ca_import
+          no_log: true
+
+        - name: Import the LDAPS certificate and nonexportable machine private key
+          ansible.windows.win_certificate_store:
+            path: '{{ ad_tls_directory }}\server.pfx'
+            password: "{{ active_directory.certificate_password }}"
+            store_location: LocalMachine
+            store_name: My
+            key_storage: machine
+            key_exportable: false
+            state: present
+          register: ad_ldaps_leaf_import
+          no_log: true
+      always:
+        - name: Remove staged private certificate files
+          ansible.windows.win_file:
+            path: "{{ ad_tls_directory }}"
+            state: absent
+
+    - name: Reload directory TLS by completing a controlled reboot after certificate changes
+      ansible.windows.win_reboot:
+        reboot_timeout: 1200
+      when: ad_ldaps_ca_import.changed or ad_ldaps_leaf_import.changed
+
+    - name: Verify the expected certificate and local LDAPS listener
+      ansible.windows.win_powershell:
+        parameters:
+          Thumbprint: "{{ active_directory.certificate_thumbprint }}"
+          Fqdn: "{{ active_directory.fqdn }}"
+        script: |
+          param([string]$Thumbprint,[string]$Fqdn)
+          $cert = Get-Item "Cert:\LocalMachine\My\$Thumbprint"
+          if (-not $cert.HasPrivateKey -or $cert.NotAfter -lt (Get-Date)) { throw 'The expected LDAPS key/certificate is unusable.' }
+          $tcp = [Net.Sockets.TcpClient]::new('127.0.0.1',636)
+          try {
+              $ssl = [Net.Security.SslStream]::new($tcp.GetStream(),$false)
+              try {
+                  $ssl.AuthenticateAsClient($Fqdn)
+                  $actual = [Security.Cryptography.X509Certificates.X509Certificate2]::new($ssl.RemoteCertificate)
+                  if ($actual.Thumbprint -ne $Thumbprint) { throw 'LDAPS selected a different certificate.' }
+              } finally { $ssl.Dispose() }
+          } finally { $tcp.Dispose() }
+          $Ansible.Changed = $false
+          $Ansible.Result = @{ LdapsVerified=$true; CertificateVerified=$true }
+      register: ad_ldaps_verification
+      no_log: true
+
+    - name: Preserve LDAPS verification without private material
+      ansible.builtin.set_stats:
+        data:
+          active_directory_ldaps_verification: "{{ ad_ldaps_verification.result }}"
+        aggregate: false

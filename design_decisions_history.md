@@ -1,5 +1,16 @@
 # Design decisions history
 
+## Reserve the controller address and inspect Windows without changing it
+
+Implementation: `19e35b3`.
+
+The domain controller needs stable addressing across boots and fresh deployment.
+The reservation playbook verifies clone ownership, exact NIC topology and
+conflicting address assignments before adding one live/persistent DHCP record.
+A separate inspection playbook reads servicing and certificate evidence and
+parses the identity script. A regression also protects Norway's NO identifier
+from YAML 1.1 boolean conversion.
+
 ## Scope regional mock resources and LDAP membership maps
 
 Implementation: `ce8d3bf`.

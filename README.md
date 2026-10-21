@@ -58,6 +58,25 @@ and persistent DHCP reservation after checking clone ownership, NIC topology,
 subnet membership and conflicting reservations. It changes no other DHCP host
 entries. The protected profile records the MAC and address reused by deployment.
 
+`inspect_active_directory_guest.yml` reads OS, servicing, license, network and
+certificate metadata and parses the directory PowerShell asset without executing
+it. Detailed evidence remains protected in authenticated job artifacts.
+
+`configure_active_directory_ldaps.yml` imports the dedicated public CA and the
+leaf certificate's nonexportable machine key, removes staged PFX files, performs
+a controlled reboot after certificate changes and verifies the selected LDAPS
+certificate with normal hostname and chain validation. The issuing private key
+stays in the encrypted profile and is excluded from guest task payloads.
+
+`configure_aap_ad_trust.yml` uses the target's previously verified SSH host key,
+adds the public CA to host trust and the gateway's existing bind-mounted trust
+bundle, and verifies trust inside the actual gateway container. Optional LDAPS
+verification also checks DNS resolution, the chain and hostname from that runtime.
+It preserves the other CA certificates and requires the expected mount layout.
+Reapply this configuration after an installer upgrade that replaces generated
+trust files. A different AAP target can supply its URL, API password and trusted
+CA through the explicit `ad_aap_target_*` inputs.
+
 Hypervisor statistics are reported in the active operator chat every 30 minutes,
 including KSM full-scan count. An AAP schedule was briefly created and removed
 after the operator clarified that chat reporting was intended; no recurring
