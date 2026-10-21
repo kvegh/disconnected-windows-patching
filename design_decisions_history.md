@@ -1,5 +1,17 @@
 # Design decisions history
 
+## Pass the target CA bundle as a private credential file
+
+Implementation: `1ef21c9`.
+
+The existing complete target trust bundle exceeds the operating system limit for
+one environment variable. AAP's native credential file injector supplies it as
+a private file while the remaining protected connection fields use environment
+injection. The required-target guard checks the file reference before managed
+stages proceed. Actual AAP executions passed gateway trust and the independent
+48-grant verification with the file-based credential. The encrypted capture's
+native CoP rendering preserves all injector expressions for job launch.
+
 ## Require a complete protected target credential for managed AD stages
 
 Implementation: `8f4775e`.
