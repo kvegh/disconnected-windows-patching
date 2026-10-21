@@ -99,6 +99,9 @@ certificate metadata and parses the directory PowerShell asset without executing
 it. It also records installed execution-environment collection versions without
 installing dependencies. Detailed evidence remains protected in authenticated
 job artifacts.
+UTC time, the Windows time zone, time source and time-service status are also
+read so domain-controller clock health can be assessed independently of local
+timestamp formatting.
 
 During a long update run, the inspector also reads free system disk space,
 servicing-process counters, available download counters and the latest servicing

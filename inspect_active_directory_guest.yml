@@ -84,6 +84,7 @@
           }
           $Ansible.Changed = $false
           $Ansible.Result = @{
+              Clock=@{ Utc=[DateTime]::UtcNow.ToString('o'); TimeZone=(Get-TimeZone).Id; Source=@(& w32tm.exe /query /source); Service=(Get-Service W32Time).Status.ToString() };
               Build="$($version.CurrentBuildNumber).$($version.UBR)";
               DomainRole=$cs.DomainRole; Domain=$cs.Domain; Hostname=$cs.Name;
               Boot=$os.LastBootUpTime; Licenses=$licenses; UpdateEvents=$events;
