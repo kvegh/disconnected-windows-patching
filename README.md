@@ -83,6 +83,10 @@ The inspector also reads Windows Update installation/error events from the
 System log. Set `ad_update_diagnostics: true` on a focused preparation retry to
 show the update module's results; connection credentials and profile tasks stay
 protected, and normal runs keep update diagnostics hidden.
+The inspector records the agent's busy/restart state when readable and the
+states of Ansible scheduled tasks. After a failed update operation has stopped,
+`ad_reboot_update_recovery: true` requests a controlled reboot before a focused
+retry; ordinary preparation does not enable this recovery option.
 
 `configure_active_directory_ldaps.yml` imports the dedicated public CA and the
 leaf certificate's nonexportable machine key, removes staged PFX files, performs

@@ -34,6 +34,18 @@
           $licenses = @(Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" | Select-Object Name,LicenseStatus,GracePeriodRemaining)
           $events = @(Get-WinEvent -LogName 'Microsoft-Windows-WindowsUpdateClient/Operational' -MaxEvents 8 -ErrorAction SilentlyContinue | Select-Object TimeCreated,Id,Message)
           $systemUpdateEvents = @(Get-WinEvent -FilterHashtable @{LogName='System';ProviderName='Microsoft-Windows-WindowsUpdateClient'} -MaxEvents 12 -ErrorAction SilentlyContinue | Select-Object TimeCreated,Id,Message)
+          $agentState = @{ Available=$false }
+          try {
+              $session = New-Object -ComObject Microsoft.Update.Session
+              $installer = $session.CreateUpdateInstaller()
+              $agentState = @{ Available=$true; InstallerBusy=$installer.IsBusy; RebootRequiredBeforeInstallation=$installer.RebootRequiredBeforeInstallation }
+          } catch { $agentState = @{ Available=$false; ErrorCode=$_.Exception.HResult } }
+          $updateTasks = @(Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object TaskName -Match '(?i)ansible' | ForEach-Object {
+              try {
+                  $info = $_ | Get-ScheduledTaskInfo -ErrorAction Stop
+                  @{ Name=$_.TaskName; State=$_.State.ToString(); LastRunTime=$info.LastRunTime; LastTaskResult=$info.LastTaskResult }
+              } catch {}
+          })
           $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$($env:SystemDrive)'"
           $servicing = @(Get-Process -Name TiWorker,TrustedInstaller,MoUsoCoreWorker,wuauclt -ErrorAction SilentlyContinue | Select-Object Name,Id,CPU,WorkingSet64,StartTime)
           $delivery = @()
@@ -55,6 +67,7 @@
               DomainRole=$cs.DomainRole; Domain=$cs.Domain; Hostname=$cs.Name;
               Boot=$os.LastBootUpTime; Licenses=$licenses; UpdateEvents=$events;
               SystemUpdateEvents=$systemUpdateEvents;
+              UpdateAgent=$agentState; AnsibleScheduledTasks=$updateTasks;
               FreeSystemBytes=$disk.FreeSpace; ServicingProcesses=$servicing;
               DeliveryOptimization=$delivery; BitsTransfers=$bits; ServicingLog=$cbs;
               Network=@(Get-NetIPConfiguration | Select-Object InterfaceAlias,IPv4Address,IPv4DefaultGateway,DNSServer);
