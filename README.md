@@ -40,6 +40,8 @@ guest and creates the regional directory. Its Windows-native AD cmdlets run
 through `ansible.windows.win_powershell`, using the existing declared runtime.
 The encrypted `vars/active_directory_vault.yml` supplies deployed identities.
 Promotion waits for AD Web Services and SYSVOL before creating identities.
+The management connection resets after selecting the administrator password,
+so subsequent role installation uses the current credential.
 Directory cmdlets receive an explicit protected credential for local AD access
 over WinRM, without requiring delegated management credentials.
 Denmark and Norway receive their matching role in EU through nested groups;

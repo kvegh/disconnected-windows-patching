@@ -55,6 +55,9 @@
         - active_directory.bootstrap_username | lower | regex_replace('^.*[\\\\/]', '') == 'administrator'
       no_log: true
 
+    - name: Reconnect using the selected administrator password before installing roles
+      ansible.builtin.meta: reset_connection
+
     - name: Install AD DS, DNS and the supported Windows administration cmdlets
       ansible.windows.win_feature:
         name: [AD-Domain-Services, DNS]

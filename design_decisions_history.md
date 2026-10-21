@@ -1,5 +1,28 @@
 # Design decisions history
 
+## Pin configuration collections and use existing reviewed PAH sources
+
+Implementation: `6e9246f`.
+
+The regional organization initially had no Galaxy credential associations.
+Configuration now reuses the target's existing certified, validated and
+community PAH associations before syncing its project, rejects unexpected
+source layouts and copies no tokens. Its local reconciliation passed with all
+four regions and 48 scoped grants. Project collection pins match the locally
+validated versions already available in the reviewed shared PAH catalog, so the
+encrypted use-case manifest and project requirements stay consistent.
+
+## Inspect update-agent state and provide explicit recovery reboot control
+
+Implementation: `2a8fb67`.
+
+The inspector records agent busy/restart information when readable and matching
+Ansible scheduled-task states. Unavailable agent access remains explicit rather
+than being reported as idle. Preparation exposes an optional controlled reboot
+for recovery after a failed update operation has stopped. It remains disabled
+in normal runs. The diagnostic retry later showed active cumulative-update
+installation, so its running installer was left to complete.
+
 ## Diagnose failed Microsoft update installations with protected defaults
 
 Implementation: `0cc9c1a`.
