@@ -12,6 +12,12 @@ existing test AAP VM and waits for SSH. Supply `ad_start_test_platform_approved`
 `ad_test_vm_name` and `ad_test_aap_address` through protected configuration.
 It accepts running or shut-off domains and refuses unexpected states.
 
+`report_hypervisor_memory.yml` reads memory and KSM counters and samples actual
+swap-in/out activity for five seconds. Detailed results stay in authenticated
+AAP job artifacts. Available RAM already includes KSM's benefit; do not add KSM
+savings again. Gross deduplication savings and kernel-reported net savings are
+reported separately. Missing kernel counters are reported as unavailable.
+
 ## Interactive demo
 
 [`demo/`](demo/README.md) contains a presenter-paced browser walkthrough with

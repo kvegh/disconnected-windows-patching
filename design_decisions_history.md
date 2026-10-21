@@ -1,5 +1,15 @@
 # Design decisions history
 
+## Start the dedicated AD integration test platform
+
+Implementation: `8ee617b`.
+
+The operator selected an existing separate test AAP for LDAP and regional RBAC
+validation and explicitly authorized starting it after reviewing host memory.
+The startup playbook requires an exact protected VM name and address, accepts
+only running or shut-off states, and waits for the SSH listener. It changes no
+other domains and does not claim that SSH readiness proves AAP readiness.
+
 ## 2026-10-21 — Repeat the inside-out cue before every internal action
 
 Implementation: `a470e3c`. The user requested an arrow from the internal

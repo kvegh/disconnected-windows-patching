@@ -1,0 +1,36 @@
+---
+- name: Report hypervisor memory, swap activity and KSM savings
+  hosts: hypervisor
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Read counters and measure five seconds of swap activity
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/hypervisor-memory-report.py') }}"]
+      register: hypervisor_memory_query
+      changed_when: false
+      check_mode: false
+      no_log: true
+
+    - name: Parse the read-only snapshot
+      ansible.builtin.set_fact:
+        hypervisor_memory_snapshot: "{{ hypervisor_memory_query.stdout | from_json }}"
+      no_log: true
+
+    - name: Save the complete snapshot in authenticated job artifacts
+      ansible.builtin.set_stats:
+        data:
+          hypervisor_memory_report: "{{ hypervisor_memory_snapshot }}"
+        aggregate: false
+      no_log: true
+
+    - name: Report comparable memory and KSM measurements
+      ansible.builtin.debug:
+        msg:
+          checked_at_utc: "{{ hypervisor_memory_snapshot.checked_at_utc }}"
+          available_gib: "{{ (hypervisor_memory_snapshot.memory_bytes.available / 1073741824) | round(2) }}"
+          swap_used_gib: "{{ (hypervisor_memory_snapshot.memory_bytes.swap_used / 1073741824) | round(2) }}"
+          swap_activity_bytes_per_second: "{{ hypervisor_memory_snapshot.swap_bytes_per_second }}"
+          ksm_gross_saved_gib: "{{ (hypervisor_memory_snapshot.ksm_gross_saved_bytes / 1073741824) | round(2) }}"
+          ksm_net_saved_gib: "{{ ((hypervisor_memory_snapshot.ksm_net_saved_bytes / 1073741824) | round(2)) if hypervisor_memory_snapshot.ksm_net_saved_bytes is not none else 'not exposed by this kernel' }}"
+          available_already_includes_ksm: true
