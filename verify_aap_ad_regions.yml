@@ -7,6 +7,9 @@
     - vars/active_directory_vault.yml
     - vars/active_directory_target.yml
   tasks:
+    - name: Check the selected target credential before reading platform access
+      ansible.builtin.include_tasks: tasks/require_active_directory_target.yml
+
     - name: Check exact resource scopes and optionally exercise real login permissions
       ansible.builtin.command:
         argv: [python3, "{{ playbook_dir }}/assets/verify-aap-ad-regions.py"]

@@ -27,6 +27,9 @@
       controller_password: "{{ ad_target_admin_password }}"
       validate_certs: true
   tasks:
+    - name: Check the selected target credential before any platform changes
+      ansible.builtin.include_tasks: tasks/require_active_directory_target.yml
+
     - name: Create a private API CA bundle file
       ansible.builtin.tempfile:
         prefix: ad-aap-ca-

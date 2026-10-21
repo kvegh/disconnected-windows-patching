@@ -1,5 +1,16 @@
 # Design decisions history
 
+## Publish explicit LDAPS DNS and declare the existing configuration runtime
+
+Implementation: `125617c`.
+
+The initial DHCP reservation did not make the LDAPS hostname resolve from the
+operator host. Address configuration now publishes an explicit network DNS
+record after conflict checks. Separate requirements document the configuration
+collections already present in the supported execution image, while preserving
+guest job collection requirements. The README explains that AD membership maps
+to AAP teams and AAP role grants remain managed by Ansible.
+
 ## Add AD to fresh Windows provisioning and keep its AAP target separate
 
 Implementation: `bfb5110`.

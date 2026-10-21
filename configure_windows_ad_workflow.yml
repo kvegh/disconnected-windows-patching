@@ -105,7 +105,7 @@
         verbosity: 0
         job_type: run
         state: present
-      loop: "{{ ad_workflow_stages }}"
+      loop: "{{ ad_workflow_stages + ad_workflow_utilities }}"
       no_log: true
 
     - name: Create all AD nodes before assigning their success edges

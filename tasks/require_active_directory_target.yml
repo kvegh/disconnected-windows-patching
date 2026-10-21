@@ -1,0 +1,15 @@
+---
+- name: Require the attached target credential for managed workflow stages
+  ansible.builtin.assert:
+    that: lookup('ansible.builtin.env', item) | length > 0
+    fail_msg: Attach the protected AD target credential before configuring this platform.
+  loop:
+    - AD_AAP_TARGET_URL
+    - AD_AAP_TARGET_ADMIN_PASSWORD
+    - AD_AAP_TARGET_CA
+    - AD_AAP_TARGET_SSH_USERNAME
+    - AD_AAP_TARGET_SSH_PASSWORD
+    - AD_AAP_TARGET_SSH_KNOWN_HOSTS
+    - AD_AAP_TARGET_INSTALL_USERNAME
+  when: ad_require_target_credential | default(false) | bool
+  no_log: true

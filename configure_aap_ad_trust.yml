@@ -7,6 +7,9 @@
     - vars/active_directory_vault.yml
     - vars/active_directory_target.yml
   tasks:
+    - name: Check the selected target credential before using platform trust
+      ansible.builtin.include_tasks: tasks/require_active_directory_target.yml
+
     - name: Create an owner-only temporary SSH trust directory
       ansible.builtin.tempfile:
         state: directory

@@ -40,19 +40,31 @@ ad_workflow_stages:
     playbook: configure_aap_ad_trust.yml
     kind: target
     timeout: 1200
-    extra_vars: {ad_trust_verify_ldaps: true}
+    extra_vars: {ad_trust_verify_ldaps: true, ad_require_target_credential: true}
     successors: [ad-configure-aap-regions]
   - identifier: ad-configure-aap-regions
     template: Configure AD AAP Regions
     playbook: configure_aap_ad_regions.yml
     kind: target
     timeout: 3600
-    extra_vars: {ad_aap_configure_authentication: true}
+    extra_vars: {ad_aap_configure_authentication: true, ad_require_target_credential: true}
     successors: [ad-verify-aap-access]
   - identifier: ad-verify-aap-access
     template: Verify AD AAP Access
     playbook: verify_aap_ad_regions.yml
     kind: target
     timeout: 3600
-    extra_vars: {ad_verify_ldap_logins: true}
+    extra_vars: {ad_verify_ldap_logins: true, ad_require_target_credential: true}
     successors: []
+
+ad_workflow_utilities:
+  - template: Inspect AD Guest
+    playbook: inspect_active_directory_guest.yml
+    kind: windows
+    timeout: 600
+    extra_vars: {}
+  - template: Start AD Test Platform
+    playbook: start_active_directory_test_platform.yml
+    kind: hypervisor
+    timeout: 1200
+    extra_vars: {}
