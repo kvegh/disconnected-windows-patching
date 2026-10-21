@@ -38,7 +38,7 @@
           <div class="architecture-canvas" id="architecture-canvas">
             <div class="architecture-empty" id="architecture-empty"><div class="empty-cross" aria-hidden="true">+</div><p>The Windows environment will appear here.</p></div>
             <svg class="architecture" viewBox="0 0 960 800" role="img" aria-labelledby="diagram-title diagram-description">
-              <title id="diagram-title">Disconnected Windows datacenter</title><desc id="diagram-description">The architecture fills as you advance the walkthrough. AAP is in the connected network. A proposed Linux execution node initiates outbound mesh connectivity from the secure network. Jobs are dispatched over that connection before local Windows actions run.</desc>
+              <title id="diagram-title">Disconnected Windows datacenter</title><desc id="diagram-description">The architecture fills as you advance the walkthrough. AAP is in the connected network. A proposed Linux execution node initiates outbound mesh connectivity from the secure network. Each internal action highlights that inside-out connection, followed by job dispatch and local Windows execution. Later actions reuse the established mesh.</desc>
               <defs>
                 <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="#d9e3f1"/></pattern>
                 <marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 7 3.5 0 7" fill="none" stroke="#2563eb" stroke-width="1.2"/></marker>
@@ -55,7 +55,7 @@
               <!-- AAP orchestration is drawn above the Windows workload layer. -->
               <g id="aap-layer">
                 <g id="mesh-channels" class="mesh-channels">
-                  <text class="mesh-label" x="329" y="116">Outbound mesh</text>
+                  <text class="mesh-label mesh-outbound-label" x="329" y="116">Outbound mesh</text>
                   <path class="mesh-request-path" id="mesh-request-path" d="M498 132H316" marker-end="url(#arrow)"/>
                   <circle class="control-particle mesh-connect-particle" cx="498" cy="132" r="3"/>
                   <path class="mesh-dispatch-path" id="mesh-dispatch-path" d="M316 165H498" marker-end="url(#arrow)"/>

@@ -21,7 +21,9 @@
 .control-particle { visibility:hidden; fill:#497ed5; }
 .mesh-job-particle { fill:#487ed8; stroke:#fff; stroke-width:2; }
 .architecture[data-phase="schedule"] .control-surface { animation:controller-pulse .28s ease-out; }
-.architecture[data-phase="connect"] .mesh-connect-particle { visibility:visible; animation:mesh-outbound .55s linear both; }
+.architecture:is([data-phase="connect"],[data-phase="outbound"]) .mesh-connect-particle { visibility:visible; animation:mesh-outbound .55s linear both; }
+.architecture:is([data-phase="connect"],[data-phase="outbound"]) .mesh-request-path { stroke:#487ed8; stroke-width:2; }
+.architecture:is([data-phase="connect"],[data-phase="outbound"]) .mesh-outbound-label { fill:#3572d5; }
 .architecture[data-phase="dispatch"] .mesh-job-particle { visibility:visible; animation:mesh-dispatch .45s linear both; }
 @keyframes controller-pulse { 50% { fill:#e9f2ff; stroke:#6e9ce9; } }
 @keyframes mesh-outbound { from { transform:translateX(0); } to { transform:translateX(-182px); } }

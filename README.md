@@ -19,8 +19,10 @@ only the page and its public assets. See the demo README for local use and check
 
 [`demo-with-aap/`](demo-with-aap/README.md) is a separate architecture edition at
 the `/demo-with-aap/` Pages URL. It adds connected AAP and a clearly labelled,
-proposed Linux execution node in the secure network. Scheduling, outbound mesh
-establishment, job dispatch and local execution precede Windows changes. The
+proposed Linux execution node in the secure network. Before every internal action,
+an inside-out arrow highlights the node-initiated mesh connection, followed by
+job dispatch and local execution. Later actions reuse the established mesh; the
+repeated arrow is a visual reminder rather than a new connection or task poll. The
 deployment arrows show external AAP creating the external repository and internal
 execution creating the internal repository and two managed Windows VMs. The
 existing demo URL and assets remain independent. Both editions are illustrative;

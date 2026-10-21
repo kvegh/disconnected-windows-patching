@@ -16,12 +16,17 @@ Windows deployment. AAP's connected card groups control and connected execution;
 it does not imply that a controller-only node runs ordinary playbooks.
 
 Each Next click shows scheduling before infrastructure changes. Internal work
-then shows job dispatch over Receptor mesh and local execution against Windows
-hosts over WinRM. The first internal action also shows the execution node
-initiating the outbound mesh connection. Later actions reuse that connection:
-the connection is bidirectional, so jobs flow back over it. The diagram does not
-represent periodic HTTP polling for individual tasks. The connection is
-established during the first deployment action.
+then shows an inside-out arrow from the execution node to external AAP, job
+dispatch back over Receptor mesh, and local execution against Windows hosts over
+WinRM. This outward cue animates before every internal action, including actions
+that also involve connected work. Connected-only actions do not animate the mesh.
+
+The first internal action shows the execution node establishing the outbound
+connection. Later actions repeat the directional cue while reusing that
+connection: it is bidirectional, so jobs flow back over it. The repeated cue is a
+visual reminder of connection ownership, not a separate task request, a fresh
+connection or periodic HTTP polling. The connection is established during the
+first deployment action.
 
 Deployment is shown in two stages: external AAP deploys the external
 repository first, then the internal execution node deploys the internal repository

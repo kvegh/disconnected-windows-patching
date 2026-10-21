@@ -17,7 +17,11 @@
       title: 'External AAP deploys the external repository',
       description: 'The deployment arrow leads from external AAP to the external repository. That server appears first.'
     });
-    if (internal && !meshConnected) phases.push({
+    if (internal) phases.push(meshConnected ? {
+      key: 'outbound', duration: 550,
+      title: 'Inside → out over the established mesh',
+      description: 'The outward arrow highlights the connection initiated by the internal node. The mesh is already connected and will carry this job back to the node.'
+    } : {
       key: 'connect', duration: 550,
       title: 'The execution node opens the connection',
       description: 'The proposed internal node initiates an outbound, authenticated Receptor mesh connection. It is reused for later jobs.'

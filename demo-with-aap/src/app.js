@@ -218,7 +218,7 @@
           diagram.dataset.phase = phase.key;
           diagram.dataset.scope = phase.scope;
           diagram.dataset.target = phase.target;
-          diagram.classList.toggle('mesh-visible', state.stage >= 1 || phase.key === 'connect' || phase.key === 'dispatch' || (phase.key === 'execute' && ['internal', 'both'].includes(phase.scope)));
+          diagram.classList.toggle('mesh-visible', state.stage >= 1 || ['connect', 'outbound', 'dispatch'].includes(phase.key) || (phase.key === 'execute' && ['internal', 'both'].includes(phase.scope)));
           if (targetStage === 1 && ['connect', 'dispatch'].includes(phase.key)) {
             externalDeploymentReady = true;
             diagram.dataset.externalDeployed = 'true';
@@ -231,8 +231,8 @@
           setText('pending-description', phase.description);
           setText('execution-caption', phase.title);
           setText('flow-caption', phase.description);
-          setText('controller-status', phase.key === 'schedule' ? 'Scheduling the next job' : phase.key === 'connect' ? 'Awaiting outbound mesh' : phase.key === 'dispatch' ? 'Dispatching over the mesh' : 'Job running on its executor');
-          setText('execution-status', phase.key === 'connect' ? 'Opening outbound mesh' : phase.key === 'dispatch' ? 'Receiving the job over mesh' : phase.key === 'execute' && phase.target === 'deploy-internal' ? 'Deploying three internal VMs' : phase.key === 'execute' && ['internal', 'both'].includes(phase.scope) ? 'Running the internal playbook' : state.stage >= 1 ? 'Mesh connected · ready for work' : 'Ready to initiate outbound mesh');
+          setText('controller-status', phase.key === 'schedule' ? 'Scheduling the next job' : phase.key === 'connect' ? 'Awaiting outbound mesh' : phase.key === 'outbound' ? 'Established mesh · inside → out' : phase.key === 'dispatch' ? 'Dispatching over the mesh' : 'Job running on its executor');
+          setText('execution-status', phase.key === 'connect' ? 'Opening outbound mesh' : phase.key === 'outbound' ? 'Reusing outbound mesh' : phase.key === 'dispatch' ? 'Receiving the job over mesh' : phase.key === 'execute' && phase.target === 'deploy-internal' ? 'Deploying three internal VMs' : phase.key === 'execute' && ['internal', 'both'].includes(phase.scope) ? 'Running the internal playbook' : state.stage >= 1 ? 'Mesh connected · ready for work' : 'Ready to initiate outbound mesh');
           setText('announcer', `${phase.title}. ${phase.description}`);
           const scroll = byId('workflow-scroll');
           scroll.scrollTo({ top: scroll.scrollHeight, behavior: reducedMotion ? 'instant' : 'smooth' });
