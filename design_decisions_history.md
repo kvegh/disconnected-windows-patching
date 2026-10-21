@@ -1,5 +1,15 @@
 # Design decisions history
 
+## Inspect servicing progress during long Windows updates
+
+Implementation: `23862c9`.
+
+The operator needs progress evidence while the all-category patch run is active.
+The inspector reads free disk space, servicing-process counters, available
+download counters and recent CBS log metadata without changing servicing state.
+The live inspection passed and confirmed the updated OS build and completed
+reboot while the update job's management connection was still being monitored.
+
 ## Pass the target CA bundle as a private credential file
 
 Implementation: `1ef21c9`.

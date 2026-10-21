@@ -63,6 +63,27 @@
       changed_when: false
       no_log: true
 
+    - name: Optionally search Microsoft for remaining updates without installing them
+      ansible.windows.win_updates:
+        category_names: ['*']
+        server_selection: windows_update
+        skip_optional: false
+        state: searched
+      register: ad_read_only_update_scan
+      when: ad_inspect_update_scan | default(false) | bool
+      no_log: true
+
+    - name: Save the optional read-only software update scan
+      ansible.builtin.set_stats:
+        data:
+          active_directory_readonly_update_scan:
+            remaining_count: "{{ ad_read_only_update_scan.found_update_count }}"
+            reboot_required: "{{ ad_read_only_update_scan.reboot_required | default(false) }}"
+            updates: "{{ ad_read_only_update_scan.updates | default({}) }}"
+        aggregate: false
+      when: ad_inspect_update_scan | default(false) | bool
+      no_log: true
+
     - name: Preserve the protected inspection evidence
       ansible.builtin.set_stats:
         data:

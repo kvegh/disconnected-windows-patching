@@ -74,6 +74,8 @@ job artifacts.
 During a long update run, the inspector also reads free system disk space,
 servicing-process counters, available download counters and the latest servicing
 log metadata. It does not start a second update run or change servicing state.
+Set `ad_inspect_update_scan: true` to query all offered Microsoft software update
+categories without installing updates or rebooting.
 
 `configure_active_directory_ldaps.yml` imports the dedicated public CA and the
 leaf certificate's nonexportable machine key, removes staged PFX files, performs
