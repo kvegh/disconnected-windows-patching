@@ -1,5 +1,13 @@
 # Design decisions history
 
+## Keep the repair option and its runtime result separate
+
+Implementation: `d485251`.
+
+The optional installer result has its own variable so a launch-time Boolean
+cannot shadow the result used to decide whether a restart is required. The
+repair include also has a distinct task name for clear job diagnostics.
+
 ## Repair a diagnosed Security platform registration with the signed cached installer
 
 Implementation: `1f65f00`.
