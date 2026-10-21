@@ -53,6 +53,11 @@ it creates ordered login, organization and nested-group team maps with revocatio
 Local authentication remains available. Use the separately pinned configuration
 collections; Windows guest jobs retain their existing runtime dependencies.
 
+`configure_active_directory_address.yml` adds the dedicated clone's exact live
+and persistent DHCP reservation after checking clone ownership, NIC topology,
+subnet membership and conflicting reservations. It changes no other DHCP host
+entries. The protected profile records the MAC and address reused by deployment.
+
 Hypervisor statistics are reported in the active operator chat every 30 minutes,
 including KSM full-scan count. An AAP schedule was briefly created and removed
 after the operator clarified that chat reporting was intended; no recurring

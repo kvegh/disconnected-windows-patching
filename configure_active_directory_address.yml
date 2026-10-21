@@ -1,0 +1,67 @@
+---
+- name: Reserve the dedicated domain controller's existing management address
+  hosts: hypervisor
+  gather_facts: false
+  become: true
+  vars_files:
+    - vars/active_directory_vault.yml
+  tasks:
+    - name: Verify the existing demo-owned domain and its single expected NIC
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/inspect-activation-domain.py') }}", "{{ active_directory.hostname }}"]
+      register: ad_domain_inspection
+      changed_when: false
+      check_mode: false
+      no_log: true
+
+    - name: Require the exact dedicated clone and network attachment
+      ansible.builtin.assert:
+        that:
+          - ad_domain.name == active_directory.hostname
+          - ad_domain.marker == 'aap-disconnected-windows-clone'
+          - ad_domain.live | length == 1
+          - ad_domain.persistent == ad_domain.live
+          - ad_domain.live[0].mac == active_directory.mac | lower
+          - ad_domain.live[0].source.network == active_directory.libvirt_network
+      vars:
+        ad_domain: "{{ ad_domain_inspection.stdout | from_json }}"
+      no_log: true
+
+    - name: Inspect network address ownership without modifying leases
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - |
+            import ipaddress,json,subprocess,sys,xml.etree.ElementTree as E
+            network,mac,address,name=sys.argv[1:]
+            root=E.fromstring(subprocess.check_output(['virsh','net-dumpxml',network],text=True))
+            ip=ipaddress.ip_address(address)
+            matches=[x for x in root.findall('ip') if x.get('address') and ip in ipaddress.ip_network(x.get('address')+'/'+(x.get('prefix') or x.get('netmask')),strict=False)]
+            if len(matches)!=1:raise RuntimeError('Address does not belong to exactly one network subnet.')
+            hosts=matches[0].findall('dhcp/host')
+            for host in hosts:
+                if host.get('ip')==address and host.get('mac','').lower()!=mac.lower():raise RuntimeError('Address is reserved to another NIC.')
+                if host.get('mac','').lower()==mac.lower() and host.get('ip')!=address:raise RuntimeError('NIC has a different reservation.')
+            exists=any(h.get('ip')==address and h.get('mac','').lower()==mac.lower() for h in hosts)
+            xml=E.tostring(E.Element('host',{'mac':mac,'ip':address,'name':name}),encoding='unicode')
+            print(json.dumps({'exists':exists,'xml':xml}))
+          - "{{ active_directory.libvirt_network }}"
+          - "{{ active_directory.mac }}"
+          - "{{ active_directory.ipv4 }}"
+          - "{{ active_directory.fqdn }}"
+      register: ad_reservation_inspection
+      changed_when: false
+      check_mode: false
+      no_log: true
+
+    - name: Add only the dedicated guest's persistent and live reservation
+      ansible.builtin.command:
+        argv: [virsh, net-update, "{{ active_directory.libvirt_network }}", add-last, ip-dhcp-host, "{{ (ad_reservation_inspection.stdout | from_json).xml }}", --live, --config]
+      when: not (ad_reservation_inspection.stdout | from_json).exists
+      changed_when: true
+      no_log: true
+
+    - name: Report stable addressing without environment values
+      ansible.builtin.debug:
+        msg: The dedicated domain controller has an exact persistent DHCP reservation; other leases are unchanged.

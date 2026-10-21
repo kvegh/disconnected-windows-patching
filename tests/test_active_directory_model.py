@@ -3,6 +3,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+import yaml
 
 SPEC = importlib.util.spec_from_file_location(
     'ad_model', Path(__file__).parents[1] / 'assets/active-directory-model.py')
@@ -44,6 +45,11 @@ class RegionalAccessTests(unittest.TestCase):
         for region, _ in MODEL.REGIONS:
             for role in MODEL.ROLES:
                 self.assertEqual({item[1] for item in self.access(region, role)}, {role})
+
+    def test_aap_region_keys_preserve_norway_as_a_string(self):
+        path = Path(__file__).parents[1] / 'configure_aap_ad_regions.yml'
+        regions = yaml.safe_load(path.read_text())[0]['vars']['ad_region_labels']
+        self.assertEqual(set(regions), {'DK', 'NO', 'EU', 'NZ'})
 
 
 if __name__ == '__main__':

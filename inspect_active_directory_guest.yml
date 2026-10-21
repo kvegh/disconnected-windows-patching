@@ -1,0 +1,51 @@
+---
+- name: Inspect the dedicated AD guest without changing its state
+  hosts: all
+  gather_facts: false
+  vars_files:
+    - vars/active_directory_vault.yml
+  vars:
+    ansible_user: "{{ active_directory.domain_admin_username if ad_inspect_domain_auth | default(false) | bool else active_directory.bootstrap_username }}"
+    ansible_password: "{{ active_directory.domain_admin_password if ad_inspect_domain_auth | default(false) | bool else active_directory.bootstrap_password }}"
+  tasks:
+    - name: Inspect OS, networking, servicing, licensing and certificate metadata
+      ansible.windows.win_powershell:
+        parameters:
+          IdentityScript: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
+        script: |
+          param([string]$IdentityScript)
+          $tokens=$null; $errors=$null
+          [System.Management.Automation.Language.Parser]::ParseInput($IdentityScript,[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count) { throw 'The directory identity script has a PowerShell parse error.' }
+          $os = Get-CimInstance Win32_OperatingSystem
+          $cs = Get-CimInstance Win32_ComputerSystem
+          $version = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+          $licenses = @(Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" | Select-Object Name,LicenseStatus,GracePeriodRemaining)
+          $events = @(Get-WinEvent -LogName 'Microsoft-Windows-WindowsUpdateClient/Operational' -MaxEvents 8 -ErrorAction SilentlyContinue | Select-Object TimeCreated,Id,Message)
+          $Ansible.Changed = $false
+          $Ansible.Result = @{
+              Build="$($version.CurrentBuildNumber).$($version.UBR)";
+              DomainRole=$cs.DomainRole; Domain=$cs.Domain; Hostname=$cs.Name;
+              Boot=$os.LastBootUpTime; Licenses=$licenses; UpdateEvents=$events;
+              Network=@(Get-NetIPConfiguration | Select-Object InterfaceAlias,IPv4Address,IPv4DefaultGateway,DNSServer);
+              PendingReboot=((Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'));
+              Certificates=@(Get-ChildItem Cert:\LocalMachine\My | Select-Object Subject,Thumbprint,NotAfter,HasPrivateKey);
+              IdentityScriptParsed=$true
+          }
+      register: ad_read_only_inspection
+      changed_when: false
+      no_log: true
+
+    - name: Preserve the protected inspection evidence
+      ansible.builtin.set_stats:
+        data:
+          active_directory_guest_inspection: "{{ ad_read_only_inspection.result }}"
+        aggregate: false
+      no_log: true
+
+    - name: Report the inspection outcome without environment identities
+      ansible.builtin.debug:
+        msg:
+          build: "{{ ad_read_only_inspection.result.Build }}"
+          pending_reboot: "{{ ad_read_only_inspection.result.PendingReboot }}"
+          identity_script_parsed: "{{ ad_read_only_inspection.result.IdentityScriptParsed }}"

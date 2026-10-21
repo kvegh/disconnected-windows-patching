@@ -10,7 +10,7 @@
     ad_organization: "{{ active_directory.prefix }} Regional Identity Demo"
     ad_project: "{{ active_directory.prefix }} Regional Mock Resources"
     ad_authenticator: "{{ active_directory.prefix }} Active Directory"
-    ad_region_labels: {DK: Denmark, NO: Norway, EU: EU, NZ: New Zealand}
+    ad_region_labels: {'DK': Denmark, 'NO': Norway, 'EU': EU, 'NZ': New Zealand}
     ad_roles: [reader, executor, admin]
     ad_resource_types: [inventory, credential, jobtemplate]
   module_defaults:

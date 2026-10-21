@@ -1,5 +1,18 @@
 # Design decisions history
 
+## Scope regional mock resources and LDAP membership maps
+
+Implementation: `ce8d3bf`.
+
+The operator requested inventories, credentials and job templates for each
+region. Each region receives independent synthetic credentials and inert jobs
+with fixed inputs. Readers receive custom view-only roles; executors receive
+use and execute roles; admins receive resource administration. No team receives
+an organization-wide administrator grant. LDAP maps use full group DNs, explicit
+ordering and revocation. Activation requires verified LDAPS and gateway trust.
+The operator clarified that periodic memory reports belong in chat, so the
+briefly created AAP schedule and reporting template were removed.
+
 ## Define nested regional identities and protect the deployment profile
 
 Implementation: `6fce88b`.
