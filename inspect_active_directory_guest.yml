@@ -57,6 +57,20 @@
               try { $bits = @(Get-BitsTransfer -AllUsers -ErrorAction Stop | Select-Object JobState,BytesTotal,BytesTransferred,CreationTime,ModificationTime) } catch {}
           }
           $cbsPath = "$env:SystemRoot\Logs\CBS\CBS.log"
+          $healthRoot = "$env:SystemRoot\System32\SecurityHealth"
+          $healthFiles = @()
+          if (Test-Path $healthRoot) {
+              $healthFiles = @(Get-ChildItem $healthRoot -Recurse -File -Filter '*.exe' -ErrorAction SilentlyContinue | ForEach-Object {
+                  @{ Path=$_.FullName; FileVersion=$_.VersionInfo.FileVersion; ProductVersion=$_.VersionInfo.ProductVersion; Modified=$_.LastWriteTime }
+              })
+          }
+          $healthService = @(Get-CimInstance Win32_Service -Filter "Name='SecurityHealthService'" -ErrorAction SilentlyContinue | Select-Object Name,State,StartMode,PathName)
+          $healthApp = @()
+          try { $healthApp = @(Get-AppxPackage -AllUsers -Name Microsoft.SecHealthUI -ErrorAction Stop | Select-Object Name,Version,PackageFullName,InstallLocation,Status,PackageUserInformation) } catch {}
+          $healthRegistry = $null
+          if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows Security Health\Platform') {
+              $healthRegistry = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Security Health\Platform'
+          }
           $cbs = $null
           if (Test-Path $cbsPath) {
               $cbs = @{ File=(Get-Item $cbsPath | Select-Object Length,LastWriteTime); Tail=@(Get-Content $cbsPath -Tail 16 -ErrorAction SilentlyContinue) }
@@ -70,6 +84,7 @@
               UpdateAgent=$agentState; AnsibleScheduledTasks=$updateTasks;
               FreeSystemBytes=$disk.FreeSpace; ServicingProcesses=$servicing;
               DeliveryOptimization=$delivery; BitsTransfers=$bits; ServicingLog=$cbs;
+              SecurityHealth=@{ Files=$healthFiles; Service=$healthService; App=$healthApp; Registry=$healthRegistry };
               Network=@(Get-NetIPConfiguration | Select-Object InterfaceAlias,IPv4Address,IPv4DefaultGateway,DNSServer);
               PendingReboot=((Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'));
               Certificates=@(Get-ChildItem Cert:\LocalMachine\My | Select-Object Subject,Thumbprint,NotAfter,HasPrivateKey);
