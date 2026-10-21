@@ -1,5 +1,15 @@
 # Design decisions history
 
+## Verify graceful shutdown before starting the recovered controller
+
+Implementation: `f9df241`.
+
+The guest did not complete the ACPI reboot event and had no configured QEMU
+agent. The recovery alternative requests ACPI shutdown, verifies the domain is
+fully shut off, starts it and waits for management connectivity. This live path
+passed without destroying or forcibly resetting a running VM. AD readiness and
+identity setup then resumed separately.
+
 ## Complete promotion restarts across the Windows identity transition
 
 Implementation: `1d61dc2`, `0ed66ba`, `e7081ab`.

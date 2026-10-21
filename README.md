@@ -91,6 +91,8 @@ shut off and then starts it; it never destroys a running domain. Recovery comman
 diagnostics can be enabled with `ad_recovery_diagnostics: true`; the normal
 default remains protected. Guest inspection verifies the selected management
 identity before collecting protected metadata so connection failures are clear.
+The graceful shutdown-and-start path passed live promotion recovery. The test
+guest has no configured QEMU agent, so the agent mode was unavailable there.
 
 `inspect_active_directory_guest.yml` reads OS, servicing, license, network and
 certificate metadata and parses the directory PowerShell asset without executing
