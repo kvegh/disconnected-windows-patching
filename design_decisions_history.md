@@ -1,5 +1,27 @@
 # Design decisions history
 
+## 2026-10-21 — Show deployment ownership with four direct arrows
+
+Implementation: `75d9a83`. The user requested a simpler deployment explanation
+in the AAP edition, without SSH or virtualization details. Show external AAP
+deploying its external repository first. Then show the internal execution node
+deploying the internal repository and the two managed Windows VMs. One external
+and three internal arrows express that ownership; they remain visible after the
+deployment action finishes.
+
+The external server appears after its deployment animation. Establish outbound
+mesh and dispatch the internal job before animating the three internal deployment
+arrows and revealing those VMs. Later jobs reuse this connection. Reset also
+clears a partially illustrated external deployment and cancels the remaining
+phases. Update the mock code and explanatory text to match this abstraction.
+
+Preserve the proposed-node disclosure, actual deployed automation and original
+demo assets. Both applicable README files describe the revised sequence.
+All eight AAP-edition checks passed, including deployment ordering and reset
+after the external stage. Static checks verified the four arrow destinations,
+absence of low-level provisioning references in this edition, valid SVG and
+unchanged original demo assets. Browser visual QA remains unavailable.
+
 ## 2026-10-21 — Add a separate AAP orchestration architecture edition
 
 Implementation: `71735be`. The user requested a second, independent edition in
