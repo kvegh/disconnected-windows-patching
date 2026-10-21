@@ -3,3 +3,5 @@
 collections:
   - name: ansible.controller
     version: '4.8.11'
+  - name: ansible.platform
+    version: '2.7.20260930'

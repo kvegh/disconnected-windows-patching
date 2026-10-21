@@ -42,6 +42,22 @@ New Zealand has separate reader/executor/admin access and no EU inheritance.
 Existing unrelated directory objects are refused. Four focused model tests check
 the effective group graph, including cross-region and privilege-escalation cases.
 
+`configure_aap_ad_regions.yml` creates a separate test organization with four
+regional inventories, four independent synthetic credentials, eight inert job
+templates and twelve teams. Reader teams get explicit view-only resource roles;
+executors get inventory/credential use and job execution; admins get resource
+administration. Each grant targets its own region's resources. Mock templates
+have fixed inventories, credentials and variables and contact no external hosts.
+The optional LDAP stage requires verified LDAPS and gateway trust inputs before
+it creates ordered login, organization and nested-group team maps with revocation.
+Local authentication remains available. Use the separately pinned configuration
+collections; Windows guest jobs retain their existing runtime dependencies.
+
+Hypervisor statistics are reported in the active operator chat every 30 minutes,
+including KSM full-scan count. An AAP schedule was briefly created and removed
+after the operator clarified that chat reporting was intended; no recurring
+memory-report job or template remains deployed.
+
 ## Interactive demo
 
 [`demo/`](demo/README.md) contains a presenter-paced browser walkthrough with

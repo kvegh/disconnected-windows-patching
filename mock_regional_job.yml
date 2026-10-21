@@ -1,0 +1,16 @@
+---
+- name: Demonstrate access to regional mock resources
+  hosts: all
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Require the fixed regional job definition
+      ansible.builtin.assert:
+        that:
+          - demo_region in ['DK', 'NO', 'EU', 'NZ']
+          - demo_operation in ['read', 'simulate_change']
+
+    - name: Show the permitted mock action
+      ansible.builtin.debug:
+        msg: "{{ demo_operation }} on the {{ demo_region }} mock inventory; no external systems are contacted."
+      changed_when: demo_operation == 'simulate_change'

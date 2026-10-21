@@ -28,6 +28,7 @@ def main():
         profile[key] = secrets.token_urlsafe(36) + 'aA1!'
     profile['bind_username'] = seed['prefix'].lower() + '-ldap'
     profile['bind_dn'] = 'CN=' + profile['bind_username'] + ',' + profile['root_dn']
+    profile['mock_passwords'] = {key: secrets.token_urlsafe(30) + 'aA1!' for key, _ in module.REGIONS}
     for user in profile['users']:
         user['username'] = '{}-{}-{}'.format(seed['prefix'].lower(), user['region'].lower(), user['role'])
         if len(user['username']) > 20:

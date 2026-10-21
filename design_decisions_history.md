@@ -1,5 +1,17 @@
 # Design decisions history
 
+## Define nested regional identities and protect the deployment profile
+
+Implementation: `6fce88b`.
+
+The operator selected a separate Server 2025 DC and reader, executor and admin
+identities for Denmark, Norway, EU and New Zealand. Country role groups nest
+into the corresponding EU access group without granting access to the other
+country. New Zealand remains separate. The model tests these effective grants
+and denies role escalation. A one-time Ansible initializer creates and encrypts
+the credentials and dedicated LDAPS PKI; existing profiles cannot be silently
+regenerated. The Windows-native AD cmdlets use the existing declared runtime.
+
 ## Prepare the dedicated domain-controller clone before promotion
 
 Implementation: `5e3cabb`.

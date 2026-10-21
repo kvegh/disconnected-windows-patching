@@ -1,0 +1,95 @@
+---
+- name: Create the region's mock inventory
+  ansible.controller.inventory:
+    name: "{{ active_directory.prefix }} {{ ad_region.value }} Mock Inventory"
+    organization: "{{ ad_organization }}"
+    description: "Mock resources scoped to {{ ad_region.value }}."
+    variables:
+      ansible_connection: local
+      ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  environment: &ad_controller_tls
+    SSL_CERT_FILE: "{{ ad_api_ca.path }}"
+    REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
+  no_log: true
+
+- name: Add an inert local host to the region's inventory
+  ansible.controller.host:
+    name: localhost
+    inventory: "{{ active_directory.prefix }} {{ ad_region.value }} Mock Inventory"
+    variables:
+      ansible_connection: local
+  environment: *ad_controller_tls
+  no_log: true
+
+- name: Create a mock credential that cannot authenticate to real machines
+  ansible.controller.credential:
+    name: "{{ active_directory.prefix }} {{ ad_region.value }} Mock Credential"
+    organization: "{{ ad_organization }}"
+    credential_type: Machine
+    description: Synthetic credential used only by inert local demonstration jobs.
+    inputs:
+      username: "{{ active_directory.prefix }}-mock-{{ ad_region.key | lower }}"
+      password: "{{ active_directory.mock_passwords[ad_region.key] }}"
+  environment: *ad_controller_tls
+  no_log: true
+
+- name: Create read and simulated-change templates with fixed regional inputs
+  ansible.controller.job_template:
+    name: "{{ active_directory.prefix }} {{ ad_region.value }} {{ item }}"
+    organization: "{{ ad_organization }}"
+    project: "{{ ad_project }}"
+    inventory: "{{ active_directory.prefix }} {{ ad_region.value }} Mock Inventory"
+    credentials: ["{{ active_directory.prefix }} {{ ad_region.value }} Mock Credential"]
+    playbook: mock_regional_job.yml
+    job_type: run
+    execution_environment: "{{ ad_mock_execution_environment | default('Default execution environment') }}"
+    extra_vars:
+      demo_region: "{{ ad_region.key }}"
+      demo_operation: "{{ item }}"
+    ask_inventory_on_launch: false
+    ask_credential_on_launch: false
+    ask_variables_on_launch: false
+    timeout: 120
+  loop: [read, simulate_change]
+  environment: *ad_controller_tls
+  no_log: true
+
+- name: Create region-specific reader, executor and admin teams
+  ansible.platform.team:
+    name: "{{ active_directory.prefix }} {{ ad_region.value }} {{ item }}"
+    organization: "{{ ad_organization }}"
+    description: "{{ item }} access to {{ ad_region.value }} mock resources."
+  loop: "{{ ad_roles }}"
+  no_log: true
+
+- name: Grant reader access to only this region's resources
+  ansible.platform.role_team_assignment:
+    team: "{{ active_directory.prefix }} {{ ad_region.value }} reader"
+    role_definition: "{{ active_directory.prefix }} {{ item.kind }} Reader"
+    assignment_objects:
+      - name: "{{ active_directory.prefix }} {{ ad_region.value }} {{ item.suffix }}"
+        type: "awx.{{ item.kind }}"
+        organization: "{{ ad_organization }}"
+  loop:
+    - {kind: inventory, suffix: Mock Inventory}
+    - {kind: credential, suffix: Mock Credential}
+    - {kind: jobtemplate, suffix: read}
+    - {kind: jobtemplate, suffix: simulate_change}
+  no_log: true
+
+- name: Grant executor or admin roles to only this region's resources
+  ansible.platform.role_team_assignment:
+    team: "{{ active_directory.prefix }} {{ ad_region.value }} {{ item.0 }}"
+    role_definition: "{{ item.1.role_type }} {{ 'Admin' if item.0 == 'admin' else item.1.executor_role }}"
+    assignment_objects:
+      - name: "{{ active_directory.prefix }} {{ ad_region.value }} {{ item.1.suffix }}"
+        type: "awx.{{ item.1.kind }}"
+        organization: "{{ ad_organization }}"
+  loop: "{{ ['executor','admin'] | product(ad_region_grants) | list }}"
+  vars:
+    ad_region_grants:
+      - {kind: inventory, suffix: Mock Inventory, role_type: Inventory, executor_role: Use}
+      - {kind: credential, suffix: Mock Credential, role_type: Credential, executor_role: Use}
+      - {kind: jobtemplate, suffix: read, role_type: JobTemplate, executor_role: Execute}
+      - {kind: jobtemplate, suffix: simulate_change, role_type: JobTemplate, executor_role: Execute}
+  no_log: true

@@ -1,0 +1,102 @@
+---
+- name: Configure regional mock resources and AD team permissions on the test AAP
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - vars/active_directory_vault.yml
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    ad_organization: "{{ active_directory.prefix }} Regional Identity Demo"
+    ad_project: "{{ active_directory.prefix }} Regional Mock Resources"
+    ad_authenticator: "{{ active_directory.prefix }} Active Directory"
+    ad_region_labels: {DK: Denmark, NO: Norway, EU: EU, NZ: New Zealand}
+    ad_roles: [reader, executor, admin]
+    ad_resource_types: [inventory, credential, jobtemplate]
+  module_defaults:
+    group/ansible.platform.gateway:
+      aap_hostname: "{{ active_directory.test_aap_url }}"
+      aap_username: admin
+      aap_password: "{{ active_directory.test_aap_admin_password }}"
+      aap_validate_certs: true
+      aap_ca_bundle: "{{ ad_api_ca.path | default(omit) }}"
+    group/ansible.controller.controller:
+      controller_host: "{{ active_directory.test_aap_url }}"
+      controller_username: admin
+      controller_password: "{{ active_directory.test_aap_admin_password }}"
+      validate_certs: true
+  tasks:
+    - name: Create a private API CA bundle file
+      ansible.builtin.tempfile:
+        prefix: ad-aap-ca-
+        suffix: .pem
+      register: ad_api_ca
+
+    - name: Configure the selected target with verified TLS
+      block:
+        - name: Write the existing target's trusted issuing CA
+          ansible.builtin.copy:
+            dest: "{{ ad_api_ca.path }}"
+            content: "{{ active_directory.test_aap_ca }}"
+            mode: '0600'
+          no_log: true
+
+        - name: Create an organization owned by this regional demo
+          ansible.platform.organization:
+            name: "{{ ad_organization }}"
+            description: AD regional access demonstration with isolated mock resources.
+          no_log: true
+
+        - name: Create the regional mock source project
+          ansible.controller.project:
+            name: "{{ ad_project }}"
+            organization: "{{ ad_organization }}"
+            scm_type: git
+            scm_url: https://github.com/kvegh/disconnected-windows-patching.git
+            scm_branch: main
+            scm_update_on_launch: false
+            wait: true
+            state: present
+          environment:
+            SSL_CERT_FILE: "{{ ad_api_ca.path }}"
+            REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
+          no_log: true
+
+        - name: Create view-only roles for the three regional resource types
+          ansible.platform.role_definition:
+            name: "{{ active_directory.prefix }} {{ item }} Reader"
+            description: View only the assigned regional mock resource.
+            content_type: "awx.{{ item }}"
+            permissions: ["awx.view_{{ item }}"]
+          loop: "{{ ad_resource_types }}"
+          no_log: true
+
+        - name: Refresh the mock source before validating its playbooks
+          ansible.controller.project_update:
+            name: "{{ ad_project }}"
+            organization: "{{ ad_organization }}"
+            wait: true
+          environment:
+            SSL_CERT_FILE: "{{ ad_api_ca.path }}"
+            REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
+          no_log: true
+
+        - name: Create each region's resources and three teams
+          ansible.builtin.include_tasks: tasks/configure_aap_ad_region.yml
+          loop: "{{ ad_region_labels | dict2items }}"
+          loop_control:
+            loop_var: ad_region
+
+        - name: Configure LDAP and ordered group maps after LDAPS readiness
+          ansible.builtin.include_tasks: tasks/configure_aap_ad_authentication.yml
+          when: ad_aap_configure_authentication | default(false) | bool
+
+        - name: Report configured regional mock resources
+          ansible.builtin.debug:
+            msg: Four regional inventories, four mock credentials, eight job templates and twelve scoped teams are configured.
+      always:
+        - name: Remove the private temporary API CA file
+          ansible.builtin.file:
+            path: "{{ ad_api_ca.path }}"
+            state: absent
+          no_log: true
