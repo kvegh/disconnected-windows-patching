@@ -117,6 +117,8 @@ remain literal until AAP launches a job. LDAP readiness comes from the preceding
 verification stages; configuration import alone does not enable LDAP.
 Managed workflow stages require the attached target credential and stop if its
 fields are missing, so they cannot silently fall back to the validation target.
+The target CA bundle is injected as a private file because a complete trust
+bundle can exceed the operating system's limit for one environment variable.
 Two workflow tests check reachability, cycles and the required patching and TLS
 barriers before LDAP activation.
 The supported execution image already provides the configuration collections

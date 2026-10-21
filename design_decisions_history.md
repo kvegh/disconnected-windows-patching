@@ -1,5 +1,16 @@
 # Design decisions history
 
+## Require a complete protected target credential for managed AD stages
+
+Implementation: `8f4775e`.
+
+Managed stages stop before using fallback validation settings if their target
+credential fields are missing. The native Ansible guard was tested with an
+absent credential and prevented API access. The workflow configuration also
+attaches the appropriate Vault and machine credentials to its two utilities.
+Seven regional and workflow tests passed and live reconciliation preserved the
+existing Windows graph.
+
 ## Publish explicit LDAPS DNS and declare the existing configuration runtime
 
 Implementation: `125617c`.
