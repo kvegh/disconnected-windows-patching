@@ -1,5 +1,25 @@
 # Design decisions history
 
+## 2026-10-21 — Make the internal export pull explicit
+
+Implementation: `4dea4f5`. The user required the export transfer to be clearly
+presented as a pull initiated by the internal repository. Source inspection
+confirmed that both existing import playbooks already target internal WSUS and
+run their HTTP download tasks there. Their transfer behavior needs no change.
+
+Show two directions in the walkthrough: the internal repository sends an HTTP
+GET request to the external repository, then the external repository returns the
+export data. Animate the request before the returning package. Preserve both
+labelled arrows after the action, and restore the earlier management-link view
+when stepping backwards. Update the action name, explanation, example play and
+server details so the initiator remains clear outside the animation too.
+
+Both README files describe the pull. Syntax checks and the four existing focused
+tests passed. Source parsing confirmed three WSUS download tasks and one
+application archive download task execute on the internal target; diagram checks
+confirmed the request and response point in opposite, correct directions.
+Browser visual QA remains unavailable in the authoring environment.
+
 ## 2026-10-21 — Brighten the walkthrough and increase text size
 
 Implementation: `6e423d6`. The user found the original muted green palette too
