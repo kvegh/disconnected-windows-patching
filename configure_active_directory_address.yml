@@ -112,13 +112,14 @@
       block:
         - name: Require a supported graceful recovery restart mode
           ansible.builtin.assert:
-            that: ad_promotion_recovery_reboot_mode | default('acpi') in ['acpi', 'agent']
+            that: ad_promotion_recovery_reboot_mode | default('acpi') in ['acpi', 'agent', 'shutdown_start']
 
         - name: Request a graceful restart of the already verified dedicated clone
           ansible.builtin.command:
             argv: [virsh, reboot, "{{ active_directory.hostname }}", --mode, "{{ ad_promotion_recovery_reboot_mode | default('acpi') }}"]
           changed_when: true
           no_log: "{{ not (ad_recovery_diagnostics | default(false) | bool) }}"
+          when: ad_promotion_recovery_reboot_mode | default('acpi') != 'shutdown_start'
 
         - name: Observe the dedicated guest's management listener stop
           ansible.builtin.wait_for:
@@ -129,6 +130,32 @@
           delegate_to: localhost
           become: false
           no_log: true
+          when: ad_promotion_recovery_reboot_mode | default('acpi') != 'shutdown_start'
+
+        - name: Request graceful shutdown when the guest does not support a reboot event
+          ansible.builtin.command:
+            argv: [virsh, shutdown, "{{ active_directory.hostname }}", --mode, acpi]
+          changed_when: true
+          no_log: "{{ not (ad_recovery_diagnostics | default(false) | bool) }}"
+          when: ad_promotion_recovery_reboot_mode | default('acpi') == 'shutdown_start'
+
+        - name: Require the selected guest to finish shutting down before restarting it
+          ansible.builtin.command:
+            argv: [virsh, domstate, "{{ active_directory.hostname }}"]
+          register: ad_recovery_power_state
+          changed_when: false
+          until: ad_recovery_power_state.stdout | trim == 'shut off'
+          retries: 60
+          delay: 5
+          no_log: true
+          when: ad_promotion_recovery_reboot_mode | default('acpi') == 'shutdown_start'
+
+        - name: Start only the verified guest after its completed graceful shutdown
+          ansible.builtin.command:
+            argv: [virsh, start, "{{ active_directory.hostname }}"]
+          changed_when: true
+          no_log: true
+          when: ad_promotion_recovery_reboot_mode | default('acpi') == 'shutdown_start'
 
         - name: Wait for the dedicated guest's management listener after recovery
           ansible.builtin.wait_for:

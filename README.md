@@ -86,6 +86,8 @@ checks, it requests a graceful ACPI restart and verifies that the management
 listener stops and returns. Fresh reservations never take this recovery path.
 Set `ad_promotion_recovery_reboot_mode: agent` to use an existing QEMU guest
 agent instead of ACPI. Neither path resets power forcibly. Recovery command
+mode `shutdown_start` requests ACPI shutdown, waits for the domain to be fully
+shut off and then starts it; it never destroys a running domain. Recovery command
 diagnostics can be enabled with `ad_recovery_diagnostics: true`; the normal
 default remains protected. Guest inspection verifies the selected management
 identity before collecting protected metadata so connection failures are clear.
