@@ -1,6 +1,6 @@
 # Fresh Windows end-to-end test — 2026-10-20
 
-Status: **21-stage workflow passed; follow-up reboot verification in progress**.
+Status: **Passed, including follow-up corrections and final read-only verification**.
 Workflow 2303 completed all 21 stages in **3h48m50s**.
 Started 2026-10-20 at 21:13:04 UTC; finished 2026-10-21 at 01:01:54 UTC.
 
@@ -92,7 +92,9 @@ for baseline installation.
 | VM memory allocation | 4096 MiB | 4096 MiB |
 | Applicable approved updates remaining | 0 | 0 |
 | Pending reboot after patching | No | No |
+| Pending reboot after application follow-up | No | No |
 | Patch restarts, by System record order | 2 | 4 |
+| Additional post-application restarts | 0 | 1 |
 | Chocolatey CLI | 2.7.4 | 2.7.4 |
 | Final 7-Zip package | 26.4.0 | 26.4.0 |
 | Final Git package | 2.56.0.2 | 2.56.0.2 |
@@ -111,6 +113,9 @@ The internal April policy was verified with four selected OS/.NET bundles,
 automatic approval rules disabled, no pending license acceptances and zero missing
 payload bytes. Both patch artifacts verify the managed source and final empty scan.
 External synchronization and the internal-only cutoff were separate stages.
+A final catalogue audit found metadata through October 2026 on both servers.
+External WSUS retains later cumulative updates undeclined; internal WSUS offers
+only April cumulative updates, with none after April left undeclined.
 
 Baseline job 2336 verified 7-Zip 26.03 and Git 2.55.0.windows.5 on both hosts.
 Upgrade job 2338 verified 26.04 and 2.56.0.windows.2. Their pinned package versions
@@ -145,5 +150,15 @@ explicit module reboot flags and CBS/Windows Update reboot markers, completes a
 required reboot, and waits for both markers to clear before declaring application
 success. Five regression tests exercise seven production-control-flow scenarios,
 including clean skips, each reboot signal and refusal of uncleared markers.
-The corrected application stage and final assessment will be rerun independently.
+Corrected upgrade job 2346 passed in 2m02s. Its only changed task was the Server
+2025 reboot; Server 2022 skipped that reboot, and neither host required package
+changes. Both hosts passed the new clear-marker guard and package/source checks.
+This follow-up restart is separate from the four Server 2025 OS patch restarts.
+
+Final protected assessment 2349 passed in 9s, confirming both expected April
+builds and no pending reboot after the application follow-up. Post-reboot Check
+job 2351 passed in 53s on Server 2025: managed source verified, build unchanged,
+zero applicable updates, no pending license acceptance and no reboot required.
+Only the affected application stage and read-only checks were rerun; the original
+successful deployment and repository stages were preserved.
 

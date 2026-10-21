@@ -1,5 +1,42 @@
 # Design decisions history
 
+## 2026-10-21 — Complete the fresh workflow and verify post-application reboot state
+
+Implementation: `95e29f1`; workflow ordering and teardown efficiency: `07e1200`.
+Fresh workflow 2303 passed all 21 stages in 3h48m50s. Controller timestamps verify
+both imports converged before April selection, disjoint patch jobs ran together,
+and both finished before baseline applications and upgrades. The fresh Server
+2025 evaluation began unlicensed, activated and returned to its original topology;
+that closes the earlier unlicensed-path live-validation gap. Both clients were
+created with 4096 MiB and reached their April OS/.NET baselines. Independent
+preservation checks passed before and after redeployment for the seven unrelated
+VMs and both base images.
+
+Post-run inspection found the standalone assessment template lacked credentials.
+Configure it alongside the update template using the existing protected Windows
+Machine and Vault references. Its diagnostic error identified a missing NTLM
+password; attaching the correct existing credential restored read-only inspection.
+Keep detailed diagnostics protected by default.
+
+The later assessment also found a Server 2025 reboot marker after the workflow's
+patch stages had reported clean completion. This does not establish which later
+operation set the marker. Application stages previously checked installer exit
+codes alone; they now also honor explicit reboot flags and Windows CBS/WU markers,
+complete a required reboot and wait for both markers to clear before reporting
+application success. Five tests exercise seven scenarios through the production
+Ansible conditions with remote calls mocked, including clean skips and refusal
+of uncleared state. Production lint passed; focused live rerun evidence is recorded
+in the end-to-end report. Preserve the original successful workflow results and
+record follow-up corrections separately rather than rerunning destructive setup.
+
+Corrected application job 2346 passed with one changed task, the required Server
+2025 reboot; Server 2022 skipped it. Final assessment 2349 confirmed both April
+builds and no pending reboot. Server 2025 Check job 2351 verified the managed
+source, zero applicable updates, no pending licenses and no reboot requirement
+after that restart. Both package versions and the sole selected source remained
+correct. A separate catalogue audit confirmed that only internal WSUS was capped:
+external metadata retained newer undeclined releases through October 2026.
+
 ## 2026-10-20 — Run the complete demo in the requested order without redundant disk reads
 
 Implementation: `07e1200`. The operator authorized an end-to-end test that removes

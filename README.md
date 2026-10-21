@@ -142,8 +142,10 @@ installation and upgrade. Workflow 2303 passed all 21 stages in 3h48m50s,
 finishing on 2026-10-21 at 01:01 UTC. Preservation checks passed before and after
 redeployment: seven unrelated VM definitions/states and both base images were
 unchanged. Both managed guests were created with 4096 MiB and verified from Windows.
-Follow-up assessment and application reboot corrections are recorded separately
-in the test report.
+Follow-up application job 2346 finished a later Server 2025 reboot requirement;
+final assessment 2349 confirmed both April builds with no pending reboot, and
+Check job 2351 found zero applicable updates on Server 2025 after that reboot.
+The test report records these corrections separately from the original workflow.
 
 On 2026-10-20, live publication verified the internal April 2026 ceiling with
 both OS and .NET baselines ready. A client Check run using the lighter validation
