@@ -33,6 +33,7 @@
           $version = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
           $licenses = @(Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" | Select-Object Name,LicenseStatus,GracePeriodRemaining)
           $events = @(Get-WinEvent -LogName 'Microsoft-Windows-WindowsUpdateClient/Operational' -MaxEvents 8 -ErrorAction SilentlyContinue | Select-Object TimeCreated,Id,Message)
+          $systemUpdateEvents = @(Get-WinEvent -FilterHashtable @{LogName='System';ProviderName='Microsoft-Windows-WindowsUpdateClient'} -MaxEvents 12 -ErrorAction SilentlyContinue | Select-Object TimeCreated,Id,Message)
           $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$($env:SystemDrive)'"
           $servicing = @(Get-Process -Name TiWorker,TrustedInstaller,MoUsoCoreWorker,wuauclt -ErrorAction SilentlyContinue | Select-Object Name,Id,CPU,WorkingSet64,StartTime)
           $delivery = @()
@@ -53,6 +54,7 @@
               Build="$($version.CurrentBuildNumber).$($version.UBR)";
               DomainRole=$cs.DomainRole; Domain=$cs.Domain; Hostname=$cs.Name;
               Boot=$os.LastBootUpTime; Licenses=$licenses; UpdateEvents=$events;
+              SystemUpdateEvents=$systemUpdateEvents;
               FreeSystemBytes=$disk.FreeSpace; ServicingProcesses=$servicing;
               DeliveryOptimization=$delivery; BitsTransfers=$bits; ServicingLog=$cbs;
               Network=@(Get-NetIPConfiguration | Select-Object InterfaceAlias,IPv4Address,IPv4DefaultGateway,DNSServer);

@@ -1,5 +1,15 @@
 # Design decisions history
 
+## Allow long WinRM operations during servicing and startup
+
+Implementation: `5915d8e`.
+
+The initial update run installed a prerequisite OS update and rebooted, then
+stalled while sending WinRM input. An independent scan still found two offered
+updates. The dedicated AD guest plays now use a 120-second operation timeout,
+using the stock connection option that also sets an appropriate read timeout.
+The original stalled job was canceled before a focused preparation retry.
+
 ## Independently inspect remaining Microsoft updates
 
 Implementation: `923cf11`.

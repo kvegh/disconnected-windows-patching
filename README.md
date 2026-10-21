@@ -79,6 +79,10 @@ categories without installing updates or rebooting.
 The AD Windows plays use a 120-second WinRM operation timeout to tolerate
 servicing and domain-controller startup. A focused preparation rerun scans and
 installs the remaining updates when an earlier management connection stalls.
+The inspector also reads Windows Update installation/error events from the
+System log. Set `ad_update_diagnostics: true` on a focused preparation retry to
+show the update module's results; connection credentials and profile tasks stay
+protected, and normal runs keep update diagnostics hidden.
 
 `configure_active_directory_ldaps.yml` imports the dedicated public CA and the
 leaf certificate's nonexportable machine key, removes staged PFX files, performs

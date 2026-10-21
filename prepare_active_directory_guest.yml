@@ -84,7 +84,7 @@
         reboot: true
         reboot_timeout: 1800
       register: ad_windows_updates
-      no_log: true
+      no_log: "{{ not (ad_update_diagnostics | default(false) | bool) }}"
 
     - name: Rescan the public update source after installation
       ansible.windows.win_updates:
