@@ -110,11 +110,15 @@
         - ad_promotion_recovery_acpi_reboot | default(false) | bool
         - not (ad_address_reservation_before_create | default(false) | bool)
       block:
-        - name: Request a graceful ACPI restart of the already verified dedicated clone
+        - name: Require a supported graceful recovery restart mode
+          ansible.builtin.assert:
+            that: ad_promotion_recovery_reboot_mode | default('acpi') in ['acpi', 'agent']
+
+        - name: Request a graceful restart of the already verified dedicated clone
           ansible.builtin.command:
-            argv: [virsh, reboot, "{{ active_directory.hostname }}", --mode, acpi]
+            argv: [virsh, reboot, "{{ active_directory.hostname }}", --mode, "{{ ad_promotion_recovery_reboot_mode | default('acpi') }}"]
           changed_when: true
-          no_log: true
+          no_log: "{{ not (ad_recovery_diagnostics | default(false) | bool) }}"
 
         - name: Observe the dedicated guest's management listener stop
           ansible.builtin.wait_for:

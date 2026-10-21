@@ -84,6 +84,11 @@ restart, its existing-VM mode also supports the explicit recovery option
 `ad_promotion_recovery_acpi_reboot: true`. After the same ownership and NIC
 checks, it requests a graceful ACPI restart and verifies that the management
 listener stops and returns. Fresh reservations never take this recovery path.
+Set `ad_promotion_recovery_reboot_mode: agent` to use an existing QEMU guest
+agent instead of ACPI. Neither path resets power forcibly. Recovery command
+diagnostics can be enabled with `ad_recovery_diagnostics: true`; the normal
+default remains protected. Guest inspection verifies the selected management
+identity before collecting protected metadata so connection failures are clear.
 
 `inspect_active_directory_guest.yml` reads OS, servicing, license, network and
 certificate metadata and parses the directory PowerShell asset without executing

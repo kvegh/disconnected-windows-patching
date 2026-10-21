@@ -9,6 +9,10 @@
     ansible_user: "{{ active_directory.domain_admin_username if ad_inspect_domain_auth | default(false) | bool else active_directory.bootstrap_username }}"
     ansible_password: "{{ active_directory.domain_admin_password if ad_inspect_domain_auth | default(false) | bool else active_directory.bootstrap_password }}"
   tasks:
+    - name: Verify the selected management identity before protected inspection
+      ansible.builtin.wait_for_connection:
+        timeout: 30
+
     - name: Inspect available configuration collections in the execution environment
       ansible.builtin.command:
         argv: [ansible-galaxy, collection, list, --format=json]
