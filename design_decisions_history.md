@@ -1,5 +1,34 @@
 # Design decisions history
 
+## 2026-10-21 — Add an interactive, presenter-paced Windows walkthrough
+
+Implementation: `452c2db`. Keep the browser demo in `demo/` and publish its public
+assets through GitHub Pages. The user requested three synchronized sections:
+Next/Previous controls, a workflow that grows with each action, and a datacenter
+architecture that gains servers and features. Rewind restores the corresponding
+earlier architecture and versions, making the sequence useful for audience
+exploration as well as a presenter-led demonstration.
+
+Use a warm, restrained visual style with quick drop/pop transitions and motion
+on the selected data path. Show Microsoft acquisition, external IIS publication,
+direct internal transfer and internal client delivery. Represent WSUS metadata
+as compressed `.xml.gz` plus separate update files; the application ZIP remains a
+different Nexus pipeline. This preserves the implemented transfer distinction
+instead of implying one WSUS archive or a physical air gap.
+
+Workflow items offer in-page, explicitly illustrative Ansible examples and links
+to the actual playbooks. Server details show the state of the selected step.
+This initial version changes visualization state only; it neither launches AAP
+jobs nor claims to report current infrastructure. Real execution would require
+a separate authenticated integration and result-verification design.
+
+Use dependency-free HTML, CSS, JavaScript and SVG so the page works without
+package installation or external assets. The Pages workflow runs syntax and
+focused state/source-integrity checks, then uploads only the page and assets.
+Keep environment configuration, Vault material, documentation and tests out of
+the deployed artifact. Local syntax checks and all four focused tests passed;
+browser visual QA was unavailable in the authoring environment.
+
 ## 2026-10-21 — Complete the fresh workflow and verify post-application reboot state
 
 Implementation: `95e29f1`; workflow ordering and teardown efficiency: `07e1200`.
