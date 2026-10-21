@@ -7,6 +7,13 @@ in a simulated disconnected environment.
 
 The AD extension uses a separate Windows Server 2025 VM and a separate test AAP
 for regional identity and permission validation. Implementation is in progress.
+The test guest has the current Server cumulative update, build 26100.33650,
+with no pending reboot. Windows Update still reoffers KB5007651 after successful
+installer runs. Microsoft's [applicability documentation](https://support.microsoft.com/en-us/servicing/os/windows/2021/10/windows-security-app-update)
+lists that Security app package for Windows 11 only. This remains an unresolved
+update-stage failure: the playbook does not hide or exclude the offer or report
+an empty scan. AD validation can continue independently on the current Server
+build; the combined fresh-deployment patch gate remains strict.
 `start_active_directory_test_platform.yml` starts only an explicitly approved,
 existing test AAP VM and waits for SSH. Supply `ad_start_test_platform_approved`,
 `ad_test_vm_name` and `ad_test_aap_address` through protected configuration.
@@ -96,12 +103,11 @@ registration, helping distinguish an actual missing update from a repeated
 Windows Update offer.
 Nested version metadata is serialized explicitly for inspection rather than
 being reduced to PowerShell object descriptions.
-For a diagnosed Security-platform install loop, a focused preparation retry can
-set `ad_security_platform_repair: true` (disabled by default) and the exact
-`ad_security_platform_repair_version` offered by Microsoft. It verifies the
-cached installer's version and Microsoft signature, runs it under the existing
-administrator's loaded profile, then performs the normal update installation
-and final scan. It does not hide updates or change security-service policies.
+The disabled-by-default `ad_security_platform_repair` diagnostic path verifies
+the cached installer's exact version and Microsoft signature before running it
+under the administrator's loaded profile. Its live test returned success but
+did not resolve the Server's repeated offer. It is not a verified repair for
+Server 2025; the final normal update scan still fails while the offer remains.
 
 `configure_active_directory_ldaps.yml` imports the dedicated public CA and the
 leaf certificate's nonexportable machine key, removes staged PFX files, performs

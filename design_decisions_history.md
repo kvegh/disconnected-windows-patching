@@ -1,5 +1,14 @@
 # Design decisions history
 
+## Match the gateway's normalized LDAP group identifiers
+
+Implementation: `0bfe669`.
+
+Login, organization and team triggers now use lowercase full distinguished
+names. Red Hat's gateway mapping documentation requires lowercase group
+identifiers. This preserves the intended group scope and nested AD membership
+while avoiding case-sensitive trigger mismatches.
+
 ## Keep the repair option and its runtime result separate
 
 Implementation: `d485251`.
