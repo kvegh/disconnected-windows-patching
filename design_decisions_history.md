@@ -1,5 +1,26 @@
 # Design decisions history
 
+## Verify the forest-root controller's time authority
+
+Implementation: `a71d6a4`, `933a391`.
+
+Explicit UTC inspection found a nine-hour offset and a local CMOS time source.
+The deployment now keeps Windows Time available, selects the existing configured
+NTP peer as the root controller's manual source and verifies synchronization
+against the automation runtime before managing identities. It preserves the
+peer and correction limits rather than changing global host time or weakening
+the time service's controls. Live synchronization validation follows deployment.
+
+## Diagnose regional grant and time-service failures without logging passwords
+
+Implementation: `a7a3a4f`.
+
+A development run failed during scoped-grant reconciliation, while a separate
+project sync failed to resolve an already-pinned collection. Optional diagnostics
+now expose grant and time-service results for focused retries. The native API
+module masks password/token fields; identity, credential and LDAP-secret tasks
+remain protected, and the normal diagnostic defaults remain disabled.
+
 ## Verify graceful shutdown before starting the recovered controller
 
 Implementation: `f9df241`.
