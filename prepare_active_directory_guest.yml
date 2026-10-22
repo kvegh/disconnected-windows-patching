@@ -81,15 +81,14 @@
         start_mode: manual
         state: started
 
-    - name: Repair diagnosed Security platform registration when explicitly requested
-      ansible.builtin.include_tasks: tasks/repair_active_directory_security_platform.yml
-      when: ad_security_platform_repair | default(false) | bool
-
-    - name: Install every offered software update category and complete required reboots
+    - name: Install every applicable Server software update category and complete required reboots
       ansible.windows.win_updates:
         category_names: ['*']
         server_selection: windows_update
         skip_optional: false
+        # Microsoft limits this UI package to Windows 11; the Server guard above
+        # prevents applying this exception to a client OS. Defender updates remain included.
+        reject_list: ['^Update for Windows Security platform - KB5007651\b']
         state: installed
         reboot: true
         reboot_timeout: 1800
@@ -101,16 +100,25 @@
         category_names: ['*']
         server_selection: windows_update
         skip_optional: false
+        reject_list: ['^Update for Windows Security platform - KB5007651\b']
         state: searched
       register: ad_windows_update_scan
       no_log: true
 
-    - name: Require successful installation and an empty final software update scan
+    - name: Record the unsupported Windows 11 offer separately from Server updates
+      ansible.builtin.set_fact:
+        ad_windows11_update_offers: >-
+          {{ ad_windows_update_scan.filtered_updates | default({}) | dict2items
+             | selectattr('value.title', 'match', '^Update for Windows Security platform - KB5007651\\b')
+             | map(attribute='value') | list }}
+      no_log: true
+
+    - name: Require successful installation and no remaining applicable Server updates
       ansible.builtin.assert:
         that:
           - ad_windows_updates.failed_update_count | default(0) | int == 0
           - ad_windows_update_scan.found_update_count | int == 0
-        fail_msg: Microsoft still offers updates or an update failed; inspect the protected task result before promotion.
+        fail_msg: Applicable Server updates remain or an update failed; inspect the protected result before promotion.
       no_log: true
 
     - name: Save update evidence in authenticated job artifacts
@@ -121,9 +129,13 @@
             remaining_count: "{{ ad_windows_update_scan.found_update_count }}"
             updates: "{{ ad_windows_updates.updates | default({}) }}"
             reboot_required: "{{ ad_windows_update_scan.reboot_required | default(false) }}"
+            nonapplicable_windows11_offers: "{{ ad_windows11_update_offers }}"
         aggregate: false
       no_log: true
 
     - name: Report completion without guest identities or credentials
       ansible.builtin.debug:
-        msg: All offered Microsoft software updates were installed and the final scan was empty.
+        msg:
+          applicable_server_updates_remaining: "{{ ad_windows_update_scan.found_update_count }}"
+          nonapplicable_windows11_offers: "{{ ad_windows11_update_offers | length }}"
+          result: All applicable Microsoft Server software updates were installed; Windows 11-only offers are reported separately.

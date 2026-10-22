@@ -10,10 +10,11 @@ for regional identity and permission validation. Implementation is in progress.
 The test guest has the current Server cumulative update, build 26100.33650,
 with no pending reboot. Windows Update still reoffers KB5007651 after successful
 installer runs. Microsoft's [applicability documentation](https://support.microsoft.com/en-us/servicing/os/windows/2021/10/windows-security-app-update)
-lists that Security app package for Windows 11 only. This remains an unresolved
-update-stage failure: the playbook does not hide or exclude the offer or report
-an empty scan. AD validation can continue independently on the current Server
-build; the combined fresh-deployment patch gate remains strict.
+lists that Security app package for Windows 11 only. The Server-2025-guarded
+preparation now reports this exact unsupported UI offer separately and requires
+zero remaining applicable Server updates. It does not hide the offer in Windows
+Update or exclude Defender antivirus/platform/security-intelligence packages.
+Live validation of the revised update check is in progress.
 `start_active_directory_test_platform.yml` starts only an explicitly approved,
 existing test AAP VM and waits for SSH. Supply `ad_start_test_platform_approved`,
 `ad_test_vm_name` and `ad_test_aap_address` through protected configuration.
@@ -27,9 +28,11 @@ reported separately. Missing kernel counters are reported as unavailable.
 
 `prepare_active_directory_guest.yml` targets exactly one guest in a dedicated
 inventory, verifies Server 2025 and disk space, sets its protected hostname and
-installs every offered software update category, including optional updates,
-directly from Microsoft. It completes update reboots and requires an empty final
-scan. This does not change update sources on the disconnected demo's other hosts.
+installs every applicable Server software update category, including optional
+updates, directly from Microsoft. It completes update reboots and requires zero
+remaining applicable Server updates. The Windows 11-only UI offer described
+above remains explicitly reported. This does not change update sources on the
+disconnected demo's other hosts.
 The encrypted profile supplies its hostname and connection identities; pass
 `ad_direct_microsoft_updates_approved` as a protected input. Reruns can reconnect
 before or after domain promotion using the existing protected identities.
@@ -133,11 +136,9 @@ registration, helping distinguish an actual missing update from a repeated
 Windows Update offer.
 Nested version metadata is serialized explicitly for inspection rather than
 being reduced to PowerShell object descriptions.
-The disabled-by-default `ad_security_platform_repair` diagnostic path verifies
-the cached installer's exact version and Microsoft signature before running it
-under the administrator's loaded profile. Its live test returned success but
-did not resolve the Server's repeated offer. It is not a verified repair for
-Server 2025; the final normal update scan still fails while the offer remains.
+The earlier cached Windows Security UI installer diagnostic did not resolve the
+Server's repeated offer. That unsupported manual repair path has been removed;
+the Server update check uses Microsoft's documented product applicability.
 
 `configure_active_directory_ldaps.yml` imports the dedicated public CA and the
 leaf certificate's nonexportable machine key, removes staged PFX files, performs
