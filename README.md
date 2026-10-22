@@ -87,6 +87,8 @@ For focused development retries, `ad_configuration_diagnostics: true` exposes
 scoped-grant API results, and `ad_time_diagnostics: true` exposes time-service
 results. Native password/token fields remain masked, identity and LDAP secret
 tasks remain protected, and both diagnostic options default to disabled.
+The access verifier exposes its structured failure reason without logging the
+command input containing test-user and API credentials.
 
 `configure_active_directory_address.yml` adds the dedicated clone's exact live
 and persistent DHCP reservation after checking clone ownership, NIC topology,

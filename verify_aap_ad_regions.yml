@@ -23,7 +23,14 @@
               'verify_logins': ad_verify_ldap_logins | default(false) | bool} | to_json }}
       register: ad_rbac_verification
       changed_when: false
+      failed_when: false
       no_log: true
+
+    - name: Require successful verification while keeping credential input protected
+      ansible.builtin.assert:
+        that: ad_rbac_verification.rc == 0
+        fail_msg: "{{ (ad_rbac_verification.stdout | default('{}', true) | from_json).reason | default('Protected verification failed.') }}"
+        quiet: true
 
     - name: Report non-sensitive verification counts
       ansible.builtin.debug:
