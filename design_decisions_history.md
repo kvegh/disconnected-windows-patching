@@ -1,5 +1,33 @@
 # Design decisions history
 
+## 2026-10-22 — Document a live Windows upgrade demonstration over VNC
+
+Implementation: `91a6108`. The user requested a presenter guide showing the
+actual Windows results: internal WSUS policy and reachability, the installed
+patch level, and working Chocolatey applications before and after an upgrade.
+Put the guide in `docs/` and link it from the README and remote-access guide.
+Use individual job templates so the presenter can inspect each intermediate
+state; the full deployment workflow proceeds automatically without these pauses.
+
+Pair each stage with expected results and suggested narration. Distinguish the
+OS build from supporting hotfix evidence, applicability checks from installation,
+and package revisions from vendor application versions. Include local Git file
+staging and 7-Zip archive creation/testing as functional evidence. Explain the
+need for a prepared starting state and the actual waits involved in a live run.
+
+Clarify that the existing hypervisor VNC console differs from Windows RDP.
+Document laptop prerequisites, display-number conversion, SSH forwarding and
+Windows sign-in without publishing private environment connection details.
+Read-only inspection confirmed the four existing loopback VNC consoles; temporary
+SSH-forwarded connections to both managed consoles returned VNC protocol banners.
+Close those test tunnels and preserve all hypervisor and guest settings.
+
+Local links, code fences, source-policy names, application version pins and
+April OS build/KB targets were checked against repository sources. The Windows
+GUI and presenter commands still require an interactive rehearsal; this work
+did not patch, redeploy or install applications on the guests. Preserve the
+separate Active Directory documentation edits already in progress.
+
 ## Explain the AD-to-AAP relationship through a presenter walkthrough
 
 Documentation: `0b46f96`.
