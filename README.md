@@ -5,6 +5,10 @@ in a simulated disconnected environment.
 
 ## Active Directory extension
 
+Start with the [five-minute AD-controlled access demo](docs/active-directory-demo-quickstart.md):
+find the Windows AD user, follow its nested groups, show the AAP mapping and
+compare Denmark, Norway, shared EU and New Zealand resource visibility.
+
 For a beginner-friendly presenter script, see
 [`docs/active-directory-demo-guide.md`](docs/active-directory-demo-guide.md).
 It follows one user from AD through nested groups and AAP mappings to actual

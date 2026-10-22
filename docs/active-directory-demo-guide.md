@@ -1,5 +1,8 @@
 # Demonstrate AD groups mapped to AAP teams
 
+For a short presentation with extra Windows instructions and fewer AAP details,
+use the [five-minute walkthrough](active-directory-demo-quickstart.md).
+
 This is a presenter walkthrough for someone who has not used Active Directory
 (AD), LDAP or AAP authentication mappings before. Allow 15–20 minutes. It
 uses VNC to view the domain controller and a browser to view the dedicated test
@@ -60,8 +63,9 @@ For example, Denmark executor group membership maps to the Denmark executor
 and EU executor teams, whose AAP grants permit execution of their regional jobs
 and use of their inventories and credentials. The words `reader`, `executor`
 and `admin` in an AD group name do not create resource permissions by themselves.
-Storing a separate permission policy in AD attributes would require an
-additional Ansible translator; this demo does not implement that feature.
+This is the documented AD-controlled entitlement pattern: directory groups
+select the user's AAP teams, whose resource roles supply the effective access.
+The normal group mapping requires no custom permission-policy translator.
 
 ## 2. Prepare your screens and demo accounts
 
