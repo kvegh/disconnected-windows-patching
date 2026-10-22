@@ -5,6 +5,12 @@ in a simulated disconnected environment.
 
 ## Active Directory extension
 
+For a beginner-friendly presenter script, see
+[`docs/active-directory-demo-guide.md`](docs/active-directory-demo-guide.md).
+It follows one user from AD through nested groups and AAP mappings to actual
+regional access, with VNC/browser clicks, suggested narration, role contrasts,
+rehearsal checks and a separate Ansible setup reference.
+
 The AD extension uses a separate Windows Server 2025 VM and a separate test AAP
 for regional identity and permission validation. Implementation is in progress.
 The test guest has the current Server cumulative update, build 26100.33650,
