@@ -1,5 +1,25 @@
 # Design decisions history
 
+## Verify the documented AD-controlled entitlement model and shorten the demo
+
+Documentation: `4d04796`; existing identity-verification implementation:
+`60a8531`.
+
+The operator wanted access controlled from AD and a brief presentation that
+assumes familiarity with AAP but no AD knowledge. Review of the local AAP 2.7
+security documentation and current Red Hat mapping/team documentation confirmed
+the implemented group-to-team-to-resource-role pattern. AD group membership
+selects entitlement; AAP defines and enforces the corresponding resource roles.
+Ordinary AD-controlled access requires no custom permission-policy translator.
+
+The five-minute guide gives exact Windows console steps, traces a Denmark
+executor's nested EU membership and compares country isolation, shared EU and
+New Zealand access. Fresh read-only checks on 2026-10-22 verified all twelve
+identities' expected teams and exact visible inventories, credentials and job
+templates. No test user had an individual controller resource-role grant.
+Documentation links and whitespace checks passed. No directory memberships,
+resource grants, templates or encrypted capture definitions changed.
+
 ## 2026-10-22 — Document a live Windows upgrade demonstration over VNC
 
 Implementation: `91a6108`. The user requested a presenter guide showing the
