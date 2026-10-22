@@ -5,6 +5,10 @@ show the Windows guests and verify application or OS upgrades during a demo.
 This document is a suggestion and connection guide, not a new access service or
 an implemented Windows OS patching procedure.
 
+For the complete presenter sequence, including source checks, installed patches,
+application versions and functional tests, use the
+[Windows upgrade demo guide](docs/windows-upgrade-demo-guide.md).
+
 ## Recommended route
 
 The [VM deployment playbook](01-win-vm-setup.yml) configures VNC with
@@ -159,16 +163,19 @@ Installed build and hotfix assessment is implemented in
 Job Template. [Monthly Windows patching](docs/windows-os-patching.md) documents
 the implemented internal approval template and managed client update template,
 including read-only applicability checks and repeated install/reboot passes.
-Complete OS installation validation remains tracked in [TODO.md](TODO.md).
+The completed OS installation evidence is recorded in the
+[end-to-end test report](docs/end-to-end-test-2026-10-20.md).
 Application baseline deployment and upgrades have separate playbooks and templates.
 
 ## Validation status and alternatives
 
-The 2026-10-20 read-only inspection verified the deployment's loopback VNC
-configuration, working read-only system-libvirt access and an active Windows
-console endpoint. Resolve individual VM states and ports again before a demo.
-The end-to-end laptop connection, its SSH forwarding permissions and the guests'
-Desktop Experience installation remain unverified.
+The 2026-10-22 read-only inspection confirmed all four Windows demo VMs running
+with loopback-bound VNC endpoints and working read-only system-libvirt access.
+Temporary SSH tunnels from the automation workspace to both managed consoles
+returned VNC protocol banners successfully. The tunnels were closed afterward;
+no hypervisor or Windows settings were changed. Resolve individual VM states
+and ports again before a demo. The laptop's own route/viewer, interactive Windows
+sign-in and the guests' Desktop Experience installation remain unverified.
 
 The repository does not configure RDP. RDP would require a verified route to the
 guest and its service, authentication and firewall settings. No existing

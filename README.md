@@ -237,6 +237,11 @@ membership on the user's next authentication.
 
 ## Interactive demo
 
+For a live presenter walkthrough on the real Windows desktops, see the
+[Windows upgrade demo guide](docs/windows-upgrade-demo-guide.md). It covers VNC
+access, internal WSUS configuration, installed patch evidence, exact application
+versions and functional checks before and after the Chocolatey upgrade.
+
 [`demo/`](demo/README.md) contains a presenter-paced browser walkthrough with
 Next/Previous controls, a workflow that grows after each action, and a datacenter
 architecture that gains servers, services and content. Directional animations
