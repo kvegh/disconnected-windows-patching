@@ -11,7 +11,7 @@
     name: "{{ ad_authenticator }}"
     type: ansible_base.authentication.authenticator_plugins.ldap
     enabled: false
-    create_objects: false
+    create_objects: true
     remove_users: true
     order: 20
     configuration: &ad_ldap_configuration
@@ -85,7 +85,7 @@
     name: "{{ ad_authenticator }}"
     enabled: true
     type: ansible_base.authentication.authenticator_plugins.ldap
-    create_objects: false
+    create_objects: true
     remove_users: true
     order: 20
     configuration: *ad_ldap_configuration

@@ -81,6 +81,9 @@ The optional LDAP stage requires verified LDAPS and gateway trust inputs before
 it creates ordered login, organization and nested-group team maps with revocation.
 Group identifiers in the maps use lowercase distinguished names, as required by
 the gateway's group trigger matching.
+LDAP object creation is enabled so permitted AD identities can receive an AAP
+user on first login. The organization, scoped teams and grants are created by
+Ansible before activation, and the allow map restricts login to the owned groups.
 Local authentication remains available. Project requirements pin the collection
 versions used by these jobs.
 For focused development retries, `ad_configuration_diagnostics: true` exposes
