@@ -102,6 +102,7 @@ def verify(p):
                 if principal['username'].lower() != user['username'].lower() or principal.get('is_superuser'):
                     raise AssertionError('Unexpected identity or superuser status after LDAP login.')
                 allowed = {user['region']} | ({'EU'} if user['region'] in ('DK', 'NO') else set())
+                user_access_deadline = time.monotonic() + 60
                 for region, label in LABELS.items():
                     for kind, endpoint in endpoints.items():
                         suffix = {'inventory': 'Mock Inventory', 'credential': 'Mock Credential', 'jobtemplate': 'read'}[kind]
@@ -109,8 +110,13 @@ def verify(p):
                         path = '/api/controller/v2/' + endpoint + '/' + str(resource['id']) + '/'
                         status, visible = request(path, user)
                         if region in allowed:
+                            while status in (403, 404) and time.monotonic() < user_access_deadline:
+                                time.sleep(2)
+                                status, visible = request(path, user)
                             if status != 200:
-                                raise AssertionError('An expected regional resource is not visible.')
+                                raise AssertionError('Expected access did not converge: '
+                                                     + user['region'] + '/' + user['role'] + ' -> '
+                                                     + region + '/' + kind + ' HTTP ' + str(status))
                             patch_status, _ = request(path, user, 'PATCH', {'description': visible.get('description', '')})
                             if user['role'] == 'admin' and patch_status != 200:
                                 raise AssertionError('A regional administrator cannot administer its resource.')

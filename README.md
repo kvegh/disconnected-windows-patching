@@ -183,6 +183,9 @@ Set `ad_verify_ldap_logins: true` after LDAP is enabled to authenticate all twel
 directory identities, check allowed and denied regional access, exercise admin
 authorization with unchanged descriptions, and run only the permitted inert
 mock jobs. It waits for launched jobs to finish and rejects failed executions.
+For a newly provisioned identity it allows up to 60 seconds for expected
+controller access to follow gateway team membership. Unexpected cross-region
+access remains an immediate failure; the wait does not grant permissions.
 
 `configure_windows_ad_workflow.yml` adds a separate eight-stage AD branch to the
 existing Windows workflow and verifies that its other nodes and edges are
