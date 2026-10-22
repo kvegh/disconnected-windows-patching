@@ -12,7 +12,9 @@ regional access, with VNC/browser clicks, suggested narration, role contrasts,
 rehearsal checks and a separate Ansible setup reference.
 
 The AD extension uses a separate Windows Server 2025 VM and a separate test AAP
-for regional identity and permission validation. Implementation is in progress.
+for regional identity and permission validation. Stage-by-stage deployment and
+the full live regional access matrix have passed. The complete fresh combined
+Windows/AD infrastructure workflow has not been run over this existing deployment.
 The test guest has the current Server cumulative update, build 26100.33650,
 with no pending reboot. Windows Update still reoffers KB5007651 after successful
 installer runs. Microsoft's [applicability documentation](https://support.microsoft.com/en-us/servicing/os/windows/2021/10/windows-security-app-update)
@@ -23,9 +25,9 @@ Update or exclude Defender antivirus/platform/security-intelligence packages.
 Live preparation passed with zero applicable Server updates remaining, no
 required reboot and one Windows 11-only offer reported separately. AD identity,
 LDAPS and forest-root clock verification also passed. All twelve AD accounts
-authenticated with the expected regional AAP teams. Full controller access
-testing is still in progress: first-login access for some identities has not
-converged within the verifier's bounded wait.
+authenticated with the expected regional teams on gateway and controller. The
+live verifier passed 48 scoped grants, 192 regional access checks and twelve
+completed mock jobs, including forbidden cross-region and reader execution checks.
 The focused update-policy regression check preserves Server cumulative, .NET,
 Defender platform and security-intelligence updates; the separate offer count
 is also checked through actual Ansible template rendering.

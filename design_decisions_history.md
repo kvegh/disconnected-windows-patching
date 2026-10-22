@@ -28,6 +28,23 @@ GUI and presenter commands still require an interactive rehearsal; this work
 did not patch, redeploy or install applications on the guests. Preserve the
 separate Active Directory documentation edits already in progress.
 
+## Initialize and verify each signed-in service identity
+
+Implementation: `60a8531`.
+
+Inspection found a valid LDAP user with gateway team memberships but no
+provisioned controller user. A successful controller identity read was followed
+by the expected controller account, teams and inventory access. The verifier
+now reads the user's own identity on both services before checking resource
+access, matching the browser's service initialization, and rejects a mismatched
+or superuser identity on either service. It changes no role assignments or
+access policies. All twelve users subsequently had their expected controller
+teams and could read their own regional inventory. Fresh-user provisioning and
+the complete effective-access matrix are distinct checks. A subsequent complete
+live run passed all twelve LDAP logins, 48 scoped grants, 192 regional access
+checks and twelve inert job executions. The full combined infrastructure
+workflow and live membership revocation remain separate validation.
+
 ## Explain the AD-to-AAP relationship through a presenter walkthrough
 
 Documentation: `0b46f96`.

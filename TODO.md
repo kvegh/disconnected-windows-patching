@@ -87,7 +87,7 @@
   preserving its other 21 nodes. Capture all 32 job templates and 29 workflow
   nodes in encrypted CaC; validate import and target-specific credentials on
   the separate AAP.
-- [ ] Complete live LDAP authentication and team mapping for all twelve
+- [x] Complete live LDAP authentication and team mapping for all twelve
   identities, including allowed/denied regional reads, execution and admin
   actions. Object creation must permit first-login AAP user provisioning.
 - [ ] Exercise membership removal, reauthentication and restoration with a

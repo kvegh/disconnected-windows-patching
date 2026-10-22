@@ -1,10 +1,14 @@
 # Demonstrate AD groups mapped to AAP teams
 
 This is a presenter walkthrough for someone who has not used Active Directory
-(AD), LDAP or AAP authentication mappings before. Allow about 15 minutes. It
+(AD), LDAP or AAP authentication mappings before. Allow 15–20 minutes. It
 uses VNC to view the domain controller and a browser to view the dedicated test
 AAP. The demonstration reads the existing configuration and runs inert mock
 jobs; it does not require editing directory membership or AAP permissions.
+
+For your first presentation, use the Denmark reader walkthrough in sections
+2–9. Section 10 adds optional role/region comparisons. The setup reference at
+the end is preparation material, not something to walk through on stage.
 
 ## 1. Understand the story you are showing
 
@@ -45,6 +49,20 @@ AD supplies identity and group membership. Ansible configures the AAP mappings,
 teams and permissions. AAP does not import Windows file permissions or other AD
 ACLs as permissions on job templates, credentials or inventories.
 
+If someone asks **“Are the permissions in AD too?”**, answer:
+
+> “AD holds the role groups and who belongs to them. AAP holds the permissions
+> on its inventories, credentials and job templates. Our Ansible configuration
+> connects those two: changing a person's AD group changes which AAP team's
+> permissions they receive when they authenticate.”
+
+For example, Denmark executor group membership maps to the Denmark executor
+and EU executor teams, whose AAP grants permit execution of their regional jobs
+and use of their inventories and credentials. The words `reader`, `executor`
+and `admin` in an AD group name do not create resource permissions by themselves.
+Storing a separate permission policy in AD attributes would require an
+additional Ansible translator; this demo does not implement that feature.
+
 ## 2. Prepare your screens and demo accounts
 
 1. Open VNC to the **AD domain controller**, rather than a WSUS or application
@@ -60,7 +78,7 @@ ACLs as permissions on job templates, credentials or inventories.
    has a successful run with `ad_verify_ldap_logins: true`. A run without that
    option verifies configured grants, not actual AD login and effective access.
    See [validation status](#12-validation-status-and-rehearsal-checks) for the
-   current qualification.
+   completed checks and remaining rehearsal limits.
 
 This guide uses `<prefix>` for the deployment's chosen identity prefix. Replace
 it with the prefix visible in your existing groups and AAP teams. Names below
@@ -172,7 +190,7 @@ in this login demonstration.
 To show the same full address on Windows, select **View → Advanced Features**
 in Active Directory Users and Computers. In the **DK** OU, open
 `<prefix>-DL-DK-reader` directly, select **Attribute Editor**, locate
-**distinguishedName**, and open **View**. Compare it with the AAP trigger;
+**distinguishedName**, and inspect its full value. Compare it with the AAP trigger;
 letter case differs because the trigger is normalized to lowercase. Close
 the dialogs without changing the attribute.
 
@@ -299,19 +317,23 @@ Suggested closing words:
 
 ## 12. Validation status and rehearsal checks
 
-At the latest inspection, all twelve directory accounts authenticated and had
-the expected AAP team memberships, including matching-role EU inheritance for
-Denmark and Norway and separate New Zealand membership. Denmark reader's
-inventory reads allowed Denmark/EU and denied Norway/New Zealand.
+The complete live verifier passed: **4 regions, 12 teams, 48 scoped grants,
+12 real LDAP logins, 192 regional access/launch checks and 12 successful mock
+jobs**. Independent reads also verified every account's expected teams on both
+gateway and controller, including matching-role EU inheritance for Denmark and
+Norway and separate New Zealand membership. Denmark reader's inventory reads
+allowed Denmark/EU and denied Norway/New Zealand.
 
-The full effective-access verifier is still being checked. One run failed
-because Norway executor's inventory access did not become available within its
-60-second first-login wait. A subsequent inspection found the correct teams on
-gateway and controller and the expected inventory access, without permission
-changes. The next run reached Norway admin and failed the same inventory check;
-that user's controller account had not yet been provisioned at inspection.
-Do not present the full matrix as passed until a complete live verifier run
-succeeds.
+Earlier runs stopped at first-login controller access for Norway identities.
+Inspection found a gateway identity and correct memberships before a controller
+account had been provisioned. The verifier now reads each user's own identity
+on both services before checking permissions, then retains its bounded wait for
+expected access. No permission grants were broadened during diagnosis.
+
+The automated checks do not establish that this VNC/browser presenter script
+has been rehearsed end to end, or that the complete combined infrastructure
+workflow has been run from scratch. Rehearse the selected accounts and screens
+before presenting.
 
 | Symptom | Check before presenting |
 | --- | --- |
