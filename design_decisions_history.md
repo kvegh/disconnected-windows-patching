@@ -1,5 +1,43 @@
 # Design decisions history
 
+## Explain the AD-to-AAP relationship through a presenter walkthrough
+
+Documentation: `0b46f96`.
+
+The operator requested a demonstration guide that assumes no AD or LDAP
+knowledge and uses VNC access to the Windows servers. The guide follows a
+Denmark reader through the directory's direct and nested memberships, the two
+AAP team maps, actual login and the resulting resource boundaries. It includes
+exact console/browser steps, suggested narration and executor, administrator
+and New Zealand contrasts. Setup details are separate from the presentation.
+It distinguishes Ansible-created teams and permissions from login-driven
+membership, and explicitly qualifies unfinished full-matrix and revocation
+validation. Local file links and Markdown fences passed inspection; the VNC
+walkthrough has not been rehearsed end to end by this agent.
+
+## Resume LDAP configuration after independently checking existing resources
+
+Implementation: `36a307d`.
+
+Authentication-only recovery verifies the exact twelve teams, all 48 scoped
+grants and fixed mock inputs before skipping resource reconciliation. This
+allows a focused retry after an interrupted configuration without relaxing the
+normal fresh-deployment checks. Native configuration API calls use a
+configurable 60-second timeout. Live recovery configured the authenticator and
+all fourteen maps successfully.
+
+## Allow a bounded wait for first-login controller access
+
+Implementation: `a823f23`.
+
+The first directory login produced the expected gateway teams before the
+controller exposed its permitted resources. The verifier allows a shared
+60-second convergence interval per identity for expected access, while
+unexpected cross-region access still fails immediately. Subsequent runs found
+additional users whose controller access did not converge within that bound;
+the change therefore does not establish that the full live matrix passes.
+Independent login checks verified all twelve users' expected gateway teams.
+
 ## Apply Microsoft's Server update eligibility and report unsupported UI offers
 
 Implementation: `41c251d`; Ansible offer-count rendering: `570a3b7`.

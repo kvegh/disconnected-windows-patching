@@ -304,12 +304,14 @@ the expected AAP team memberships, including matching-role EU inheritance for
 Denmark and Norway and separate New Zealand membership. Denmark reader's
 inventory reads allowed Denmark/EU and denied Norway/New Zealand.
 
-The full effective-access verifier is still being checked. An earlier run
-failed because Norway executor's inventory access did not become available
-within its 60-second first-login wait. A subsequent inspection found the correct
-teams on gateway and controller and the expected inventory access, without any
-permission changes. Do not present the full matrix as passed until a complete
-live verifier run succeeds.
+The full effective-access verifier is still being checked. One run failed
+because Norway executor's inventory access did not become available within its
+60-second first-login wait. A subsequent inspection found the correct teams on
+gateway and controller and the expected inventory access, without permission
+changes. The next run reached Norway admin and failed the same inventory check;
+that user's controller account had not yet been provisioned at inspection.
+Do not present the full matrix as passed until a complete live verifier run
+succeeds.
 
 | Symptom | Check before presenting |
 | --- | --- |

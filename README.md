@@ -22,8 +22,10 @@ zero remaining applicable Server updates. It does not hide the offer in Windows
 Update or exclude Defender antivirus/platform/security-intelligence packages.
 Live preparation passed with zero applicable Server updates remaining, no
 required reboot and one Windows 11-only offer reported separately. AD identity,
-LDAPS and forest-root clock verification also passed; LDAP access testing is
-still in progress.
+LDAPS and forest-root clock verification also passed. All twelve AD accounts
+authenticated with the expected regional AAP teams. Full controller access
+testing is still in progress: first-login access for some identities has not
+converged within the verifier's bounded wait.
 The focused update-policy regression check preserves Server cumulative, .NET,
 Defender platform and security-intelligence updates; the separate offer count
 is also checked through actual Ansible template rendering.
