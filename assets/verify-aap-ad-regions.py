@@ -101,6 +101,10 @@ def verify(p):
                 principal = get('/api/gateway/v1/me/', user)['results'][0]
                 if principal['username'].lower() != user['username'].lower() or principal.get('is_superuser'):
                     raise AssertionError('Unexpected identity or superuser status after LDAP login.')
+                controller_principal = get('/api/controller/v2/me/', user)['results'][0]
+                if (controller_principal['username'].lower() != user['username'].lower()
+                        or controller_principal.get('is_superuser')):
+                    raise AssertionError('Unexpected controller identity or superuser status after LDAP login.')
                 allowed = {user['region']} | ({'EU'} if user['region'] in ('DK', 'NO') else set())
                 user_access_deadline = time.monotonic() + 60
                 for region, label in LABELS.items():

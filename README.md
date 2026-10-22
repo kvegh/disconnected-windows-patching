@@ -191,6 +191,9 @@ Set `ad_verify_ldap_logins: true` after LDAP is enabled to authenticate all twel
 directory identities, check allowed and denied regional access, exercise admin
 authorization with unchanged descriptions, and run only the permitted inert
 mock jobs. It waits for launched jobs to finish and rejects failed executions.
+It reads the signed-in identity on both gateway and controller before checking
+resource permissions, initializing the service identity as a browser session
+does and verifying that neither service substituted a privileged account.
 For a newly provisioned identity it allows up to 60 seconds for expected
 controller access to follow gateway team membership. Unexpected cross-region
 access remains an immediate failure; the wait does not grant permissions.
