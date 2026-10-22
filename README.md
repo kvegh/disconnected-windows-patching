@@ -15,6 +15,9 @@ preparation now reports this exact unsupported UI offer separately and requires
 zero remaining applicable Server updates. It does not hide the offer in Windows
 Update or exclude Defender antivirus/platform/security-intelligence packages.
 Live validation of the revised update check is in progress.
+The focused update-policy regression check preserves Server cumulative, .NET,
+Defender platform and security-intelligence updates; the separate offer count
+is also checked through actual Ansible template rendering.
 `start_active_directory_test_platform.yml` starts only an explicitly approved,
 existing test AAP VM and waits for SSH. Supply `ad_start_test_platform_approved`,
 `ad_test_vm_name` and `ad_test_aap_address` through protected configuration.

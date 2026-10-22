@@ -109,7 +109,7 @@
       ansible.builtin.set_fact:
         ad_windows11_update_offers: >-
           {{ ad_windows_update_scan.filtered_updates | default({}) | dict2items
-             | selectattr('value.title', 'match', '^Update for Windows Security platform - KB5007651\\b')
+             | selectattr('value.title', 'match', '^Update for Windows Security platform - KB5007651(?:[ (]|$)')
              | map(attribute='value') | list }}
       no_log: true
 
