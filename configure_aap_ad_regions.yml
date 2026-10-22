@@ -21,11 +21,13 @@
       aap_password: "{{ ad_target_admin_password }}"
       aap_validate_certs: true
       aap_ca_bundle: "{{ ad_api_ca.path | default(omit) }}"
+      aap_request_timeout: "{{ ad_aap_request_timeout | default(60) }}"
     group/ansible.controller.controller:
       controller_host: "{{ ad_target_api_url }}"
       controller_username: admin
       controller_password: "{{ ad_target_admin_password }}"
       validate_certs: true
+      request_timeout: "{{ ad_aap_request_timeout | default(60) }}"
   tasks:
     - name: Check the selected target credential before any platform changes
       ansible.builtin.include_tasks: tasks/require_active_directory_target.yml
@@ -45,14 +47,36 @@
             mode: '0600'
           no_log: true
 
+        - name: Verify the complete existing resource baseline before authentication-only recovery
+          ansible.builtin.command:
+            argv: [python3, "{{ playbook_dir }}/assets/verify-aap-ad-regions.py"]
+            stdin: >-
+              {{ {'url': ad_target_api_url, 'ca': ad_target_api_ca,
+                  'admin_username': 'admin', 'admin_password': ad_target_admin_password,
+                  'prefix': active_directory.prefix, 'verify_logins': false} | to_json }}
+          register: ad_authentication_baseline
+          changed_when: false
+          failed_when: false
+          no_log: true
+          when: ad_aap_authentication_only | default(false) | bool
+
+        - name: Require the existing teams and every scoped grant before resuming authentication
+          ansible.builtin.assert:
+            that: ad_authentication_baseline.rc == 0
+            fail_msg: "{{ (ad_authentication_baseline.stdout | default('{}', true) | from_json).reason | default('Regional resource verification failed.') }}"
+            quiet: true
+          when: ad_aap_authentication_only | default(false) | bool
+
         - name: Create an organization owned by this regional demo
           ansible.platform.organization:
             name: "{{ ad_organization }}"
             description: AD regional access demonstration with isolated mock resources.
           no_log: true
+          when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Reuse reviewed Hub sources before regional project synchronization
           ansible.builtin.include_tasks: tasks/configure_aap_ad_galaxy_sources.yml
+          when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Create the regional mock source project with trusted collection sources
           ansible.controller.project:
@@ -68,6 +92,7 @@
             SSL_CERT_FILE: "{{ ad_api_ca.path }}"
             REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
           no_log: true
+          when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Create view-only roles for the three regional resource types
           ansible.platform.role_definition:
@@ -77,6 +102,7 @@
             permissions: ["awx.view_{{ item }}"]
           loop: "{{ ad_resource_types }}"
           no_log: true
+          when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Refresh the mock source before validating its playbooks
           ansible.controller.project_update:
@@ -87,12 +113,14 @@
             SSL_CERT_FILE: "{{ ad_api_ca.path }}"
             REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
           no_log: true
+          when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Create each region's resources and three teams
           ansible.builtin.include_tasks: tasks/configure_aap_ad_region.yml
           loop: "{{ ad_region_labels | dict2items }}"
           loop_control:
             loop_var: ad_region
+          when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Configure LDAP and ordered group maps after LDAPS readiness
           ansible.builtin.include_tasks: tasks/configure_aap_ad_authentication.yml

@@ -60,7 +60,7 @@
     organization: "{{ ad_organization }}"
     description: "{{ item }} access to {{ ad_region.value }} mock resources."
   loop: "{{ ad_roles }}"
-  no_log: true
+  no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
 
 - name: Grant reader access to only this region's resources
   ansible.platform.role_team_assignment:

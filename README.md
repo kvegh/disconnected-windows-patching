@@ -96,6 +96,11 @@ results. Native password/token fields remain masked, identity and LDAP secret
 tasks remain protected, and both diagnostic options default to disabled.
 The access verifier exposes its structured failure reason without logging the
 command input containing test-user and API credentials.
+After resources have converged, `ad_aap_authentication_only: true` resumes only
+LDAP configuration. It first independently verifies all twelve teams, all 48
+scoped grants and the fixed mock inputs; missing or changed resources stop the
+resume. Normal fresh deployment still configures every resource. Configuration
+API calls use a 60-second timeout, configurable with `ad_aap_request_timeout`.
 
 `configure_active_directory_address.yml` adds the dedicated clone's exact live
 and persistent DHCP reservation after checking clone ownership, NIC topology,
