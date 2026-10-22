@@ -69,37 +69,32 @@
 
 ## Active Directory and AAP permissions from nested groups
 
-- Stand up a domain controller for the demo. Decide between a Samba AD DC
-  container (fastest, real AD schema) and a Windows Server evaluation VM (most
-  credible in front of a customer). Promoting the external WSUS host is viable
-  for a throwaway environment: the local SAM is not destroyed, it is retained
-  solely for Directory Services Restore Mode, but normal-mode local logon stops
-  resolving, so inventory any service running under a machine-local identity
-  first. Microsoft discourages WSUS on a domain controller mainly because of the
-  Windows Internal Database, not the SAM.
-- Build a nested test group structure following AGDLP, with users in global role
-  groups that are themselves members of domain-local resource groups, so the
-  demo exercises indirect membership rather than only direct membership.
-- Decide which AAP instance carries this work. The nginx vhost and certificate
-  for a second instance already exist in hactarconfig but nothing is serving it,
-  and LDAP authenticator plus map ordering should not be rehearsed on the
-  instance the monitoring self-healing demo depends on.
-- Configure the LDAP authenticator against the domain controller using
-  NestedActiveDirectoryGroupType, a read-only bind account and the group search
-  base. Place the issuing CA in the platform trust store for LDAPS; that trust
-  configuration is not carried across platform upgrades.
-- Define the authenticator maps as code through the gateway_authenticator_maps
-  role rather than the web interface. Group values are full group distinguished
-  names under triggers.groups, with has_or for any-of and has_and for all-of.
-  Set order explicitly so map precedence is version controlled.
-- Verify that a user whose membership is only indirect still lands in the mapped
-  team, and read the evaluation results back from the user endpoint rather than
-  inferring success from the login succeeding.
-- Verify revocation: remove a user from the group, log in again, and confirm the
-  team membership and role are withdrawn when revoke is set.
-- Compare nested group resolution against the Active Directory matching rule in
-  chain for login latency on a directory of realistic size, and record which one
-  the demo uses and why.
-- Raise documentation feedback that the lowercase group identifier requirement
-  in the platform security guide is stale, since case-insensitive map matching
-  became the default and its feature flag was removed.
+- [x] Deploy a separate Windows Server 2025 domain controller and start the
+  dedicated test AAP. Keep the existing Windows service VMs separate.
+- [x] Install current applicable Microsoft Server updates, complete reboots and
+  require an empty applicable-update scan. Report the Windows 11-only Security
+  UI offer separately using Microsoft's product applicability.
+- [x] Configure and verify the forest-root time service against its existing
+  NTP peer; do not propagate an inherited virtual hardware clock.
+- [x] Create 12 users and 24 AGDLP security groups for Denmark, Norway, EU and
+  New Zealand, with reader, executor and admin roles. Verify matching-role EU
+  inheritance for Denmark/Norway and independent New Zealand access.
+- [x] Install the dedicated LDAPS certificate and verify normal chain and
+  hostname validation inside the test AAP gateway runtime.
+- [x] Define four inventories, four independent mock credentials, eight inert
+  job templates, twelve teams and 48 object-scoped grants through Ansible.
+- [x] Add the eight-stage AD branch to the Windows provisioning workflow while
+  preserving its other 21 nodes. Capture all 32 job templates and 29 workflow
+  nodes in encrypted CaC; validate import and target-specific credentials on
+  the separate AAP.
+- [ ] Complete live LDAP authentication and team mapping for all twelve
+  identities, including allowed/denied regional reads, execution and admin
+  actions. Object creation must permit first-login AAP user provisioning.
+- [ ] Exercise membership removal, reauthentication and restoration with a
+  dedicated test identity to verify live revocation behavior.
+
+Optional later work: compare nested-group lookup performance with the AD
+matching rule in chain on a realistically sized test directory. The current
+implementation uses `NestedActiveDirectoryGroupType`, lowercase full group DNs,
+explicit map order and revocation; normalization follows Red Hat's mapping
+examples without depending on a case-sensitivity feature flag.
