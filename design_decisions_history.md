@@ -1,5 +1,37 @@
 # Design decisions history
 
+## Apply Microsoft's Server update eligibility and report unsupported UI offers
+
+Implementation: `41c251d`; Ansible offer-count rendering: `570a3b7`.
+
+Microsoft documents KB5007651's Windows Security UI package for Windows 11 only.
+The Server-2025-guarded update play therefore excludes that exact unsupported
+offer from installation while retaining every other software category, optional
+update and Defender package. It does not hide Windows Update metadata. The
+unsupported offer is reported separately, and the final applicable-update count
+must still be zero. The live check passed with zero applicable updates, one
+separately reported Windows 11 offer and no required reboot. Eight focused tests
+and actual Ansible template rendering passed. The earlier manual UI-installer
+diagnostic was removed because it was not a supported Server repair.
+
+## Provision permitted directory users at their first AAP login
+
+Implementation: `be56260`.
+
+The LDAP authenticator enables object creation, which Red Hat documents as
+required for first-login creation of organizations, users and teams. Ansible
+creates the fixed organization, teams and scoped grants before activation; the
+allow map admits only users in the owned regional groups. This permits new AD
+identities to receive AAP accounts without granting unscoped resource access.
+
+## Surface access-verification errors without exposing credential input
+
+Implementation: `6e0d225`.
+
+The verifier command's input contains passwords and remains protected. A
+following assertion reports only the script's controlled failure reason, so a
+live access failure can be diagnosed without making command inputs visible.
+
 ## Verify the forest-root controller's time authority
 
 Implementation: `a71d6a4`, `933a391`.
@@ -9,7 +41,8 @@ The deployment now keeps Windows Time available, selects the existing configured
 NTP peer as the root controller's manual source and verifies synchronization
 against the automation runtime before managing identities. It preserves the
 peer and correction limits rather than changing global host time or weakening
-the time service's controls. Live synchronization validation follows deployment.
+the time service's controls. Live synchronization passed with an approximately
+four-second offset, followed by successful verification of all regional identities.
 
 ## Diagnose regional grant and time-service failures without logging passwords
 

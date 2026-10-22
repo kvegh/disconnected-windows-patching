@@ -14,7 +14,10 @@ lists that Security app package for Windows 11 only. The Server-2025-guarded
 preparation now reports this exact unsupported UI offer separately and requires
 zero remaining applicable Server updates. It does not hide the offer in Windows
 Update or exclude Defender antivirus/platform/security-intelligence packages.
-Live validation of the revised update check is in progress.
+Live preparation passed with zero applicable Server updates remaining, no
+required reboot and one Windows 11-only offer reported separately. AD identity,
+LDAPS and forest-root clock verification also passed; LDAP access testing is
+still in progress.
 The focused update-policy regression check preserves Server cumulative, .NET,
 Defender platform and security-intelligence updates; the separate offer count
 is also checked through actual Ansible template rendering.
@@ -58,6 +61,7 @@ time source, keeps Windows Time running, and requires synchronization within
 two minutes of the automation runtime before configuring identities. This
 prevents an inherited virtual hardware clock from becoming the domain's time
 authority. The playbook preserves the existing peer and correction limits.
+The live verification measured a four-second offset after synchronization.
 It schedules the restart inside the promotion command because local-account
 authentication can stop working as soon as the forest is created. After an
 interrupted earlier promotion, `ad_complete_promotion_reboot: true` completes a
