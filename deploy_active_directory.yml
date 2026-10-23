@@ -38,11 +38,18 @@
       register: ad_guest_state
       no_log: true
 
+    - name: Require an existing controller for identity-only configuration
+      ansible.builtin.assert:
+        that: ad_guest_state.result.IsDomainController
+        fail_msg: Identity-only configuration requires the already-promoted dedicated controller.
+      when: ad_identities_only | default(false) | bool
+
     - name: Complete an explicitly requested recovery restart after interrupted promotion
       ansible.windows.win_reboot:
         reboot_timeout: 1200
         post_reboot_delay: 30
       when:
+        - not (ad_identities_only | default(false) | bool)
         - ad_complete_promotion_reboot | default(false) | bool
         - ad_guest_state.result.IsDomainController
 
@@ -72,11 +79,14 @@
         include_management_tools: true
         state: present
       register: ad_features
+      when: not (ad_identities_only | default(false) | bool)
 
     - name: Complete required feature installation reboot
       ansible.windows.win_reboot:
         reboot_timeout: 1200
-      when: ad_features.reboot_required
+      when:
+        - not (ad_identities_only | default(false) | bool)
+        - ad_features.reboot_required
 
     - name: Create the requested new forest without bypassing prerequisite checks
       ansible.windows.win_powershell:
@@ -101,6 +111,7 @@
               $Ansible.Result = @{ RebootRequired=$true }
           }
       register: ad_promotion
+      when: not (ad_identities_only | default(false) | bool)
       no_log: true
 
     - name: Use the protected domain administrator for subsequent management
@@ -114,13 +125,14 @@
 
     - name: Wait for the promoted domain controller
       ansible.builtin.wait_for_connection:
-        delay: "{{ 45 if ad_promotion.result.RebootRequired else 0 }}"
+        delay: "{{ 45 if ad_promotion.result.RebootRequired | default(false) else 0 }}"
         timeout: 1200
 
     - name: Use AD-integrated DNS on the domain controller
       ansible.windows.win_dns_client:
         adapter_names: '*'
         dns_servers: ["{{ active_directory.ipv4 }}"]
+      when: not (ad_identities_only | default(false) | bool)
       no_log: true
 
     - name: Wait for AD Web Services and SYSVOL readiness
@@ -147,6 +159,7 @@
 
     - name: Configure and verify the new forest-root time authority
       ansible.builtin.include_tasks: tasks/configure_active_directory_time.yml
+      when: not (ad_identities_only | default(false) | bool)
 
     - name: Create owned OUs, users and nested regional access groups
       ansible.windows.win_powershell:
@@ -156,6 +169,7 @@
             username: "{{ active_directory.domain_admin_username }}"
             password: "{{ active_directory.domain_admin_password }}"
         parameters:
+          ResetDemoUserPasswords: "{{ ad_reset_demo_user_passwords | default(false) | bool }}"
           ProfileJson: >-
             {{ {'dns_domain': active_directory.dns_domain,
                 'prefix': active_directory.prefix,
@@ -163,6 +177,7 @@
                 'ous': active_directory.ous,
                 'groups': active_directory.groups,
                 'users': active_directory.users,
+                'allow_simple_demo_passwords': active_directory.allow_simple_demo_passwords | default(false) | bool,
                 'bind_username': active_directory.bind_username,
                 'bind_password': active_directory.bind_password} | to_json }}
       register: ad_identities

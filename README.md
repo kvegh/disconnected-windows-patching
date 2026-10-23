@@ -69,6 +69,17 @@ Keep the profile and its issuing private key encrypted and reuse it on reruns.
 guest and creates the regional directory. Its Windows-native AD cmdlets run
 through `ansible.windows.win_powershell`, using the existing declared runtime.
 The encrypted `vars/active_directory_vault.yml` supplies deployed identities.
+For an existing controller, `ad_identities_only: true` configures identities
+without reinstalling features, promoting the forest, changing DNS or resynchronizing
+time. `ad_reset_demo_user_passwords: true` explicitly applies the Vault-supplied
+passwords to the twelve owned regional users. Ordinary reruns preserve existing
+passwords. New accounts always receive their protected profile passwords.
+The protected profile can enable `allow_simple_demo_passwords`. This creates an
+owned fine-grained policy applied directly to exactly those twelve users, allowing
+the approved demo passwords while preserving every other domain password-policy
+setting. New demo accounts are created disabled, assigned the policy, given their
+password and then enabled. The built-in administrator and LDAP bind account are
+excluded, and policy scope and the unchanged domain defaults are verified.
 Promotion waits for AD Web Services and SYSVOL before creating identities.
 The forest-root controller uses its existing configured NTP peer as its manual
 time source, keeps Windows Time running, and requires synchronization within
