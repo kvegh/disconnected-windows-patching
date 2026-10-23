@@ -1,0 +1,37 @@
+LIVE WINDOWS DEMO PROOF
+{% for node in groups['windows_managed'] %}
+{% set report = hostvars[node].windows_demo_proof_result | default({}) %}
+
+==============================================================================
+{{ node }}{% if report.server is defined %} / {{ report.server }}{% endif %}
+
+{% if report.schema_version | default(0) == 1 %}
+{{ report.os_name }}
+Queried: {{ report.assessed_utc }}
+
+[{{ report.wsus.status }}] INTERNAL WSUS
+{% for evidence in report.wsus.evidence %}
+  {{ evidence }}
+{% endfor %}
+
+[{{ report.patching.status }}] APRIL OS PATCH LEVEL
+{% for evidence in report.patching.evidence %}
+  {{ evidence }}
+{% endfor %}
+
+APPLICATION BASELINE AND UPGRADE
+{% for package in report.applications %}
+[{{ package.status }}] {{ package.title }}
+{% for evidence in package.evidence %}
+  {{ evidence }}
+{% endfor %}
+{% endfor %}
+
+Enabled package feeds: {{ report.enabled_package_sources | join(', ') }}
+{% for error in report.errors %}
+[WARN] {{ error }}
+{% endfor %}
+{% else %}
+[ERROR] {{ report.error | default('No live report returned.') }}
+{% endif %}
+{% endfor %}

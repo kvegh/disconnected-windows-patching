@@ -139,3 +139,10 @@
   loop: "{{ chocolatey_packages | selectattr('track', 'equalto', application_release_track) | list }}"
   loop_control:
     label: "{{ item.id }}"
+
+- name: Install the desktop proof reporter for the managed application demo
+  ansible.builtin.include_tasks: tasks/deploy_windows_demo_proof.yml
+
+- name: Retain verified baseline and current package-state evidence
+  ansible.builtin.include_tasks: tasks/record_windows_demo_application_state.yml
+  when: not ansible_check_mode

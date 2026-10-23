@@ -1,0 +1,60 @@
+---
+- name: Configure the desktop reporter deployment and live-query Job Templates
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Require the existing Windows controller references
+      ansible.builtin.assert:
+        that:
+          - wsus_controller_inventory | default('') | string | length > 0
+          - wsus_controller_project | default('') | string | length > 0
+          - wsus_controller_execution_environment | default('') | string | length > 0
+          - wsus_controller_credentials | default([]) | length > 0
+        quiet: true
+
+    - name: Refresh the existing source so the new playbooks are available
+      ansible.controller.project_update:
+        controller_host: "{{ wsus_controller_host }}"
+        controller_oauthtoken: "{{ wsus_controller_token }}"
+        validate_certs: true
+        project: "{{ wsus_controller_project | string }}"
+        wait: true
+        timeout: 600
+      no_log: true
+
+    - name: Configure the two managed-server proof templates
+      ansible.controller.job_template:
+        controller_host: "{{ wsus_controller_host }}"
+        controller_oauthtoken: "{{ wsus_controller_token }}"
+        validate_certs: true
+        name: "{{ item.name }}"
+        description: "{{ item.description }}"
+        inventory: "{{ wsus_controller_inventory | string }}"
+        project: "{{ wsus_controller_project | string }}"
+        execution_environment: "{{ wsus_controller_execution_environment | string }}"
+        credentials: "{{ wsus_controller_credentials | map('string') | list }}"
+        playbook: "{{ item.playbook }}"
+        job_type: run
+        survey_enabled: false
+        ask_variables_on_launch: false
+        ask_limit_on_launch: false
+        ask_job_type_on_launch: false
+        limit: ''
+        allow_simultaneous: false
+        timeout: 900
+        verbosity: 0
+        state: present
+      loop:
+        - name: Disconnected Windows Patching - Show Managed Windows Demo Proof
+          playbook: report_managed_windows_demo.yml
+          description: Query both managed nodes live and display internal WSUS, April build/KBs, installed packages and retained baseline-to-upgrade history together at the end. No updates or packages are installed.
+        - name: Disconnected Windows Patching - Install Managed Windows Demo Proof
+          playbook: deploy_managed_windows_demo_report.yml
+          description: Install and validate the shared live-query PowerShell script and a public desktop shortcut using NoExit on both managed nodes. Does not patch or upgrade software.
+      register: windows_demo_proof_templates
+      no_log: true
+
+    - name: Report the configured proof templates
+      ansible.builtin.debug:
+        msg: "{{ windows_demo_proof_templates.results | map(attribute='id') | list }}"

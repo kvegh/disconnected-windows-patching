@@ -1,5 +1,10 @@
 # Windows upgrade demo: presenter guide with VNC
 
+For a one-click current-state view, use the
+[live desktop and AAP proof report](managed-windows-proof-report.md). It queries
+both managed nodes and displays internal WSUS, April OS level and application
+baseline/upgrade evidence. The desktop PowerShell window stays open.
+
 Use real Windows desktops to show three results: the clients use internal WSUS,
 the selected Windows patches are installed, and the selected Chocolatey
 applications have been installed, upgraded and exercised successfully. This

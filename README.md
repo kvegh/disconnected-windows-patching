@@ -3,6 +3,22 @@
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
 in a simulated disconnected environment.
 
+The managed-node proof reporter uses the same live PowerShell query from a
+**Windows Demo Proof** desktop shortcut and the **Show Managed Windows Demo
+Proof** AAP template. It reads current internal WSUS policy and reachability,
+local Windows Update history, installed build/hotfixes against April 2026,
+installed Chocolatey/binary versions and retained baseline-to-upgrade evidence.
+The desktop shortcut starts Windows PowerShell with `-NoExit`; no execution
+policy override is used. Missing history is reported as unproven, and a later
+OS build is distinguished from the exact April cutoff.
+
+`report_managed_windows_demo.yml` queries both `windows_managed` nodes over
+WinRM and prints their combined result after collection. It installs no
+updates or packages. `deploy_managed_windows_demo_report.yml` deploys the local
+script and public desktop shortcut. Future baseline/upgrade stages also install
+the reporter and retain machine-bound receipts only after live package-version
+verification; existing nodes are queried from their actual retained history.
+
 ## Active Directory extension
 
 Start with the [five-minute AD-controlled access demo](docs/active-directory-demo-quickstart.md):

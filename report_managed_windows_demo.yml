@@ -1,0 +1,59 @@
+---
+- name: Query live proof from the managed Windows servers
+  hosts: windows_managed
+  gather_facts: false
+  vars_files:
+    - vars/chocolatey_packages.yml
+    - vars/windows_patch_builds.yml
+    - vars/windows_demo_proof.yml
+    - vars/wsus_environment_vault.yml
+  tasks:
+    - name: Require the two managed servers selected for this demo
+      ansible.builtin.assert:
+        that: ansible_play_hosts_all | length == 2
+        fail_msg: Use the managed Windows inventory containing both demo endnodes.
+        quiet: true
+
+    - name: Prepare the non-secret comparison targets
+      ansible.builtin.include_tasks: tasks/prepare_windows_demo_proof.yml
+
+    - name: Query this server's actual configuration, installed state and history
+      ansible.windows.win_powershell:
+        script: "{{ lookup('ansible.builtin.file', 'assets/show-windows-demo-proof.ps1') }}"
+        depth: 12
+        parameters:
+          ExpectedJson: "{{ windows_demo_proof_expected | to_json }}"
+      register: windows_demo_live_proof
+      changed_when: false
+      failed_when: false
+      ignore_unreachable: true
+      no_log: true
+
+    - name: Retain only the queried report for the final two-server summary
+      ansible.builtin.set_fact:
+        windows_demo_proof_result: "{{ windows_demo_live_proof.result | default({'error': 'Live server query failed or the host is unreachable.'}) }}"
+      no_log: true
+
+- name: Display the combined result after querying both servers
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Display the combined live proof from both managed servers
+      ansible.builtin.debug:
+        msg: "{{ lookup('ansible.builtin.template', 'templates/windows_demo_proof_summary.j2').splitlines() }}"
+
+    - name: Retain the actual queried reports as job artifacts
+      ansible.builtin.set_stats:
+        data:
+          windows_demo_proof: "{{ dict(groups['windows_managed'] | zip(groups['windows_managed'] | map('extract', hostvars, 'windows_demo_proof_result') | list)) }}"
+        aggregate: false
+      no_log: true
+
+    - name: Require both servers to have returned live query results
+      ansible.builtin.assert:
+        that:
+          - hostvars[item].windows_demo_proof_result.schema_version | default(0) == 1
+        fail_msg: A managed server did not return a complete live report; see the summary above.
+        quiet: true
+      loop: "{{ groups['windows_managed'] }}"

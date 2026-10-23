@@ -1,0 +1,31 @@
+---
+- name: Record the package state only after its live version assertions passed
+  ansible.windows.win_powershell:
+    parameters:
+      Directory: "{{ windows_demo_proof_directory }}\\evidence"
+      Track: "{{ application_release_track }}"
+      PackagesJson: "{{ chocolatey_packages | selectattr('track', 'equalto', application_release_track) | list | to_json }}"
+    script: |
+      param([string]$Directory,[ValidateSet('baseline','current')][string]$Track,[string]$PackagesJson)
+      $ErrorActionPreference = 'Stop'
+      $root = [string](Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name ChocolateyInstall).ChocolateyInstall
+      $verified = @()
+      foreach ($expected in ($PackagesJson | ConvertFrom-Json)) {
+          $path = Join-Path (Join-Path (Join-Path $root 'lib') $expected.id) ($expected.id + '.nuspec')
+          $actual = [string]([xml](Get-Content -LiteralPath $path -Raw)).package.metadata.version
+          if ($actual -ne $expected.version) { throw 'A package differs from the release being recorded.' }
+          $verified += @{ id=[string]$expected.id; version=$actual }
+      }
+      if ($verified.Count -ne 2) { throw 'Expected both demo applications before recording evidence.' }
+      if (-not (Test-Path -LiteralPath $Directory)) { [void](New-Item -ItemType Directory -Path $Directory) }
+      $receipt = @{
+          schema_version=1; computer_name=$env:COMPUTERNAME;
+          machine_uuid=[string](Get-CimInstance Win32_ComputerSystemProduct).UUID;
+          observed_utc=(Get-Date).ToUniversalTime().ToString('o'); track=$Track; packages=$verified
+      }
+      $filename = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssfffffffZ') + '-' + $Track + '-' + [guid]::NewGuid().ToString('N') + '.json'
+      $path = Join-Path $Directory $filename
+      [IO.File]::WriteAllText($path, ($receipt | ConvertTo-Json -Depth 5), (New-Object Text.UTF8Encoding($false)))
+      $Ansible.Changed = $true
+      $Ansible.Result = @{ Track=$Track; VerifiedPackages=$verified.Count; ReceiptRecorded=$true }
+  no_log: true

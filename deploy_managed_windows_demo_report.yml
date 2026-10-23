@@ -1,0 +1,14 @@
+---
+- name: Install the live proof reporter on the managed Windows desktops
+  hosts: windows_managed
+  gather_facts: false
+  vars_files:
+    - vars/chocolatey_packages.yml
+    - vars/wsus_environment_vault.yml
+  tasks:
+    - name: Install and validate the shared script and desktop launcher
+      ansible.builtin.include_tasks: tasks/deploy_windows_demo_proof.yml
+
+    - name: Report the desktop action
+      ansible.builtin.debug:
+        msg: Windows Demo Proof is on the public desktop; its PowerShell window remains open after the live query.

@@ -1,0 +1,24 @@
+---
+- name: Require the configured April build references and internal WSUS
+  ansible.builtin.assert:
+    that:
+      - windows_demo_proof_patch_month in windows_patch_expected_builds
+      - wsus_internal_url is match('^https?://[^/@\s]+(?::[0-9]+)?/?$')
+    fail_msg: Supply the existing internal WSUS URL and a supported patch baseline.
+    quiet: true
+  no_log: true
+
+- name: Prepare comparison targets without any credentials
+  ansible.builtin.set_fact:
+    windows_demo_proof_expected:
+      schema_version: 1
+      baseline_name: "{{ windows_demo_proof_baseline_name }}"
+      patch_month: "{{ windows_demo_proof_patch_month }}"
+      wsus_url: "{{ wsus_internal_url | regex_replace('/$', '') }}"
+      baselines: "{{ windows_patch_expected_builds[windows_demo_proof_patch_month] }}"
+      dotnet_candidates: "{{ windows_demo_proof_dotnet_candidates }}"
+      packages: >-
+        {{ chocolatey_packages | map('dict2items') | map('selectattr', 'key', 'in',
+             ['id', 'track', 'version', 'title', 'vendor_version']) | map('items2dict') | list }}
+      evidence_directory: "{{ windows_demo_proof_directory }}\\evidence"
+  no_log: true

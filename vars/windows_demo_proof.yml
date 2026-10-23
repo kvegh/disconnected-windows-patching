@@ -1,0 +1,7 @@
+---
+windows_demo_proof_directory: 'C:\ProgramData\AAP\DemoProof'
+windows_demo_proof_patch_month: '2026-04'
+windows_demo_proof_baseline_name: April 2026
+windows_demo_proof_dotnet_candidates:
+  '20348': [KB5082427, KB5082425]
+  '26100': [KB5082417]
