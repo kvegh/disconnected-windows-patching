@@ -1,0 +1,25 @@
+---
+- name: Create owned OUs, users and nested regional access groups
+  ansible.windows.win_powershell:
+    script: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
+    sensitive_parameters:
+      - name: DomainCredential
+        username: "{{ active_directory.domain_admin_username }}"
+        password: "{{ active_directory.domain_admin_password }}"
+    parameters:
+      ResetDemoUserPasswords: "{{ ad_reset_demo_user_passwords | default(false) | bool }}"
+      ProfileJson: >-
+        {{ {'dns_domain': active_directory.dns_domain,
+            'prefix': active_directory.prefix,
+            'root_dn': active_directory.root_dn,
+            'ous': active_directory.ous,
+            'groups': active_directory.groups,
+            'users': active_directory.users,
+            'retired_users': active_directory.retired_users | default([]),
+            'retired_groups': active_directory.retired_groups | default([]),
+            'resource_sets': active_directory.resource_sets | default([]),
+            'allow_simple_demo_passwords': active_directory.allow_simple_demo_passwords | default(false) | bool,
+            'bind_username': active_directory.bind_username,
+            'bind_password': active_directory.bind_password} | to_json }}
+  register: ad_identities
+  no_log: true

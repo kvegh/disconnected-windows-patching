@@ -161,43 +161,77 @@
       ansible.builtin.include_tasks: tasks/configure_active_directory_time.yml
       when: not (ad_identities_only | default(false) | bool)
 
-    - name: Parse the directory script before any identity changes
+    - name: Parse the directory and optional test scripts before any identity changes
       ansible.windows.win_powershell:
         parameters:
-          Source: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
+          Sources: >-
+            {{ [lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1')]
+               + ([lookup('ansible.builtin.file', 'assets/verify-active-directory-additional-members.ps1')]
+                  if ad_verify_additional_members | default(false) | bool else []) }}
         script: |
-          param([string]$Source)
-          $tokens = $null
-          $parseErrors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseInput($Source, [ref]$tokens, [ref]$parseErrors)
-          if ($parseErrors.Count -gt 0) { throw 'Directory configuration script failed PowerShell syntax validation.' }
+          param([string[]]$Sources)
+          foreach ($source in $Sources) {
+              $tokens = $null
+              $parseErrors = $null
+              [void][System.Management.Automation.Language.Parser]::ParseInput($source, [ref]$tokens, [ref]$parseErrors)
+              if ($parseErrors.Count -gt 0) { throw 'A directory script failed PowerShell syntax validation.' }
+          }
           $Ansible.Changed = $false
       no_log: true
 
-    - name: Create owned OUs, users and nested regional access groups
-      ansible.windows.win_powershell:
-        script: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
-        sensitive_parameters:
-          - name: DomainCredential
-            username: "{{ active_directory.domain_admin_username }}"
-            password: "{{ active_directory.domain_admin_password }}"
-        parameters:
-          ResetDemoUserPasswords: "{{ ad_reset_demo_user_passwords | default(false) | bool }}"
-          ProfileJson: >-
-            {{ {'dns_domain': active_directory.dns_domain,
-                'prefix': active_directory.prefix,
-                'root_dn': active_directory.root_dn,
-                'ous': active_directory.ous,
-                'groups': active_directory.groups,
-                'users': active_directory.users,
-                'retired_users': active_directory.retired_users | default([]),
-                'retired_groups': active_directory.retired_groups | default([]),
-                'resource_sets': active_directory.resource_sets | default([]),
-                'allow_simple_demo_passwords': active_directory.allow_simple_demo_passwords | default(false) | bool,
-                'bind_username': active_directory.bind_username,
-                'bind_password': active_directory.bind_password} | to_json }}
-      register: ad_identities
-      no_log: true
+    - name: Require focused identity mode for the optional additional-member test
+      ansible.builtin.assert:
+        that:
+          - ad_identities_only | default(false) | bool
+          - not (ad_reset_demo_user_passwords | default(false) | bool)
+        fail_msg: The additional-member test requires identity-only mode without password resets.
+        quiet: true
+      when: ad_verify_additional_members | default(false) | bool
+
+    - name: Reconcile seeded identities and optionally prove additional-member preservation
+      block:
+        - name: Prepare temporary additional AD members for the opt-in integration test
+          ansible.builtin.include_tasks: tasks/verify_active_directory_additional_members.yml
+          vars:
+            ad_extra_member_phase: prepare
+          when: ad_verify_additional_members | default(false) | bool
+
+        - name: Configure owned identities while preserving additional AD members
+          ansible.builtin.include_tasks: tasks/configure_active_directory_identities.yml
+
+        - name: Reconcile a second time for the opt-in preservation test
+          ansible.builtin.include_tasks: tasks/configure_active_directory_identities.yml
+          when: ad_verify_additional_members | default(false) | bool
+
+        - name: Require the second identity reconciliation to be unchanged
+          ansible.builtin.assert:
+            that: not ad_identities.changed
+            fail_msg: The second identity reconciliation unexpectedly changed managed state.
+            quiet: true
+          when: ad_verify_additional_members | default(false) | bool
+
+        - name: Verify the additional identities and their direct and nested memberships
+          ansible.builtin.include_tasks: tasks/verify_active_directory_additional_members.yml
+          vars:
+            ad_extra_member_phase: verify
+          when: ad_verify_additional_members | default(false) | bool
+      always:
+        - name: Remove only temporary objects created by this additional-member test
+          ansible.builtin.include_tasks: tasks/verify_active_directory_additional_members.yml
+          vars:
+            ad_extra_member_phase: cleanup
+          when:
+            - ad_verify_additional_members | default(false) | bool
+            - (ad_extra_member_fixture | default({})).get('Created', false) | bool
+
+    - name: Save additional-member preservation proof without identities or passwords
+      ansible.builtin.set_stats:
+        data:
+          active_directory_additional_member_verification: >-
+            {{ ad_extra_member_verification | combine({'TemporaryObjectsRemoved': ad_extra_member_cleanup_verified | bool,
+                 'SecondReconciliationChanged': ad_identities.changed | bool}) }}
+        aggregate: false
+      when: ad_verify_additional_members | default(false) | bool
 
     - name: Save identity verification without credentials
       ansible.builtin.set_stats:

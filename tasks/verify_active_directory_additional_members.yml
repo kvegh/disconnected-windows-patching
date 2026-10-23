@@ -1,0 +1,42 @@
+---
+- name: Generate a protected password for the temporary additional-user test
+  ansible.builtin.set_fact:
+    ad_extra_member_password: "{{ lookup('ansible.builtin.password', '/dev/null length=32 chars=ascii_letters,digits') ~ 'Aa1!' }}"
+  when: ad_extra_member_phase == 'prepare'
+  no_log: true
+
+- name: Run the guarded additional-member test phase
+  ansible.windows.win_powershell:
+    script: "{{ lookup('ansible.builtin.file', 'assets/verify-active-directory-additional-members.ps1') }}"
+    sensitive_parameters:
+      - name: DomainCredential
+        username: "{{ active_directory.domain_admin_username }}"
+        password: "{{ active_directory.domain_admin_password }}"
+    parameters:
+      Action: "{{ ad_extra_member_phase }}"
+      ProfileJson: >-
+        {{ {'dns_domain': active_directory.dns_domain, 'prefix': active_directory.prefix,
+            'root_dn': active_directory.root_dn} | to_json }}
+      ProbePassword: "{{ ad_extra_member_password | default('') }}"
+      FixtureJson: "{{ ad_extra_member_fixture | default({}) | to_json }}"
+  register: ad_extra_member_test
+  no_log: true
+
+- name: Remember only the protected identifiers of objects created by this test
+  ansible.builtin.set_fact:
+    ad_extra_member_fixture: "{{ ad_extra_member_test.result }}"
+  when: ad_extra_member_phase == 'prepare'
+  no_log: true
+
+- name: Preserve the non-sensitive additional-member verification result
+  ansible.builtin.set_fact:
+    ad_extra_member_verification: "{{ ad_extra_member_test.result }}"
+  when: ad_extra_member_phase == 'verify'
+  no_log: true
+
+- name: Require successful temporary-object cleanup and clear the temporary password
+  ansible.builtin.set_fact:
+    ad_extra_member_cleanup_verified: "{{ ad_extra_member_test.result.TemporaryObjectsRemoved | bool }}"
+    ad_extra_member_password: ''
+  when: ad_extra_member_phase == 'cleanup'
+  no_log: true

@@ -22,13 +22,22 @@ users: reader, executor and admin for Denmark (DK), Norway (NO), New Zealand
 (NZ) and Hungary (HU). Five country-owned resource sets separate ownership from
 clearance:
 
-| Resource set | Permitted identity groups |
-| --- | --- |
-| `DKlocal` | DK only |
-| `NOlocal` | NO only |
-| `DKEUapproved` | DK, NO and HU |
-| `NOEUapproved` | DK, NO and HU |
-| `NZlocal` | NZ only |
+| Readable resource label | Current AAP/Ansible key | Permitted identity groups |
+| --- | --- | --- |
+| DK-local | `DKlocal` | DK only |
+| NO-local | `NOlocal` | NO only |
+| DK-EU-approved | `DKEUapproved` | DK, NO and HU |
+| NO-EU-approved | `NOEUapproved` | DK, NO and HU |
+| NZ-local | `NZlocal` | NZ only |
+
+Both presenter guides use the hyphenated labels and include the current-name
+lookup for UI searches and Ansible inputs. Their new-user exercise shows AD
+account creation, group membership and automatic first-login AAP access. One
+mapped AD group can select several permissions through its AAP team. The
+identity reconciler maintains the twelve generated users and their declared
+memberships while preserving additional users and nested groups added by AD
+administrators. Additional people can remain in the mapped groups across setup
+reruns. The verifier exercises the twelve generated demo identities.
 
 Each row has its own inventory, synthetic credential, two inert job templates
 and AAP Project. EU approval permits access to the two approved country sets;
@@ -103,6 +112,12 @@ time. With the scoped demo policy enabled, `ad_reset_demo_user_passwords: true`
 explicitly applies the Vault-supplied passwords to the twelve owned regional
 users. Ordinary reruns preserve existing
 passwords. New accounts always receive their protected profile passwords.
+Set `ad_verify_additional_members: true` together with `ad_identities_only: true`
+to run the opt-in Windows preservation test. It creates a temporary additional
+user and global group, adds them to existing country/access groups, reconciles
+twice, verifies direct and nested membership, and removes its own test objects
+in an always-cleanup block. It leaves other manually added members intact and
+does not reset passwords or extend the generated-user password-policy exception.
 Fresh directory-profile initialization keeps the domain Administrator password
 equal to the protected original image password; other service and certificate
 secrets are generated independently.

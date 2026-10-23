@@ -17,6 +17,7 @@ $passwordsReset = 0
 $retiredUsersRemoved = 0
 $retiredGroupsRemoved = 0
 $membershipsRemoved = 0
+$additionalMembersPreserved = 0
 function Get-OptionalDirectoryObject {
     param([string]$Kind,[string]$Identity)
     try {
@@ -270,15 +271,18 @@ foreach ($g in $p.groups) {
         $desired += @($p.users | Where-Object { $_.group -eq $g.name } | ForEach-Object { $_.username })
     }
     $members = @(Get-ADGroupMember -Identity $g.name)
-    $unexpected = @($members | Where-Object { $_.SamAccountName -notin $desired })
-    # Correct only memberships between validated demo objects. Foreign principals
-    # indicate a shared group and require operator review instead of removal.
-    foreach ($member in $unexpected) {
-        if (-not $managedPrincipalDns.ContainsKey($member.SamAccountName) -or
-            $member.DistinguishedName -ne $managedPrincipalDns[$member.SamAccountName]) {
-            throw 'Refusing to remove an unowned principal from a regional group.'
+    # AD administrators own memberships for identities outside this seeded demo
+    # cohort. Reconcile only validated demo principals and preserve all others.
+    $managed = @($members | Where-Object { $managedPrincipalDns.ContainsKey([string]$_.SamAccountName) })
+    foreach ($member in $managed) {
+        if ($member.DistinguishedName -ne $managedPrincipalDns[$member.SamAccountName]) {
+            throw 'A managed membership refers to an unexpected directory object.'
         }
     }
+    $additionalMembersPreserved += @($members | Where-Object {
+        -not $managedPrincipalDns.ContainsKey([string]$_.SamAccountName)
+    }).Count
+    $unexpected = @($managed | Where-Object { $_.SamAccountName -notin $desired })
     foreach ($member in $unexpected) {
         Remove-ADGroupMember -Identity $g.name -Members $member.DistinguishedName -Confirm:$false
         $membershipsRemoved++
@@ -291,9 +295,11 @@ foreach ($g in $p.groups) {
             $changed = $true
         }
     }
-    $present = @(Get-ADGroupMember -Identity $g.name | ForEach-Object { $_.SamAccountName })
+    $present = @(Get-ADGroupMember -Identity $g.name |
+        Where-Object { $managedPrincipalDns.ContainsKey([string]$_.SamAccountName) } |
+        ForEach-Object { $_.SamAccountName })
     if (@(Compare-Object -ReferenceObject $desired -DifferenceObject $present).Count) {
-        throw 'A regional group does not have exactly the expected direct members.'
+        throw 'A regional group does not have exactly the expected managed direct members.'
     }
 }
 $recursive = @{}
@@ -328,4 +334,5 @@ $Ansible.Result = @{
     DemoPasswordsReset=$passwordsReset; DomainPasswordPolicyUnchanged=$true;
     RetiredUsersRemoved=$retiredUsersRemoved; RetiredGroupsRemoved=$retiredGroupsRemoved;
     ObsoleteMembershipsRemoved=$membershipsRemoved; RetiredIdentitiesVerified=$true
+    AdditionalDirectMembersPreserved=$additionalMembersPreserved; ManagedMembershipsVerified=$true
 }

@@ -37,19 +37,39 @@ Use this explanation at the start:
 | EU-approved access | Clearance allowing DK, NO and HU people to use both countries' approved sets. |
 
 There are four user cohorts—DK, NO, NZ and HU—and five country-owned resource
-sets. `DKlocal` and `NOlocal` allow only their own country's identities.
-`DKEUapproved` and `NOEUapproved` allow DK, NO and HU identities. `NZlocal`
+sets. `DK-local` and `NO-local` allow only their own country's identities.
+`DK-EU-approved` and `NO-EU-approved` allow DK, NO and HU identities. `NZ-local`
 allows only NZ identities. Hungary has no resource set of its own. EU is a
 clearance category, not a resource owner or a separate user cohort; no EU-only
 users remain. This is identity-based regional clearance, not detection of a
 user's IP address or physical location.
 
 Each set has one inventory, one synthetic credential, one distinct AAP Project
-and two inert job templates. Names follow the exact resource-set key: for
-example, `DKlocal Inventory`, `DKlocal Credential`, Project `DKlocal`,
-`DKlocal Read` and `DKlocal Simulate Change`. All five Projects use the same
+and two inert job templates. The guide uses readable labels such as
+`DK-local Inventory`, `DK-local Credential`, Project `DK-local`,
+`DK-local Read` and `DK-local Simulate Change`. Use the current-key lookup below
+when finding these objects in AAP. All five Projects use the same
 public demo Git source. Their visibility demonstrates AAP Project permissions,
 not confidentiality of source code in that public repository.
+
+### Readable names and current AAP names
+
+Use `<country>-local` and `<country>-EU-approved` for presentation. The deployed
+AAP objects and Ansible resource-set keys currently use the compact spelling
+below. For a UI search or an `ad_aap_resume_resource_sets` value, use that current
+key. Keep object suffixes and the deployment prefix/role on team names.
+
+| Label in this guide | Current AAP key |
+| --- | --- |
+| DK-local | `DKlocal` |
+| NO-local | `NOlocal` |
+| DK-EU-approved | `DKEUapproved` |
+| NO-EU-approved | `NOEUapproved` |
+| NZ-local | `NZlocal` |
+| EU-approved team scope | `EUapproved` |
+
+For example, **DK-local Read** in this guide is currently **DKlocal Read** in
+AAP, and the **EU-approved executor** team scope is **EUapproved executor**.
 
 ### Complete access matrix
 
@@ -62,7 +82,7 @@ administrator or an AD domain administrator.
 
 #### Denmark
 
-| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
 | `geo-dk-reader` | **View** | — | **View** | **View** | — |
 | `geo-dk-executor` | **Run/use** | — | **Run/use** | **Run/use** | — |
@@ -70,7 +90,7 @@ administrator or an AD domain administrator.
 
 #### Norway
 
-| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
 | `geo-no-reader` | — | **View** | **View** | **View** | — |
 | `geo-no-executor` | — | **Run/use** | **Run/use** | **Run/use** | — |
@@ -78,7 +98,7 @@ administrator or an AD domain administrator.
 
 #### New Zealand
 
-| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
 | `geo-nz-reader` | — | — | — | — | **View** |
 | `geo-nz-executor` | — | — | — | — | **Run/use** |
@@ -86,7 +106,7 @@ administrator or an AD domain administrator.
 
 #### Hungary
 
-| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
 | `geo-hu-reader` | — | — | **View** | **View** | — |
 | `geo-hu-executor` | — | — | **Run/use** | **Run/use** | — |
@@ -101,11 +121,11 @@ flowchart LR
     G --> E[AD: EU reader access group]
     D --> M1[AAP: DK membership mapping]
     E --> M2[AAP: EU membership mapping]
-    M1 --> T1[AAP: DKlocal reader team]
-    M2 --> T2[AAP: EUapproved reader team]
-    T1 --> R1[DKlocal resources: view]
-    T2 --> R2[DKEUapproved resources: view]
-    T2 --> R3[NOEUapproved resources: view]
+    M1 --> T1[AAP: DK-local reader team]
+    M2 --> T2[AAP: EU-approved reader team]
+    T1 --> R1[DK-local resources: view]
+    T2 --> R2[DK-EU-approved resources: view]
+    T2 --> R3[NO-EU-approved resources: view]
 ```
 
 AD supplies identity and group membership. Ansible configures the AAP mappings,
@@ -119,11 +139,11 @@ If someone asks **“Are the permissions in AD too?”**, answer:
 > configuration connects those two: changing a person's AD group changes
 > which AAP team's permissions they receive when they authenticate.”
 
-For example, Denmark executor group membership maps to the `DKlocal executor`
-and `EUapproved executor` teams, with the deployment prefix. Their AAP grants
-permit execution of jobs and use of inventories and credentials in `DKlocal`,
-`DKEUapproved` and `NOEUapproved`, plus view-only access to those Projects.
-They do not allow `NOlocal` or `NZlocal` access. The words `reader`, `executor`
+For example, Denmark executor group membership maps to the `DK-local executor`
+and `EU-approved executor` teams, with the deployment prefix. Their AAP grants
+permit execution of jobs and use of inventories and credentials in `DK-local`,
+`DK-EU-approved` and `NO-EU-approved`, plus view-only access to those Projects.
+They do not allow `NO-local` or `NZ-local` access. The words `reader`, `executor`
 and `admin` in an AD group name do not create resource permissions by themselves.
 This is the documented AD-controlled entitlement pattern: directory groups
 select the user's AAP teams, whose resource roles supply the effective access.
@@ -135,6 +155,16 @@ person authenticates again.
 
 The separate organization is a demo isolation choice. LDAP users do not require
 a separate organization merely because their identities come from AD.
+
+### One AD group can select many permissions
+
+An AD group selects an AAP team, and that team can hold several resource roles.
+For example, `<prefix>-DL-EU-executor` selects the EU-approved executor team.
+Across both approved country sets, it has Project Reader, Inventory Use,
+Credential Use and JobTemplate Execute roles: ten object-scoped assignments
+covering two Projects, two inventories, two credentials and four templates.
+One group therefore selects the entire permission bundle. Another team mapping
+can also use the same AD group trigger when separate teams are useful.
 
 ## 2. Prepare your screens and demo accounts
 
@@ -258,7 +288,7 @@ in this login demonstration.
    | --- | --- |
    | Mapping type | Team |
    | Organization | `<prefix> Regional Identity Demo` |
-   | Team | `<prefix> DKlocal reader` |
+   | Team | `<prefix> DK-local reader` |
    | Role | Team Member |
    | Group trigger | The full DN of `<prefix>-DL-DK-reader`, stored in lowercase |
    | Revoke | Enabled |
@@ -266,9 +296,9 @@ in this login demonstration.
 4. Explain that the long group value is the AD group's address, not a second
    AAP team name. It identifies the access group shown on Windows.
 5. Return to the mapping list and open **EU reader membership**. Show that it
-   targets `<prefix> EUapproved reader` and matches the EU reader access group's DN.
+   targets `<prefix> EU-approved reader` and matches the EU reader access group's DN.
 6. Point out that there are twelve team rules: four access scopes times three
-   roles. `EUapproved` covers both approved country resource sets; it is not a
+   roles. `EU-approved` covers both approved country resource sets; it is not a
    fifth country or a separate user cohort.
    The separate **Regional demo login** and **Regional demo organization** rules
    admit eligible identities and give them organization membership.
@@ -292,14 +322,14 @@ its separate resource assignments enforce that purpose.
 ## 7. In AAP: show what the reader team is permitted to do
 
 1. Navigate to **Access Management → Teams**.
-2. Search for and open `<prefix> DKlocal reader`.
+2. Search for and open `<prefix> DK-local reader`.
 3. Open the **Roles** tab and inspect its resource assignments. If the UI offers
    a service filter, select **Automation Execution**.
-4. Show the five assignments: Project `DKlocal`, `DKlocal Inventory`,
-   `DKlocal Credential`, `DKlocal Read` and `DKlocal Simulate Change`.
+4. Show the five assignments: Project `DK-local`, `DK-local Inventory`,
+   `DK-local Credential`, `DK-local Read` and `DK-local Simulate Change`.
 5. Point out the custom reader roles. They contain view permissions only.
-6. Open `<prefix> EUapproved reader`. Show its ten assignments: the five
-   resources in each of `DKEUapproved` and `NOEUapproved`.
+6. Open `<prefix> EU-approved reader`. Show its ten assignments: the five
+   resources in each of `DK-EU-approved` and `NO-EU-approved`.
 
 Say:
 
@@ -322,16 +352,16 @@ teams receive management roles on their permitted objects only.
    find that exact account, and open its **Teams** tab.
 5. Show that the user belongs to exactly the two regional teams:
 
-   - `<prefix> DKlocal reader`
-   - `<prefix> EUapproved reader`
+   - `<prefix> DK-local reader`
+   - `<prefix> EU-approved reader`
 
 6. Alternatively, open each of those teams and its **Users** tab to show the
    same membership from the team's perspective.
 
 Say:
 
-> “We signed in with an AD identity. The mapping put it in the DKlocal reader
-> and EUapproved reader teams, following the memberships we saw in AD.”
+> “We signed in with an AD identity. The mapping put it in the DK-local reader
+> and EU-approved reader teams, following the memberships we saw in AD.”
 
 The account may already exist in AAP because rehearsal or automated verification
 has logged it in. Do not claim that you just created it. The evidence is the
@@ -345,15 +375,15 @@ Perform these actions in the **private reader window**, not the administrator
 window.
 
 1. Open **Automation Execution → Infrastructure → Inventories**. Show
-   `DKlocal Inventory`, `DKEUapproved Inventory` and `NOEUapproved Inventory`.
-2. Show that `NOlocal Inventory` and `NZlocal Inventory` are absent.
+   `DK-local Inventory`, `DK-EU-approved Inventory` and `NO-EU-approved Inventory`.
+2. Show that `NO-local Inventory` and `NZ-local Inventory` are absent.
 3. Open **Automation Execution → Templates**. Show the six mock templates
    belonging to those three allowed sets. As a reader, the user must not be
    able to launch them.
 4. Open **Automation Execution → Infrastructure → Credentials**. Show the
    corresponding three mock credentials' metadata without revealing secrets.
-5. Open **Automation Execution → Projects**. Show `DKlocal`, `DKEUapproved`
-   and `NOEUapproved`; `NOlocal` and `NZlocal` must be absent.
+5. Open **Automation Execution → Projects**. Show `DK-local`, `DK-EU-approved`
+   and `NO-EU-approved`; `NO-local` and `NZ-local` must be absent.
 6. Point out that editing these resources is unavailable to the reader. The
    browser may hide forbidden actions instead of displaying an error dialog.
 
@@ -374,11 +404,11 @@ unchanged. Use the same AD → mapping → team explanation for each identity.
 
 | AD identity | Expected AAP teams | What to demonstrate |
 | --- | --- | --- |
-| Denmark executor | DKlocal executor, EUapproved executor | Launch `DKlocal Read` and wait for **Successful**. It can also run both approved sets, but cannot edit inventory configuration. |
-| Denmark admin | DKlocal admin, EUapproved admin | On an allowed resource show **Edit**, then **Cancel**. NOlocal and NZlocal remain absent. |
-| Norway reader | NOlocal reader, EUapproved reader | NOlocal and both approved sets visible; DKlocal and NZlocal absent. |
-| Hungary executor | EUapproved executor only | Show only DKEUapproved and NOEUapproved. Launch `NOEUapproved Simulate Change` and wait for **Successful**; both strict-local sets and NZlocal remain absent. |
-| New Zealand reader | NZlocal reader only | NZlocal visible; all four DK/NO sets absent. |
+| Denmark executor | DK-local executor, EU-approved executor | Launch `DK-local Read` and wait for **Successful**. It can also run both approved sets, but cannot edit inventory configuration. |
+| Denmark admin | DK-local admin, EU-approved admin | On an allowed resource show **Edit**, then **Cancel**. NO-local and NZ-local remain absent. |
+| Norway reader | NO-local reader, EU-approved reader | NO-local and both approved sets visible; DK-local and NZ-local absent. |
+| Hungary executor | EU-approved executor only | Show only DK-EU-approved and NO-EU-approved. Launch `NO-EU-approved Simulate Change` and wait for **Successful**; both strict-local sets and NZ-local remain absent. |
+| New Zealand reader | NZ-local reader only | NZ-local visible; all four DK/NO sets absent. |
 
 The team names in this table carry the deployment prefix. No standalone EU user
 is needed: the shared team gets its users through DK, NO and HU nested groups.
@@ -537,6 +567,39 @@ identity and applies the existing team maps. No manual AAP user, team or grant
 is needed. AD changes are evaluated on authentication, so sign out and sign
 in again when demonstrating a changed membership.
 
+#### Create a new AD user and show automatic AAP access
+
+This optional exercise creates a temporary user. The automated access verifier
+covers the twelve generated demo identities; check this extra user's access
+manually during the demonstration.
+
+1. In the AAP administrator window, search **Access Management → Users** for a
+   fresh example name such as `demo-new-reader`. Confirm it does not exist.
+2. On the domain controller, press **Win+R**, enter `dsa.msc`, and expand the
+   domain → deployment-prefix OU → **DK**.
+3. Right-click **DK → New → User**. Enter a display name and use
+   `demo-new-reader` as the short user logon name, then select **Next**.
+4. Choose a password accepted by AD, uncheck **User must change password at next
+   logon**, and keep the account enabled. The simple-password exception applies
+   only to the twelve generated demo users; this new user needs a normal AD
+   password. AAP cannot complete an AD password-change-at-first-login prompt.
+   Select **Finish** after entering these password/account settings.
+5. Open the new user → **Member Of → Add**. Enter
+   `<prefix>-GG-DK-reader`, select **Check Names → OK → Apply**.
+6. Open a private browser window on the dedicated test AAP. Sign in with the
+   new short username and its AD password. No AAP user creation, configuration
+   JT or directory synchronization is needed.
+7. Show DK-local and both EU-approved resource sets. NO-local and NZ-local are
+   absent. The reader can view resources but cannot launch their jobs or edit
+   their configuration. Then refresh the administrator's user list: the new
+   account now exists and has DK-local reader and EU-approved reader teams.
+8. Keep the account for further demonstrations, or delete the temporary AD user
+   and its AAP record to repeat the first-login exercise from a clean starting
+   point. Identity setup reruns preserve additional members and their memberships.
+
+For an executor demonstration, use the matching country executor global group
+instead of its reader group. The existing mapping then selects executor teams.
+
 For a new country receiving only existing EU-approved access, its matching-role
 global groups can nest into the existing EU domain-local groups. Those access
 groups already have AAP mappings. For a new country with its own local
@@ -545,8 +608,16 @@ sets and acceptance matrix, then run **Deploy Active Directory** in
 identity-only mode, **Configure AD AAP Regions**, and **Verify AD AAP Access**.
 The configuration template creates the declared teams, grants and LDAP maps
 together. There is no separate add-country survey template. The supplied model
-and verifier deliberately cover the four demo countries and twelve demo users;
-their ownership guards reject unexpected members during reconciliation.
+and verifier cover the four demo countries and twelve generated users. Identity
+reconciliation preserves additional users and nested groups added by AD
+administrators, while still enforcing the generated users' declared memberships
+and country/role boundaries.
+
+The opt-in `ad_verify_additional_members: true` identity-only run creates an
+additional user and global group, reconciles twice, verifies preserved direct
+and nested access, and cleans up its test objects. It requires
+`ad_identities_only: true` without password resets. Additional manual users keep
+their passwords and use their normal AD password policy.
 
 The Microsoft patch check reports the Windows 11-only KB5007651 Security UI
 offer separately on Server 2025. It does not exclude applicable Server updates
@@ -561,18 +632,18 @@ group's full lowercase DN, not just the short name in this table.
 
 | AD access group | AAP team | Resource sets | Permissions |
 | --- | --- | --- | --- |
-| `<prefix>-DL-DK-reader` | `<prefix> DKlocal reader` | DKlocal | View only |
-| `<prefix>-DL-DK-executor` | `<prefix> DKlocal executor` | DKlocal | Run/use; Project view only |
-| `<prefix>-DL-DK-admin` | `<prefix> DKlocal admin` | DKlocal | Administer assigned resources |
-| `<prefix>-DL-NO-reader` | `<prefix> NOlocal reader` | NOlocal | View only |
-| `<prefix>-DL-NO-executor` | `<prefix> NOlocal executor` | NOlocal | Run/use; Project view only |
-| `<prefix>-DL-NO-admin` | `<prefix> NOlocal admin` | NOlocal | Administer assigned resources |
-| `<prefix>-DL-EU-reader` | `<prefix> EUapproved reader` | DKEUapproved, NOEUapproved | View only |
-| `<prefix>-DL-EU-executor` | `<prefix> EUapproved executor` | DKEUapproved, NOEUapproved | Run/use; Project view only |
-| `<prefix>-DL-EU-admin` | `<prefix> EUapproved admin` | DKEUapproved, NOEUapproved | Administer assigned resources |
-| `<prefix>-DL-NZ-reader` | `<prefix> NZlocal reader` | NZlocal | View only |
-| `<prefix>-DL-NZ-executor` | `<prefix> NZlocal executor` | NZlocal | Run/use; Project view only |
-| `<prefix>-DL-NZ-admin` | `<prefix> NZlocal admin` | NZlocal | Administer assigned resources |
+| `<prefix>-DL-DK-reader` | `<prefix> DK-local reader` | DK-local | View only |
+| `<prefix>-DL-DK-executor` | `<prefix> DK-local executor` | DK-local | Run/use; Project view only |
+| `<prefix>-DL-DK-admin` | `<prefix> DK-local admin` | DK-local | Administer assigned resources |
+| `<prefix>-DL-NO-reader` | `<prefix> NO-local reader` | NO-local | View only |
+| `<prefix>-DL-NO-executor` | `<prefix> NO-local executor` | NO-local | Run/use; Project view only |
+| `<prefix>-DL-NO-admin` | `<prefix> NO-local admin` | NO-local | Administer assigned resources |
+| `<prefix>-DL-EU-reader` | `<prefix> EU-approved reader` | DK-EU-approved, NO-EU-approved | View only |
+| `<prefix>-DL-EU-executor` | `<prefix> EU-approved executor` | DK-EU-approved, NO-EU-approved | Run/use; Project view only |
+| `<prefix>-DL-EU-admin` | `<prefix> EU-approved admin` | DK-EU-approved, NO-EU-approved | Administer assigned resources |
+| `<prefix>-DL-NZ-reader` | `<prefix> NZ-local reader` | NZ-local | View only |
+| `<prefix>-DL-NZ-executor` | `<prefix> NZ-local executor` | NZ-local | Run/use; Project view only |
+| `<prefix>-DL-NZ-admin` | `<prefix> NZ-local admin` | NZ-local | Administer assigned resources |
 
 Each resource set contains one Project, one inventory, one synthetic credential
 and both mock Job Templates. The table above means these exact object roles:
@@ -589,7 +660,7 @@ no organization, platform or AD administrator privileges. The JT applies this
 declared table; LDAP reads actual nested user membership during authentication.
 
 HU's three global groups join the matching EU domain-local groups above.
-There are no HU-specific AAP teams or domain-local groups. `EUapproved` team
+There are no HU-specific AAP teams or domain-local groups. `EU-approved` team
 grants cover both approved country sets; strict-local grants remain on their
 separate local teams.
 

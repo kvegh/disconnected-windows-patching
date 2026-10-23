@@ -7,9 +7,9 @@ documented [authenticator team mapping](https://docs.redhat.com/en/documentation
 and [team permission inheritance](https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.7/get_started-assembly_gs_platform_admin).
 AD controls who receives each entitlement; AAP defines what it permits.
 
-Country ownership and EU approval are separate. `DKlocal` and `NOlocal` are
-strictly local. `DKEUapproved` and `NOEUapproved` still belong to those countries,
-but DK, NO and HU identities can access both. NZ identities see only `NZlocal`.
+Country ownership and EU approval are separate. `DK-local` and `NO-local` are
+strictly local. `DK-EU-approved` and `NO-EU-approved` still belong to those countries,
+but DK, NO and HU identities can access both. NZ identities see only `NZ-local`.
 HU has no resources of its own, and there are no EU-only users. This demonstrates
 identity-based regional clearance, not detection of a user's physical location.
 
@@ -17,6 +17,24 @@ The tables use the deployed demo usernames. For group and team placeholders,
 replace `<prefix>` with the prefix visible in the deployment. Obtain passwords
 privately from the encrypted demo profile before presenting. Rerun the access
 verifier after configuration changes before demonstrating the results.
+
+### Readable names and current AAP names
+
+The guide uses `<country>-local` and `<country>-EU-approved` labels. Use the
+current key below for AAP searches and Ansible resource-set inputs; keep the
+object suffix such as `Inventory`, `Credential` or `Read`.
+
+| Label in this guide | Current AAP key |
+| --- | --- |
+| DK-local | `DKlocal` |
+| NO-local | `NOlocal` |
+| DK-EU-approved | `DKEUapproved` |
+| NO-EU-approved | `NOEUapproved` |
+| NZ-local | `NZlocal` |
+| EU-approved team scope | `EUapproved` |
+
+For example, the guide's **DK-local Read** is currently named **DKlocal Read**
+in AAP. Team labels use the same lookup, with the deployment prefix and role.
 
 ## Complete access matrix
 
@@ -29,7 +47,7 @@ view-only. A scoped admin is not an AAP platform or AD domain administrator.
 
 ### Denmark
 
-| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
 | `geo-dk-reader` | **View** | — | **View** | **View** | — |
 | `geo-dk-executor` | **Run/use** | — | **Run/use** | **Run/use** | — |
@@ -37,7 +55,7 @@ view-only. A scoped admin is not an AAP platform or AD domain administrator.
 
 ### Norway
 
-| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
 | `geo-no-reader` | — | **View** | **View** | **View** | — |
 | `geo-no-executor` | — | **Run/use** | **Run/use** | **Run/use** | — |
@@ -45,7 +63,7 @@ view-only. A scoped admin is not an AAP platform or AD domain administrator.
 
 ### New Zealand
 
-| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
 | `geo-nz-reader` | — | — | — | — | **View** |
 | `geo-nz-executor` | — | — | — | — | **Run/use** |
@@ -53,14 +71,14 @@ view-only. A scoped admin is not an AAP platform or AD domain administrator.
 
 ### Hungary
 
-| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
 | `geo-hu-reader` | — | — | **View** | **View** | — |
 | `geo-hu-executor` | — | — | **Run/use** | **Run/use** | — |
 | `geo-hu-admin` | — | — | **Admin** | **Admin** | — |
 
-Each set has its own names: for example, `DKlocal Inventory`,
-`DKlocal Credential`, Project `DKlocal`, and `DKlocal Read` / `DKlocal Simulate Change`.
+Each set has its own names: for example, `DK-local Inventory`,
+`DK-local Credential`, Project `DK-local`, and `DK-local Read` / `DK-local Simulate Change`.
 All five Projects use the same public demo Git source. Their visibility shows
 AAP object permissions, not private Git repository protection.
 
@@ -101,8 +119,8 @@ EU-approved access.
 As the AAP administrator, open **Access Management → Authentication Methods →
 `<prefix> Active Directory` → Mapping**. Show:
 
-- **DK executor membership** → **`<prefix> DKlocal executor`** team.
-- **EU executor membership** → **`<prefix> EUapproved executor`** team.
+- **DK executor membership** → **`<prefix> DK-local executor`** team.
+- **EU executor membership** → **`<prefix> EU-approved executor`** team.
 
 Each rule matches the corresponding AD DL group's full directory address.
 Under **Access Management → Teams**, show those teams' **Roles**: the local
@@ -114,13 +132,13 @@ and view-only Project access.
 
 1. Open a private browser window and sign into the dedicated test AAP as the
    Denmark executor, using its AD password.
-2. Show `DKlocal`, `DKEUapproved` and `NOEUapproved`: three inventories, three
-   credentials, three Projects and six mock job templates. `NOlocal` and
-   `NZlocal` resources must be absent.
-3. Launch **`DKlocal Read`** and wait for **Successful**. Both **Read** and
+2. Show `DK-local`, `DK-EU-approved` and `NO-EU-approved`: three inventories, three
+   credentials, three Projects and six mock job templates. `NO-local` and
+   `NZ-local` resources must be absent.
+3. Launch **`DK-local Read`** and wait for **Successful**. Both **Read** and
    **Simulate Change** are inert local jobs; neither changes real infrastructure.
-4. In the administrator window, show the user's **Teams**: **DKlocal executor**
-   and **EUapproved executor**, with the deployment prefix. Their permissions
+4. In the administrator window, show the user's **Teams**: **DK-local executor**
+   and **EU-approved executor**, with the deployment prefix. Their permissions
    come from team grants, without individual resource grants.
 
 The inventory list may show **Disabled**. That status means no synchronization
@@ -135,16 +153,20 @@ explain the full matrix above:
 
 | AD username | Sets visible | Demonstration |
 | --- | --- | --- |
-| `geo-hu-executor` | DKEUapproved, NOEUapproved | Launch an approved mock job. Both strict-local sets and NZlocal are absent. |
-| `geo-no-reader` | NOlocal, DKEUapproved, NOEUapproved | Show NOlocal and both approved sets; DKlocal and NZlocal are absent. |
-| `geo-nz-admin` | NZlocal only | Show scoped Edit, then Cancel; all DK/NO sets are absent. |
-| `geo-dk-reader` | DKlocal, DKEUapproved, NOEUapproved | View resources; launch and editing are unavailable. |
-| `geo-dk-admin` | DKlocal, DKEUapproved, NOEUapproved | Show scoped Edit, then Cancel; NOlocal and NZlocal stay absent. |
+| `geo-hu-executor` | DK-EU-approved, NO-EU-approved | Launch an approved mock job. Both strict-local sets and NZ-local are absent. |
+| `geo-no-reader` | NO-local, DK-EU-approved, NO-EU-approved | Show NO-local and both approved sets; DK-local and NZ-local are absent. |
+| `geo-nz-admin` | NZ-local only | Show scoped Edit, then Cancel; all DK/NO sets are absent. |
+| `geo-dk-reader` | DK-local, DK-EU-approved, NO-EU-approved | View resources; launch and editing are unavailable. |
+| `geo-dk-admin` | DK-local, DK-EU-approved, NO-EU-approved | Show scoped Edit, then Cancel; NO-local and NZ-local stay absent. |
 
 Say: **“AD controls who receives each access role. AAP maps those groups to
 teams and enforces their resource permissions.”**
 
 ## Validation and preparation
+
+For an additional live demonstration, follow
+[Create a new AD user and show automatic AAP access](active-directory-demo-guide.md#create-a-new-ad-user-and-show-automatic-aap-access).
+It gives the Windows clicks, password checkbox and group membership to set.
 
 Live validation of this model passed on 2026-10-23: **12 LDAP logins, 12 teams,
 75 scoped grants, 360 primary resource-read/launch checks and 36 successful
