@@ -482,10 +482,9 @@ before presenting.
 | Inventory list shows Disabled | This is the inventory-source synchronization status: no source is configured. The static mock inventory and its enabled local host remain usable for jobs. |
 | An old authenticated session still has access | Mapping is evaluated during authentication; refreshing a page alone is not a membership-revocation test. |
 
-A live removal-and-restoration demonstration has not been validated. This
-walkthrough therefore uses the deployed membership chain and actual login
-results. Reconcile desired changes through Ansible before rehearsing a separate
-revocation demonstration; do not improvise directory edits during this one.
+This walkthrough covers granting access, automatic first login and role/country
+isolation. A separate removal-and-restoration demonstration is outside the
+requested scope.
 
 ## 13. Setup reference for the existing Ansible automation
 
@@ -618,6 +617,9 @@ additional user and global group, reconciles twice, verifies preserved direct
 and nested access, and cleans up its test objects. It requires
 `ad_identities_only: true` without password resets. Additional manual users keep
 their passwords and use their normal AD password policy.
+This native Windows test passed, including an unchanged second reconciliation
+and verified cleanup. The following full AAP regression also passed all twelve
+logins, 75 grants, 360 primary access checks and 36 completed mock jobs.
 
 The Microsoft patch check reports the Windows 11-only KB5007651 Security UI
 offer separately on Server 2025. It does not exclude applicable Server updates

@@ -1,5 +1,35 @@
 # Design decisions history
 
+## Preserve additional AD members across identity reconciliation
+
+Implementation: `85fcb22`.
+
+The operator wanted newly created AD users to receive existing AAP permissions
+through group membership and remain usable when setup is rerun. Review found
+that the reconciler rejected group members outside the twelve generated test
+identities. Reconcile only known demo principals, validate their expected DNs,
+and preserve additional users and nested groups maintained by AD administrators.
+Continue verifying the generated identities' country and role boundaries.
+
+The opt-in Windows integration test creates a temporary additional user and
+global group, adds direct and nested access, reconciles twice, and verifies both
+objects and their memberships survive. The second reconciliation must be
+unchanged. Cleanup checks the original object GUIDs, DNs and ownership marker
+before removing its own fixtures, including after a failed test. Native testing
+passed: both objects and memberships were preserved, the second run made no
+changes, the generated-user password exception was not extended, and temporary
+objects were removed. Existing passwords and domain password policy were
+unchanged. All sixty local AD tests passed. The full AAP regression also passed:
+twelve LDAP logins, seventy-five scoped grants, 360 primary access checks,
+108 admin-only description PATCH checks, 48 exact resource lists and 24 team
+membership checks. All 36 mock jobs completed and executed on localhost.
+
+Update the presenter guides to remove the former extra-member limitation and
+provide the Windows new-user steps and one-group/many-permissions explanation.
+Use hyphenated presentation labels and retain a current-key lookup for deployed
+AAP names and Ansible inputs. The operator excluded a separate access-removal
+demonstration and another fresh end-to-end Windows rollout from this work.
+
 ## Separate country ownership from EU-approved access and add Hungary
 
 Implementation: `ac5fd54` (directory/profile), `75289ca` (AAP resources,

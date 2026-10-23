@@ -118,6 +118,9 @@ user and global group, adds them to existing country/access groups, reconciles
 twice, verifies direct and nested membership, and removes its own test objects
 in an always-cleanup block. It leaves other manually added members intact and
 does not reset passwords or extend the generated-user password-policy exception.
+The native Windows test passed both reconciliations, including an unchanged
+second run and verified cleanup. The subsequent full AAP regression passed all
+twelve logins, 75 grants, 360 access checks and 36 inert job executions again.
 Fresh directory-profile initialization keeps the domain Administrator password
 equal to the protected original image password; other service and certificate
 secrets are generated independently.

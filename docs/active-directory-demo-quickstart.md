@@ -176,8 +176,8 @@ checks and 24 gateway/controller membership checks. All three retired EU-only
 accounts are absent from both services. Use the successful **Verify AD AAP
 Access** run with `ad_verify_ldap_logins: true` as the automated evidence.
 
-This script uses the configured memberships. It does not demonstrate live
-membership removal or claim an end-to-end VNC/browser rehearsal. A new AD group
+This script uses the configured memberships. Access-removal demonstrations are
+outside its scope; an end-to-end VNC/browser rehearsal is not claimed. A new AD group
 alone does not appear in AAP: its mapping and resource grants must be declared
 in Ansible. Existing mappings evaluate nested membership when users authenticate.
 An enabled new user inside the searched demo OU can use an existing mapped

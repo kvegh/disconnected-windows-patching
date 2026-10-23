@@ -101,8 +101,17 @@
   isolation, shared approved access, role limits and retirement of EU-only users.
   The revised model passed on 2026-10-23, including 108 description PATCH,
   48 exact-list and 24 gateway/controller membership checks.
-- [ ] Exercise membership removal, reauthentication and restoration with a
-  dedicated test identity to verify live revocation behavior.
+- [x] Preserve additional AD users and nested groups across identity setup
+  reruns. A native Windows test passed two reconciliations with additional
+  objects, an unchanged second run, preserved nested permissions and cleanup.
+  The following complete AAP access regression passed again.
+- [x] Document readable hyphenated resource labels, the deployed-key lookup,
+  actual demo usernames, new-user Windows steps and multiple permissions per
+  mapped AD group.
+
+An access-removal demonstration is outside the requested scope. The presenter
+walkthrough covers granting access, automatic first login and role/country
+isolation.
 
 Optional later work: compare nested-group lookup performance with the AD
 matching rule in chain on a realistically sized test directory. The current
