@@ -1,5 +1,39 @@
 # Design decisions history
 
+## Query live Windows proof from desktops and AAP
+
+Implementation: `291ffd2`; retained-history and patch-comparison fix: `5694fe0`.
+
+The operator requested a clickable report on both managed servers and an AAP
+job that queries the same evidence and displays both results together. Use one
+read-only PowerShell collector for registry policy, the internal WSUS endpoint,
+local Windows Update Agent history, current builds/hotfixes, installed package
+and executable versions, and successful retained Chocolatey operations. Expected
+values are comparison inputs rather than reported installed state. Distinguish
+an April minimum from the exact April cutoff and distinguish current versions
+from proof that a baseline preceded an upgrade.
+
+Real Chocolatey operation headers span multiple lines. Preserve their context
+when matching successful operations, reject download mentions and failed
+installs, and require baseline-before-upgrade chronology. Sanitize diagnostic
+fragments rather than exposing arbitrary command lines. Future successful
+Ansible application stages also write receipts bound to the actual machine
+identity; do not backfill historical receipts on current nodes.
+
+Deploy an administrator-writable script and a public desktop shortcut with
+PowerShell `-NoExit`; preserve execution policy without a bypass. Existing
+application stages deliver the reporter on future rollouts. Two utility Job
+Templates separately install it or query both nodes, keeping the existing
+workflow graph unchanged. The private CaC capture includes both definitions.
+
+Both live queries passed, with actual WSUS evidence and four proven application
+sequences. The servers already had September builds, so they correctly report
+newer-than-April warnings. Label server and controller times separately; one
+server's clock was approximately nine hours ahead and was not changed. Desktop
+deployment passed eleven native evidence checks per node, normal file execution
+and shortcut inspection confirming `-NoExit`. No interactive GUI click, patch
+installation, application upgrade or full infrastructure rollout was performed.
+
 ## Preserve additional AD members across identity reconciliation
 
 Implementation: `85fcb22`.

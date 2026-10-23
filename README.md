@@ -20,6 +20,13 @@ updates or packages. `deploy_managed_windows_demo_report.yml` deploys the local
 script and public desktop shortcut. Future baseline/upgrade stages also install
 the reporter and retain machine-bound receipts only after live package-version
 verification; existing nodes are queried from their actual retained history.
+Live validation passed on both managed servers, including eleven native evidence
+checks per server and normal PowerShell file execution. Both desktop launchers
+were verified to use `-NoExit`. The actual servers currently have September OS
+builds, so the report correctly warns that they are newer than April; successful
+local Chocolatey logs prove both baseline-to-upgrade application sequences.
+See the [report guide](docs/managed-windows-proof-report.md) for the demonstration
+and the limits of each piece of evidence.
 
 ## Active Directory extension
 
