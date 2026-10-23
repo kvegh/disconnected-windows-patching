@@ -20,10 +20,11 @@ function ConvertFrom-DemoChocolateyHistory {
     param([string[]]$Lines)
     $pending = @{}
     $events = @()
+    $lastDate = ''
     foreach ($line in $Lines) {
-        $record = [regex]::Match($line, '^(?<date>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:[,.]\d{3})?)\s+\d+\s+\[[A-Z ]+\]\s+-\s*(?<message>.*)$')
-        if (-not $record.Success) { continue }
-        $message = $record.Groups['message'].Value
+        $record = [regex]::Match($line, '^(?<date>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:[,.]\d{3})?)(?:\s+\d+)?\s+\[[A-Z ]+\]\s+-\s*(?<message>.*)$')
+        if ($record.Success) { $lastDate = $record.Groups['date'].Value; $message = $record.Groups['message'].Value.Trim() }
+        else { $message = $line.Trim() }
         $version = [regex]::Match($message, '^(?<id>7zip\.install|git\.install) v(?<version>[0-9.]+)(?:\s|$)', 'IgnoreCase')
         if ($version.Success) {
             $pending[$version.Groups['id'].Value.ToLowerInvariant()] = $version.Groups['version'].Value
@@ -33,7 +34,7 @@ function ConvertFrom-DemoChocolateyHistory {
         $id = $success.Groups['id'].Value.ToLowerInvariant()
         if (-not $pending.ContainsKey($id)) { continue }
         $stamp = [datetime]::MinValue
-        if (-not [datetime]::TryParseExact($record.Groups['date'].Value,
+        if (-not [datetime]::TryParseExact($lastDate,
             [string[]]@('yyyy-MM-dd HH:mm:ss,fff','yyyy-MM-dd HH:mm:ss.fff','yyyy-MM-dd HH:mm:ss'),
             [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$stamp)) { continue }
         $events += [pscustomobject]@{
@@ -128,11 +129,14 @@ function Get-WindowsDemoProof {
     $patchEvidence = @(
         "Target: $($Configuration.baseline_name), $($baseline.build), $($baseline.kb)",
         "Actual installed build: $installedBuild ($comparison target)",
+        "Meets at least the April OS baseline: $($comparison -ne 'below')",
         "Expected cumulative KB present: $($baseline.kb -in $hotfixIds)",
         "April .NET markers present: $($dotnet -join ', ')",
         "Pending servicing reboot: $pendingReboot"
     )
-    if ($comparison -eq 'above') { $patchEvidence += 'This is newer than the exact April cutoff.' }
+    if ($comparison -eq 'above') {
+        $patchEvidence += 'This is newer than the exact April cutoff. A later cumulative update can replace the old April KB.'
+    }
     $policy = Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' -ErrorAction SilentlyContinue
     $automatic = Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -ErrorAction SilentlyContinue
     $configuredUrl = [string](Get-DemoRegistryValue $policy 'WUServer')
@@ -147,6 +151,8 @@ function Get-WindowsDemoProof {
         $value = Get-DemoRegistryValue $policy $name
         if ($null -ne $value -and [int]$value -ne 1) { $policyVerified = $false }
     }
+    $alternateSource = [string](Get-DemoRegistryValue $policy 'UpdateServiceUrlAlternate')
+    if ($alternateSource -and $alternateSource.TrimEnd('/') -ne $Configuration.wsus_url.TrimEnd('/')) { $policyVerified = $false }
     $reachable = $false
     try {
         $response = Invoke-WebRequest -UseBasicParsing -Uri ($Configuration.wsus_url.TrimEnd('/') + '/ClientWebService/client.asmx') -TimeoutSec 8
@@ -181,6 +187,13 @@ function Get-WindowsDemoProof {
         if ($file.Length -le 16777216) { $logLines += @(Get-Content -LiteralPath $file.FullName -ErrorAction SilentlyContinue) }
     }
     $packageHistory = @(ConvertFrom-DemoChocolateyHistory $logLines)
+    $logObservations = @()
+    foreach ($line in $logLines) {
+        $fragment = [regex]::Match($line, '(?:7zip\.install|git\.install)\s+v[0-9.]+|The (?:install|upgrade) of (?:7zip\.install|git\.install) was (?:NOT )?successful\.', 'IgnoreCase')
+        if ($fragment.Success) {
+            $logObservations += @{ fragment=$fragment.Value; timestamp=[regex]::Match($line, '\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:[,.]\d{3})?').Value }
+        }
+    }
     foreach ($receiptFile in @(Get-ChildItem $Configuration.evidence_directory -Filter '*.json' -File -ErrorAction SilentlyContinue)) {
         try {
             $receipt = Get-Content -LiteralPath $receiptFile.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -237,8 +250,10 @@ function Get-WindowsDemoProof {
             managed_install_history=$managedHistory;evidence=$wsusEvidence};
         patching=@{status=$osStatus;comparison=$comparison;expected_build=[string]$baseline.build;expected_kb=[string]$baseline.kb;
             exact_kb_present=($baseline.kb -in $hotfixIds);installed_hotfix_ids=$hotfixIds;dotnet_kbs_present=$dotnet;
-            reboot_pending=[bool]$pendingReboot;evidence=$patchEvidence};
-        applications=$applications;enabled_package_sources=$enabledSources;package_history_events=$packageHistory;errors=$errors
+            reboot_pending=[bool]$pendingReboot;meets_minimum=($comparison -ne 'below');evidence=$patchEvidence};
+        applications=$applications;enabled_package_sources=$enabledSources;package_history_events=$packageHistory;
+        package_log_files=@($logFiles | ForEach-Object { @{name=$_.Name;bytes=$_.Length} });
+        package_log_observations=@($logObservations | Select-Object -Last 16);errors=$errors
     }
 }
 

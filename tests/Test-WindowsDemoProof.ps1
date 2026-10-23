@@ -36,5 +36,14 @@ $reversed = @(
     [pscustomobject]@{id='7zip.install';version='26.4.0';operation='upgrade';observed_utc='2026-04-20T12:00:00Z'}
 )
 Assert-DemoEqual (Get-DemoPackageSequence $reversed '7zip.install' '26.3.0' '26.4.0').status 'WARN' 'Reversed chronology was incorrectly accepted.'
+$continuation = @(ConvertFrom-DemoChocolateyHistory @(
+    '2026-04-20 12:00:00,000 100 [INFO ] - ',
+    '7zip.install v26.3.0 [Approved]',
+    '2026-04-20 12:00:02,000 100 [INFO ] - The install of 7zip.install was successful.',
+    '2026-04-20 13:00:00,000 [INFO ] - ',
+    '7zip.install v26.4.0 [Approved]',
+    '2026-04-20 13:00:02,000 [INFO ] - The upgrade of 7zip.install was successful.'
+))
+Assert-DemoEqual (Get-DemoPackageSequence $continuation '7zip.install' '26.3.0' '26.4.0').status 'PASS' 'Multiline Chocolatey operation headers were not recognized.'
 $Ansible.Changed = $false
 $Ansible.Result = @{ CasesPassed=$script:DemoProofCases; MissingHistoryDoesNotPass=$true; FailedInstallDoesNotPass=$true; LaterBuildIsNotExactApril=$true }

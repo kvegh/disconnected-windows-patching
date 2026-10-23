@@ -7,7 +7,12 @@ LIVE WINDOWS DEMO PROOF
 
 {% if report.schema_version | default(0) == 1 %}
 {{ report.os_name }}
-Queried: {{ report.assessed_utc }}
+Server-reported UTC: {{ report.assessed_utc }}
+Controller query UTC: {{ hostvars[node].windows_demo_proof_collected_utc }}
+{% set clock_difference = ((report.assessed_utc[:19] | to_datetime('%Y-%m-%dT%H:%M:%S')) - (hostvars[node].windows_demo_proof_collected_utc[:19] | to_datetime('%Y-%m-%dT%H:%M:%S'))).total_seconds() | abs %}
+{% if clock_difference > 300 %}
+[WARN] Server clock differs from the controller by approximately {{ (clock_difference / 3600) | round(1) }} hours; timestamps are reported as observed.
+{% endif %}
 
 [{{ report.wsus.status }}] INTERNAL WSUS
 {% for evidence in report.wsus.evidence %}

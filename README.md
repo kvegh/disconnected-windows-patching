@@ -11,6 +11,8 @@ installed Chocolatey/binary versions and retained baseline-to-upgrade evidence.
 The desktop shortcut starts Windows PowerShell with `-NoExit`; no execution
 policy override is used. Missing history is reported as unproven, and a later
 OS build is distinguished from the exact April cutoff.
+The report recognizes multiline Chocolatey log entries, separates an April
+minimum from an exact cutoff, and shows server/controller times explicitly.
 
 `report_managed_windows_demo.yml` queries both `windows_managed` nodes over
 WinRM and prints their combined result after collection. It installs no

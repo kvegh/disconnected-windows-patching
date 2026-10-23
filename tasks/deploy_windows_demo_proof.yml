@@ -57,7 +57,7 @@
 
 - name: Require the evidence tests to complete
   ansible.builtin.assert:
-    that: windows_demo_evidence_tests.result.CasesPassed == 10
+    that: windows_demo_evidence_tests.result.CasesPassed == 11
     quiet: true
 
 - name: Create the public desktop shortcut with a persistent PowerShell window

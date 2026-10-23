@@ -32,6 +32,7 @@
     - name: Retain only the queried report for the final two-server summary
       ansible.builtin.set_fact:
         windows_demo_proof_result: "{{ windows_demo_live_proof.result | default({'error': 'Live server query failed or the host is unreachable.'}) }}"
+        windows_demo_proof_collected_utc: "{{ lookup('ansible.builtin.pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
       no_log: true
 
 - name: Display the combined result after querying both servers
