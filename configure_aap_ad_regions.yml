@@ -107,7 +107,7 @@
 
         - name: Rename owned teams while preserving their membership and grant IDs
           ansible.platform.team:
-            name: "{{ ad_migration.teams[item.0.key][item.1] }}"
+            name: "{{ ad_migration.teams[item.0.value][item.1] }}"
             new_name: "{{ active_directory.prefix }} {{ item.0.value }} {{ item.1 }}"
             organization: "{{ ad_organization }}"
             description: "{{ item.1 }} access to {{ item.0.value }} mock resources."

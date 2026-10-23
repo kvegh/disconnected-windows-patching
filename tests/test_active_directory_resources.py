@@ -66,6 +66,23 @@ class RegionalResourceTests(unittest.TestCase):
         self.assertEqual(definitions, {item['key']: {'owner': item['owner'], 'access': item['access']}
                                        for item in RESOURCE_SETS})
 
+    def test_team_migration_resolves_inspected_access_labels(self):
+        block = next(task['block'] for task in self.play['tasks'] if 'block' in task)
+        task = next(task for task in block if 'ansible.platform.team' in task)
+        labels = self.play['vars']['ad_access_labels']
+        plan = {label: {role: str(index * 3 + offset + 1)
+                        for offset, role in enumerate(('reader', 'executor', 'admin'))}
+                for index, label in enumerate(labels.values())}
+        for access, label in labels.items():
+            for role in ('reader', 'executor', 'admin'):
+                context = {'item': ({'key': access, 'value': label}, role),
+                           'active_directory': {'prefix': 'Sample'},
+                           'ad_migration': {'teams': plan}}
+                actual = self.render(task['ansible.platform.team']['name'], context)
+                self.assertEqual(str(actual), plan[label][role])
+                self.assertEqual(self.render(task['ansible.platform.team']['new_name'], context),
+                                 'Sample ' + label + ' ' + role)
+
     def test_exactly_seventy_five_unique_grants_target_only_five_owned_objects_per_set(self):
         grants = self.grants()
         self.assertEqual(len(grants), 75)

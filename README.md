@@ -162,6 +162,8 @@ Ansible before activation, and the allow map restricts login to the owned groups
 Local authentication remains available. Project requirements pin the collection
 versions used by these jobs.
 Existing owned mock objects are renamed while preserving their IDs and grants.
+Team migration resolves the readable access-scope labels used by its inspection
+plan before updating native team records.
 A read-only migration inspection rejects ambiguous names, foreign objects and
 unexpected template links. It checks all remaining references before retiring
 the former shared Project and verifies LDAP ownership before removing obsolete
