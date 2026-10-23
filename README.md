@@ -7,7 +7,8 @@ in a simulated disconnected environment.
 
 Start with the [five-minute AD-controlled access demo](docs/active-directory-demo-quickstart.md):
 find the Windows AD user, follow its nested groups, show the AAP mapping and
-compare Denmark, Norway, shared EU and New Zealand resource visibility.
+compare strict country resources with EU-approved resources shared by Denmark,
+Norway and Hungary, while New Zealand remains separate.
 
 For a beginner-friendly presenter script, see
 [`docs/active-directory-demo-guide.md`](docs/active-directory-demo-guide.md).
@@ -16,9 +17,33 @@ regional access, with VNC/browser clicks, suggested narration, role contrasts,
 rehearsal checks and a separate Ansible setup reference.
 
 The AD extension uses a separate Windows Server 2025 VM and a separate test AAP
-for regional identity and permission validation. Stage-by-stage deployment and
-the full live regional access matrix have passed. The complete fresh combined
-Windows/AD infrastructure workflow has not been run over this existing deployment.
+for regional identity and permission validation. The current model has twelve
+users: reader, executor and admin for Denmark (DK), Norway (NO), New Zealand
+(NZ) and Hungary (HU). Five country-owned resource sets separate ownership from
+clearance:
+
+| Resource set | Permitted identity groups |
+| --- | --- |
+| `DKlocal` | DK only |
+| `NOlocal` | NO only |
+| `DKEUapproved` | DK, NO and HU |
+| `NOEUapproved` | DK, NO and HU |
+| `NZlocal` | NZ only |
+
+Each row has its own inventory, synthetic credential, two inert job templates
+and AAP Project. EU approval permits access to the two approved country sets;
+there is no EU-owned inventory, EU-only user or Hungarian resource set. Each
+user retains their reader/executor/admin level across allowed sets. This is
+identity-based regional clearance; AAP does not detect the user's physical
+location or IP geography. Both presenter guides contain the full twelve-user
+access matrix.
+
+The earlier regional model passed live deployment and access checks. Live
+validation of this revised five-set model is pending; its expected totals are
+75 scoped grants, twelve LDAP logins, 360 primary resource-read/launch checks
+and 36 completed mock jobs, with description PATCH and list checks counted
+separately. The complete fresh combined Windows/AD infrastructure workflow has
+not been run over this existing deployment.
 The test guest has the current Server cumulative update, build 26100.33650,
 with no pending reboot. Windows Update still reoffers KB5007651 after successful
 installer runs. Microsoft's [applicability documentation](https://support.microsoft.com/en-us/servicing/os/windows/2021/10/windows-security-app-update)
@@ -28,10 +53,9 @@ zero remaining applicable Server updates. It does not hide the offer in Windows
 Update or exclude Defender antivirus/platform/security-intelligence packages.
 Live preparation passed with zero applicable Server updates remaining, no
 required reboot and one Windows 11-only offer reported separately. AD identity,
-LDAPS and forest-root clock verification also passed. All twelve AD accounts
-authenticated with the expected regional teams on gateway and controller. The
-live verifier passed 48 scoped grants, 192 regional access checks and twelve
-completed mock jobs, including forbidden cross-region and reader execution checks.
+LDAPS and forest-root clock verification also passed. These infrastructure
+results precede the revised regional access model and do not establish its
+effective permissions.
 The focused update-policy regression check preserves Server cumulative, .NET,
 Defender platform and security-intelligence updates; the separate offer count
 is also checked through actual Ansible template rendering.
@@ -81,9 +105,9 @@ the approved demo passwords while preserving every other domain password-policy
 setting. New demo accounts are created disabled, assigned the policy, given their
 password and then enabled. The built-in administrator and LDAP bind account are
 excluded, and policy scope and the unchanged domain defaults are verified.
-The live identity-only update and independent LDAP policy inspection passed.
-Subsequent AAP validation passed all twelve logins, 192 access checks and twelve
-mock executions using the updated protected credentials.
+The earlier live identity-only update and independent LDAP policy inspection
+passed. The redesigned cohort membership and effective AAP permissions require
+their own verification after reconfiguration.
 Promotion waits for AD Web Services and SYSVOL before creating identities.
 The forest-root controller uses its existing configured NTP peer as its manual
 time source, keeps Windows Time running, and requires synchronization within
@@ -99,17 +123,35 @@ The management connection resets after selecting the administrator password,
 so subsequent role installation uses the current credential.
 Directory cmdlets receive an explicit protected credential for local AD access
 over WinRM, without requiring delegated management credentials.
-Denmark and Norway receive their matching role in EU through nested groups;
-New Zealand has separate reader/executor/admin access and no EU inheritance.
-Existing unrelated directory objects are refused. Five focused model tests check
-the effective group graph, including cross-region and privilege-escalation cases.
+Regional global groups (`GG`) contain people; domain-local groups (`DL`) express
+the access roles consumed by the AAP mappings. DK and NO global groups nest into
+their own country DL group and the matching-role EU DL group. HU global groups
+nest only into EU DL groups; NZ groups nest only into NZ DL groups. EU DL groups
+grant both `DKEUapproved` and `NOEUapproved` access through one corresponding
+`EUapproved` AAP team. There is no HU DL group or standalone EU user. The `GG`
+and `DL` prefixes are naming conventions for real AD group scopes; the resource
+permission definitions remain in AAP. Existing unrelated directory objects are
+refused. Focused model checks cover the effective graph, country isolation and
+privilege boundaries.
 
-`configure_aap_ad_regions.yml` creates a separate test organization with four
-regional inventories, four independent synthetic credentials, eight inert job
-templates and twelve teams. Reader teams get explicit view-only resource roles;
-executors get inventory/credential use and job execution; admins get resource
-administration. Each grant targets its own region's resources. Mock templates
-have fixed inventories, credentials and variables and contact no external hosts.
+`configure_aap_ad_regions.yml` creates a separate test organization with five
+inventories, five independent synthetic credentials, ten inert job templates,
+five AAP Projects and twelve access teams. Project names are exactly `DKlocal`,
+`NOlocal`, `DKEUapproved`, `NOEUapproved` and `NZlocal`. Other names follow the
+same readable key: for example, `DKlocal Inventory`, `DKlocal Credential`,
+`DKlocal Read` and `DKlocal Simulate Change`. The teams use the protected prefix
+and access scopes `DKlocal`, `NOlocal`, `EUapproved` and `NZlocal`, each with
+reader, executor and admin roles. Together they have 75 object-scoped grants.
+Reader teams have view-only roles; executors have inventory/credential Use,
+job-template Execute and view-only Project access; admins manage their scoped
+resources. A regional admin is neither a platform admin nor a domain admin.
+Each Project points to the same public demo source: its object visibility shows
+AAP RBAC, not confidentiality of that public Git repository. Mock templates have
+fixed inventories, credentials and variables and contact no external hosts.
+Static inventories contain an enabled local mock host. Their **Disabled** list
+status means no inventory synchronization source is configured; jobs remain
+usable. Organization separation isolates the demo's resources and permissions;
+it is a design choice, not a requirement for LDAP authentication.
 The optional LDAP stage requires verified LDAPS and gateway trust inputs before
 it creates ordered login, organization and nested-group team maps with revocation.
 Group identifiers in the maps use lowercase distinguished names, as required by
@@ -126,7 +168,7 @@ tasks remain protected, and both diagnostic options default to disabled.
 The access verifier exposes its structured failure reason without logging the
 command input containing test-user and API credentials.
 After resources have converged, `ad_aap_authentication_only: true` resumes only
-LDAP configuration. It first independently verifies all twelve teams, all 48
+LDAP configuration. It first independently verifies all twelve teams, all 75
 scoped grants and the fixed mock inputs; missing or changed resources stop the
 resume. Normal fresh deployment still configures every resource. Configuration
 API calls use a 60-second timeout, configurable with `ad_aap_request_timeout`.
@@ -211,7 +253,10 @@ exact object scope, view-only reader permissions and fixed mock launch inputs.
 Set `ad_verify_ldap_logins: true` after LDAP is enabled to authenticate all twelve
 directory identities, check allowed and denied regional access, exercise admin
 authorization with unchanged descriptions, and run only the permitted inert
-mock jobs. It waits for launched jobs to finish and rejects failed executions.
+mock jobs for both template operations. The five-set matrix expects 360 primary
+read/launch checks and 36 successful mock executions; description PATCH and
+resource-list checks are additional. It waits for launched jobs to finish and
+rejects failed executions.
 It reads the signed-in identity on both gateway and controller before checking
 resource permissions, initializing the service identity as a browser session
 does and verifying that neither service substituted a privileged account.
@@ -246,7 +291,7 @@ barriers before LDAP activation.
 The configuration subset is also listed in
 `collections/ad-configuration-requirements.yml`. These configuration pins match
 the reviewed PAH catalog and the versions used for local API validation.
-Before syncing its project, the regional organization reuses the selected
+Before syncing its projects, the regional organization reuses the selected
 target's three existing PAH credential associations. It rejects missing or
 unexpected Hub sources and copies no tokens. `ad_galaxy_source_organization`
 selects the existing source organization when its name differs from `Default`.
@@ -254,7 +299,9 @@ selects the existing source organization when its name differs from `Default`.
 AD group membership selects AAP teams at login. Resource permissions remain AAP
 role assignments maintained by Ansible; AAP does not import Windows directory
 ACLs as resource permissions. Removing directory membership revokes the mapped
-membership on the user's next authentication.
+membership on the user's next authentication. Creating another AD group alone
+does not make it an AAP team: its intended mapping and resource grants must also
+be declared in Ansible.
 
 ## Interactive demo
 

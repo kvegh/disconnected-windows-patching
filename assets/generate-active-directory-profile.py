@@ -28,12 +28,19 @@ def main():
         profile[key] = secrets.token_urlsafe(36) + 'aA1!'
     profile['bind_username'] = seed['prefix'].lower() + '-ldap'
     profile['bind_dn'] = 'CN=' + profile['bind_username'] + ',' + profile['root_dn']
-    profile['mock_passwords'] = {key: secrets.token_urlsafe(30) + 'aA1!' for key, _ in module.REGIONS}
+    profile['mock_passwords'] = {item['key']: secrets.token_urlsafe(30) + 'aA1!'
+                                 for item in profile['resource_sets']}
+    password_suffix = profile.pop('demo_user_password_suffix', None)
+    if password_suffix is not None:
+        if not isinstance(password_suffix, str) or not password_suffix:
+            raise ValueError('The protected demo password suffix must be a nonempty string.')
+        if profile.get('allow_simple_demo_passwords') is not True:
+            raise ValueError('Password derivation requires the explicitly selected scoped demo policy.')
     for user in profile['users']:
-        user['username'] = '{}-{}-{}'.format(seed['prefix'].lower(), user['region'].lower(), user['role'])
         if len(user['username']) > 20:
             raise ValueError('Choose a shorter prefix for SAM account names.')
-        user['password'] = secrets.token_urlsafe(30) + 'aA1!'
+        user['password'] = (user['username'] + password_suffix if password_suffix is not None
+                            else secrets.token_urlsafe(30) + 'aA1!')
         user['email'] = user['username'] + '@' + seed['dns_domain']
     now = datetime.datetime.now(datetime.timezone.utc)
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=3072)

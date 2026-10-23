@@ -161,6 +161,19 @@
       ansible.builtin.include_tasks: tasks/configure_active_directory_time.yml
       when: not (ad_identities_only | default(false) | bool)
 
+    - name: Parse the directory script before any identity changes
+      ansible.windows.win_powershell:
+        parameters:
+          Source: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
+        script: |
+          param([string]$Source)
+          $tokens = $null
+          $parseErrors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseInput($Source, [ref]$tokens, [ref]$parseErrors)
+          if ($parseErrors.Count -gt 0) { throw 'Directory configuration script failed PowerShell syntax validation.' }
+          $Ansible.Changed = $false
+      no_log: true
+
     - name: Create owned OUs, users and nested regional access groups
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
@@ -177,6 +190,9 @@
                 'ous': active_directory.ous,
                 'groups': active_directory.groups,
                 'users': active_directory.users,
+                'retired_users': active_directory.retired_users | default([]),
+                'retired_groups': active_directory.retired_groups | default([]),
+                'resource_sets': active_directory.resource_sets | default([]),
                 'allow_simple_demo_passwords': active_directory.allow_simple_demo_passwords | default(false) | bool,
                 'bind_username': active_directory.bind_username,
                 'bind_password': active_directory.bind_password} | to_json }}
@@ -191,4 +207,4 @@
 
     - name: Report verified regional identity setup
       ansible.builtin.debug:
-        msg: Four regions, three roles per region, and nested Denmark/Norway access to EU are configured and verified.
+        msg: Four actor countries and three roles are verified; Denmark, Norway and Hungary inherit EU-approved access, while New Zealand remains isolated.
