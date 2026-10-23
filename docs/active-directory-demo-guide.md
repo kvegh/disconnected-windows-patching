@@ -348,6 +348,7 @@ before presenting.
 | Login works but teams are missing | Inspect both relevant mapping rules, their full lowercase group DNs and the nested group type. Reauthenticate after configuration or membership changes. |
 | Teams are present but a resource is missing | Inspect that team's resource Roles in the administrator window and gateway/controller convergence. Run the verifier; do not add broad roles to make the demo pass. |
 | Reader can launch, or another region is visible | Stop that part of the demonstration and investigate the permission failure. This is not an expected outcome. |
+| Inventory list shows Disabled | This is the inventory-source synchronization status: no source is configured. The static mock inventory and its enabled local host remain usable for jobs. |
 | An old authenticated session still has access | Mapping is evaluated during authentication; refreshing a page alone is not a membership-revocation test. |
 
 A live removal-and-restoration demonstration has not been validated. This

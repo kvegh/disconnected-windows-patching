@@ -1,5 +1,30 @@
 # Design decisions history
 
+## Apply approved demo passwords with an account-scoped AD policy
+
+Implementation: `a03b2b6`; matching encrypted rollout profile: `784c0c9`.
+
+The operator requested easier demo account passwords and explicitly approved the
+necessary complexity exception. Keep the selected values in the encrypted
+profile. A marked fine-grained policy applies directly to exactly the twelve
+regional users, preserves the other domain-policy settings and excludes the
+built-in administrator and LDAP bind account. Reject unexpected policy ownership
+or subjects and verify that the domain-wide policy stays unchanged.
+
+Fresh users are created disabled, assigned the scoped policy, given their
+protected password and then enabled. Existing users receive updated passwords
+only on an explicitly requested reset. The existing AD template supports an
+identity-only run that skips role installation, forest promotion, reboots, DNS
+changes and time synchronization while retaining target and AD-readiness guards.
+
+Five group-model checks and actual Ansible rendering of the connection wait
+passed. The native identity-only run reset all twelve passwords and verified the
+24-group nesting. Independent LDAP reads confirmed the scoped exception on all
+twelve users while domain-wide complexity remained enabled. Full live validation
+with the updated credentials passed twelve LDAP logins, 48 scoped grants, 192
+regional access checks and twelve completed inert jobs. No full rollout was
+launched. The source/runtime profile and private encrypted backup are identical.
+
 ## Verify the documented AD-controlled entitlement model and shorten the demo
 
 Documentation: `4d04796`; existing identity-verification implementation:

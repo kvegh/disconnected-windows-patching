@@ -56,6 +56,10 @@ their regional inventory/credential Use and job-template Execute grants.
    executor, using its AD password.
 2. Show the **Denmark** and **EU** mock inventories and their four mock job
    templates. **Norway** and **New Zealand** resources must be absent.
+   The inventory list may show **Disabled**: this status means no inventory
+   synchronization source is configured. These are static inventories with an
+   enabled local host, and jobs can use them normally. See the
+   [AAP inventory status definitions](https://docs.redhat.com/en/documentation/red_hat_ansible_automation_platform/2.7/get_started-assembly_gs_auto_op).
 3. Launch **`<prefix> Denmark read`** and wait for **Successful**. This is an
    inert local job; it contacts no real regional infrastructure.
 4. In the administrator window, show that the user now belongs to the Denmark
