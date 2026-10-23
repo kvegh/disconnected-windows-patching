@@ -7,10 +7,19 @@
     - name: Require the fixed regional job definition
       ansible.builtin.assert:
         that:
-          - demo_region in ['DK', 'NO', 'EU', 'NZ']
+          - demo_resource_set in demo_sets
+          - demo_owner == demo_sets[demo_resource_set].owner
+          - demo_access == demo_sets[demo_resource_set].access
           - demo_operation in ['read', 'simulate_change']
+      vars:
+        demo_sets:
+          DKlocal: {owner: DK, access: DK}
+          NOlocal: {owner: 'NO', access: 'NO'}
+          DKEUapproved: {owner: DK, access: EU}
+          NOEUapproved: {owner: 'NO', access: EU}
+          NZlocal: {owner: NZ, access: NZ}
 
     - name: Show the permitted mock action
       ansible.builtin.debug:
-        msg: "{{ demo_operation }} on the {{ demo_region }} mock inventory; no external systems are contacted."
+        msg: "{{ demo_operation }} on {{ demo_resource_set }}; owner {{ demo_owner }}, access {{ demo_access }}. No external systems are contacted."
       changed_when: demo_operation == 'simulate_change'

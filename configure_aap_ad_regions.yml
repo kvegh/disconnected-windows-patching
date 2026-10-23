@@ -9,11 +9,10 @@
   vars:
     ansible_python_interpreter: "{{ ansible_playbook_python }}"
     ad_organization: "{{ active_directory.prefix }} Regional Identity Demo"
-    ad_project: "{{ active_directory.prefix }} Regional Mock Resources"
     ad_authenticator: "{{ active_directory.prefix }} Active Directory"
-    ad_region_labels: {'DK': Denmark, 'NO': Norway, 'EU': EU, 'NZ': New Zealand}
+    ad_access_labels: {'DK': DKlocal, 'NO': NOlocal, 'EU': EUapproved, 'NZ': NZlocal}
     ad_roles: [reader, executor, admin]
-    ad_resource_types: [inventory, credential, jobtemplate]
+    ad_resource_types: [project, inventory, credential, jobtemplate]
   module_defaults:
     group/ansible.platform.gateway:
       aap_hostname: "{{ ad_target_api_url }}"
@@ -53,7 +52,9 @@
             stdin: >-
               {{ {'url': ad_target_api_url, 'ca': ad_target_api_ca,
                   'admin_username': 'admin', 'admin_password': ad_target_admin_password,
-                  'prefix': active_directory.prefix, 'verify_logins': false} | to_json }}
+                  'prefix': active_directory.prefix, 'users': active_directory.users,
+                  'resource_sets': active_directory.resource_sets,
+                  'retired_users': active_directory.retired_users, 'verify_logins': false} | to_json }}
           register: ad_authentication_baseline
           changed_when: false
           failed_when: false
@@ -78,9 +79,45 @@
           ansible.builtin.include_tasks: tasks/configure_aap_ad_galaxy_sources.yml
           when: not (ad_aap_authentication_only | default(false) | bool)
 
-        - name: Create the regional mock source project with trusted collection sources
+        - name: Inspect owned objects before renaming or retiring the previous model
+          ansible.builtin.command:
+            argv: [python3, "{{ playbook_dir }}/assets/inspect-aap-ad-migration.py"]
+            stdin: >-
+              {{ {'url': ad_target_api_url, 'ca': ad_target_api_ca,
+                  'admin_username': 'admin', 'admin_password': ad_target_admin_password,
+                  'prefix': active_directory.prefix, 'authenticator_name': ad_authenticator} | to_json }}
+          register: ad_migration_inspection
+          changed_when: false
+          failed_when: false
+          no_log: true
+          when: not (ad_aap_authentication_only | default(false) | bool)
+
+        - name: Require the owned-object migration inspection to pass
+          ansible.builtin.assert:
+            that: ad_migration_inspection.rc == 0
+            fail_msg: "{{ (ad_migration_inspection.stdout | default('{}', true) | from_json).reason | default('Protected migration inspection failed.') }}"
+            quiet: true
+          when: not (ad_aap_authentication_only | default(false) | bool)
+
+        - name: Preserve the inspected migration plan without exposing API inputs
+          ansible.builtin.set_fact:
+            ad_migration: "{{ ad_migration_inspection.stdout | from_json }}"
+          no_log: true
+          when: not (ad_aap_authentication_only | default(false) | bool)
+
+        - name: Rename owned teams while preserving their membership and grant IDs
+          ansible.platform.team:
+            name: "{{ ad_migration.teams[item.0.key][item.1] }}"
+            new_name: "{{ active_directory.prefix }} {{ item.0.value }} {{ item.1 }}"
+            organization: "{{ ad_organization }}"
+            description: "{{ item.1 }} access to {{ item.0.value }} mock resources."
+          loop: "{{ ad_access_labels | dict2items | product(ad_roles) | list }}"
+          no_log: true
+          when: not (ad_aap_authentication_only | default(false) | bool)
+
+        - name: Create separate country-owned projects with trusted collection sources
           ansible.controller.project:
-            name: "{{ ad_project }}"
+            name: "{{ item.key }}"
             organization: "{{ ad_organization }}"
             scm_type: git
             scm_url: https://github.com/kvegh/disconnected-windows-patching.git
@@ -88,13 +125,14 @@
             scm_update_on_launch: false
             wait: true
             state: present
+          loop: "{{ active_directory.resource_sets }}"
           environment:
             SSL_CERT_FILE: "{{ ad_api_ca.path }}"
             REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
           no_log: true
           when: not (ad_aap_authentication_only | default(false) | bool)
 
-        - name: Create view-only roles for the three regional resource types
+        - name: Create view-only roles for each scoped resource type
           ansible.platform.role_definition:
             name: "{{ active_directory.prefix }} {{ item }} Reader"
             description: View only the assigned regional mock resource.
@@ -104,22 +142,65 @@
           no_log: true
           when: not (ad_aap_authentication_only | default(false) | bool)
 
-        - name: Refresh the mock source before validating its playbooks
+        - name: Refresh each source before validating its playbooks
           ansible.controller.project_update:
-            name: "{{ ad_project }}"
+            name: "{{ item.key }}"
             organization: "{{ ad_organization }}"
             wait: true
+          loop: "{{ active_directory.resource_sets }}"
           environment:
             SSL_CERT_FILE: "{{ ad_api_ca.path }}"
             REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
           no_log: true
           when: not (ad_aap_authentication_only | default(false) | bool)
 
-        - name: Create each region's resources and three teams
+        - name: Create each country-owned resource set and its scoped role grants
           ansible.builtin.include_tasks: tasks/configure_aap_ad_region.yml
-          loop: "{{ ad_region_labels | dict2items }}"
+          loop: "{{ active_directory.resource_sets }}"
           loop_control:
-            loop_var: ad_region
+            loop_var: ad_resource_set
+          when: not (ad_aap_authentication_only | default(false) | bool)
+
+        - name: Reinspect references before retiring the shared legacy project
+          ansible.builtin.command:
+            argv: [python3, "{{ playbook_dir }}/assets/inspect-aap-ad-migration.py"]
+            stdin: >-
+              {{ {'url': ad_target_api_url, 'ca': ad_target_api_ca,
+                  'admin_username': 'admin', 'admin_password': ad_target_admin_password,
+                  'prefix': active_directory.prefix, 'authenticator_name': ad_authenticator,
+                  'require_migrated': true} | to_json }}
+          register: ad_migrated_references
+          changed_when: false
+          failed_when: false
+          no_log: true
+          when: not (ad_aap_authentication_only | default(false) | bool)
+
+        - name: Require the final resource references before retiring legacy objects
+          ansible.builtin.assert:
+            that: ad_migrated_references.rc == 0
+            fail_msg: "{{ (ad_migrated_references.stdout | default('{}', true) | from_json).reason | default('Protected final reference inspection failed.') }}"
+            quiet: true
+          when: not (ad_aap_authentication_only | default(false) | bool)
+
+        - name: Remove the owned legacy project after every mock template was retargeted
+          ansible.controller.project:
+            name: "{{ ad_migration.old_project }}"
+            organization: "{{ ad_organization }}"
+            state: absent
+          environment:
+            SSL_CERT_FILE: "{{ ad_api_ca.path }}"
+            REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
+          no_log: true
+          when:
+            - not (ad_aap_authentication_only | default(false) | bool)
+            - ad_migration.old_project is not none
+
+        - name: Remove only inspected retired LDAP demo accounts from the platform
+          ansible.platform.user:
+            username: "{{ item }}"
+            state: absent
+          loop: "{{ ad_migration.retired_usernames | default([]) }}"
+          no_log: true
           when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Configure LDAP and ordered group maps after LDAPS readiness
@@ -128,7 +209,7 @@
 
         - name: Report configured regional mock resources
           ansible.builtin.debug:
-            msg: Four regional inventories, four mock credentials, eight job templates and twelve scoped teams are configured.
+            msg: Five country-owned projects, inventories and mock credentials, ten job templates and twelve scoped teams are configured.
       always:
         - name: Remove the private temporary API CA file
           ansible.builtin.file:

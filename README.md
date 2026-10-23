@@ -161,6 +161,12 @@ user on first login. The organization, scoped teams and grants are created by
 Ansible before activation, and the allow map restricts login to the owned groups.
 Local authentication remains available. Project requirements pin the collection
 versions used by these jobs.
+Existing owned mock objects are renamed while preserving their IDs and grants.
+A read-only migration inspection rejects ambiguous names, foreign objects and
+unexpected template links. It checks all remaining references before retiring
+the former shared Project and verifies LDAP ownership before removing obsolete
+EU-only AAP accounts. Surveys and launch-input prompts are explicitly disabled
+so a mock job keeps its assigned country and access scope.
 For focused development retries, `ad_configuration_diagnostics: true` exposes
 scoped-grant API results, and `ad_time_diagnostics: true` exposes time-service
 results. Native password/token fields remain masked, identity and LDAP secret
@@ -263,6 +269,17 @@ does and verifying that neither service substituted a privileged account.
 For a newly provisioned identity it allows up to 60 seconds for expected
 controller access to follow gateway team membership. Unexpected cross-region
 access remains an immediate failure; the wait does not grant permissions.
+Final job statistics must prove that each permitted mock executed its tasks on
+`localhost`; a successful status with no host work is insufficient. If a later
+access check fails, the verifier still waits for every job it already launched
+and checks its result. Offline verifier acceptance tests use a simulated API:
+
+```bash
+python3 -m unittest discover -s tests -p 'test_active_directory_verifier.py' -v
+```
+
+These tests cover the full expected matrix and failure paths without contacting
+AAP. Live LDAP verification remains a separate deployment check.
 
 `configure_windows_ad_workflow.yml` adds a separate eight-stage AD branch to the
 existing Windows workflow and verifies that its other nodes and edges are

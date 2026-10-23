@@ -20,6 +20,8 @@
               'admin_password': ad_target_admin_password,
               'prefix': active_directory.prefix,
               'users': active_directory.users,
+              'resource_sets': active_directory.resource_sets,
+              'retired_users': active_directory.retired_users,
               'verify_logins': ad_verify_ldap_logins | default(false) | bool} | to_json }}
       register: ad_rbac_verification
       changed_when: false

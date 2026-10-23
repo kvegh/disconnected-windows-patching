@@ -76,20 +76,30 @@
   UI offer separately using Microsoft's product applicability.
 - [x] Configure and verify the forest-root time service against its existing
   NTP peer; do not propagate an inherited virtual hardware clock.
-- [x] Create 12 users and 24 AGDLP security groups for Denmark, Norway, EU and
-  New Zealand, with reader, executor and admin roles. Verify matching-role EU
-  inheritance for Denmark/Norway and independent New Zealand access.
+- [ ] Reconcile the existing directory to 12 users: reader, executor and admin
+  for DK, NO, NZ and HU. Maintain 12 global people groups and 12 domain-local
+  access groups (DK/NO/EU/NZ), retire EU-only users, and verify matching-role
+  EU-approved inheritance for DK/NO/HU with independent NZ access. HU needs no
+  own domain-local groups or resources.
 - [x] Install the dedicated LDAPS certificate and verify normal chain and
   hostname validation inside the test AAP gateway runtime.
-- [x] Define four inventories, four independent mock credentials, eight inert
-  job templates, twelve teams and 48 object-scoped grants through Ansible.
+- [ ] Apply the five country-owned resource sets: DKlocal, NOlocal,
+  DKEUapproved, NOEUapproved and NZlocal. Each has an inventory, independent mock
+  credential, distinct AAP Project and two inert job templates. Twelve teams
+  provide 75 object-scoped grants; executors have view-only Project access.
+- [x] Document the complete twelve-user access matrix and step-by-step Windows
+  AD → nested group → AAP mapping → resource demonstration in both presenter
+  guides. Distinguish country ownership, EU clearance and identity-based access.
 - [x] Add the eight-stage AD branch to the Windows provisioning workflow while
   preserving its other 21 nodes. Capture all 32 job templates and 29 workflow
   nodes in encrypted CaC; validate import and target-specific credentials on
   the separate AAP.
-- [x] Complete live LDAP authentication and team mapping for all twelve
-  identities, including allowed/denied regional reads, execution and admin
-  actions. Object creation must permit first-login AAP user provisioning.
+- [ ] Complete live validation of the revised five-set matrix: 12 LDAP logins,
+  expected teams on gateway/controller, 75 grants, 360 primary read/launch checks
+  and 36 successful inert jobs across both template operations. Count unchanged
+  description PATCH and exact-list checks separately. Prove strict-local and NZ
+  isolation, shared approved access, role limits and retirement of EU-only users.
+  The earlier model's passed checks do not establish these new outcomes.
 - [ ] Exercise membership removal, reauthentication and restoration with a
   dedicated test identity to verify live revocation behavior.
 

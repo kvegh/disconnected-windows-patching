@@ -1,9 +1,10 @@
 ---
-- name: Create the region's mock inventory
+- name: Create or rename the country-owned mock inventory
   ansible.controller.inventory:
-    name: "{{ active_directory.prefix }} {{ ad_region.value }} Mock Inventory"
+    name: "{{ ad_migration.resources[ad_resource_set.key].inventory }}"
+    new_name: "{{ ad_resource_set.key }} Inventory"
     organization: "{{ ad_organization }}"
-    description: "Mock resources scoped to {{ ad_region.value }}."
+    description: "{{ ad_resource_set.owner }} resources; access scope {{ ad_resource_set.access }}."
     variables:
       ansible_connection: local
       ansible_python_interpreter: "{{ ansible_playbook_python }}"
@@ -12,84 +13,98 @@
     REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
   no_log: true
 
-- name: Add an inert local host to the region's inventory
+- name: Keep the inert local inventory host enabled
   ansible.controller.host:
     name: localhost
-    inventory: "{{ active_directory.prefix }} {{ ad_region.value }} Mock Inventory"
+    inventory: "{{ ad_resource_set.key }} Inventory"
+    enabled: true
     variables:
       ansible_connection: local
   environment: *ad_controller_tls
   no_log: true
 
-- name: Create a mock credential that cannot authenticate to real machines
+- name: Create or rename a synthetic credential for this resource set
   ansible.controller.credential:
-    name: "{{ active_directory.prefix }} {{ ad_region.value }} Mock Credential"
+    name: "{{ ad_migration.resources[ad_resource_set.key].credential }}"
+    new_name: "{{ ad_resource_set.key }} Credential"
     organization: "{{ ad_organization }}"
     credential_type: Machine
     description: Synthetic credential used only by inert local demonstration jobs.
     inputs:
-      username: "{{ active_directory.prefix }}-mock-{{ ad_region.key | lower }}"
-      password: "{{ active_directory.mock_passwords[ad_region.key] }}"
+      username: "{{ active_directory.prefix }}-mock-{{ ad_resource_set.key | lower }}"
+      password: "{{ active_directory.mock_passwords[ad_resource_set.key] }}"
   environment: *ad_controller_tls
   no_log: true
 
-- name: Create read and simulated-change templates with fixed regional inputs
+- name: Create or rename mock templates with fixed country and access inputs
   ansible.controller.job_template:
-    name: "{{ active_directory.prefix }} {{ ad_region.value }} {{ item }}"
+    name: "{{ ad_migration.resources[ad_resource_set.key][item.key] }}"
+    new_name: "{{ ad_resource_set.key }} {{ item.label }}"
     organization: "{{ ad_organization }}"
-    project: "{{ ad_project }}"
-    inventory: "{{ active_directory.prefix }} {{ ad_region.value }} Mock Inventory"
-    credentials: ["{{ active_directory.prefix }} {{ ad_region.value }} Mock Credential"]
+    project: "{{ ad_resource_set.key }}"
+    inventory: "{{ ad_resource_set.key }} Inventory"
+    credentials: ["{{ ad_resource_set.key }} Credential"]
     playbook: mock_regional_job.yml
     job_type: run
     execution_environment: "{{ ad_mock_execution_environment | default('Default execution environment') }}"
     extra_vars:
-      demo_region: "{{ ad_region.key }}"
-      demo_operation: "{{ item }}"
+      demo_resource_set: "{{ ad_resource_set.key }}"
+      demo_owner: "{{ ad_resource_set.owner }}"
+      demo_access: "{{ ad_resource_set.access }}"
+      demo_operation: "{{ item.key }}"
     ask_inventory_on_launch: false
     ask_credential_on_launch: false
     ask_variables_on_launch: false
+    ask_scm_branch_on_launch: false
+    ask_job_type_on_launch: false
+    ask_limit_on_launch: false
+    ask_tags_on_launch: false
+    ask_skip_tags_on_launch: false
+    ask_execution_environment_on_launch: false
+    survey_enabled: false
     timeout: 120
-  loop: [read, simulate_change]
+  loop:
+    - {key: read, label: Read}
+    - {key: simulate_change, label: Simulate Change}
   environment: *ad_controller_tls
   no_log: true
 
-- name: Create region-specific reader, executor and admin teams
-  ansible.platform.team:
-    name: "{{ active_directory.prefix }} {{ ad_region.value }} {{ item }}"
-    organization: "{{ ad_organization }}"
-    description: "{{ item }} access to {{ ad_region.value }} mock resources."
-  loop: "{{ ad_roles }}"
-  no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
-
-- name: Grant reader access to only this region's resources
+- name: Grant view-only access to this resource set
   ansible.platform.role_team_assignment:
-    team: "{{ active_directory.prefix }} {{ ad_region.value }} reader"
+    team: "{{ active_directory.prefix }} {{ ad_access_labels[ad_resource_set.access] }} reader"
     role_definition: "{{ active_directory.prefix }} {{ item.kind }} Reader"
     assignment_objects:
-      - name: "{{ active_directory.prefix }} {{ ad_region.value }} {{ item.suffix }}"
+      - name: "{{ ad_resource_set.key }}{{ item.suffix }}"
         type: "awx.{{ item.kind }}"
         organization: "{{ ad_organization }}"
-  loop:
-    - {kind: inventory, suffix: Mock Inventory}
-    - {kind: credential, suffix: Mock Credential}
-    - {kind: jobtemplate, suffix: read}
-    - {kind: jobtemplate, suffix: simulate_change}
+  loop: &ad_owned_objects
+    - {kind: project, suffix: '', role_type: Project, executor_role: Reader}
+    - {kind: inventory, suffix: ' Inventory', role_type: Inventory, executor_role: Use}
+    - {kind: credential, suffix: ' Credential', role_type: Credential, executor_role: Use}
+    - {kind: jobtemplate, suffix: ' Read', role_type: JobTemplate, executor_role: Execute}
+    - {kind: jobtemplate, suffix: ' Simulate Change', role_type: JobTemplate, executor_role: Execute}
   no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
 
-- name: Grant executor or admin roles to only this region's resources
+- name: Give executors project visibility without granting project use
   ansible.platform.role_team_assignment:
-    team: "{{ active_directory.prefix }} {{ ad_region.value }} {{ item.0 }}"
+    team: "{{ active_directory.prefix }} {{ ad_access_labels[ad_resource_set.access] }} executor"
+    role_definition: "{{ active_directory.prefix }} project Reader"
+    assignment_objects:
+      - name: "{{ ad_resource_set.key }}"
+        type: awx.project
+        organization: "{{ ad_organization }}"
+  no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
+
+- name: Grant object-scoped executor and admin access
+  ansible.platform.role_team_assignment:
+    team: "{{ active_directory.prefix }} {{ ad_access_labels[ad_resource_set.access] }} {{ item.0 }}"
     role_definition: "{{ item.1.role_type }} {{ 'Admin' if item.0 == 'admin' else item.1.executor_role }}"
     assignment_objects:
-      - name: "{{ active_directory.prefix }} {{ ad_region.value }} {{ item.1.suffix }}"
+      - name: "{{ ad_resource_set.key }}{{ item.1.suffix }}"
         type: "awx.{{ item.1.kind }}"
         organization: "{{ ad_organization }}"
-  loop: "{{ ['executor','admin'] | product(ad_region_grants) | list }}"
+  loop: "{{ ['executor', 'admin'] | product(ad_scope_objects) | list }}"
   vars:
-    ad_region_grants:
-      - {kind: inventory, suffix: Mock Inventory, role_type: Inventory, executor_role: Use}
-      - {kind: credential, suffix: Mock Credential, role_type: Credential, executor_role: Use}
-      - {kind: jobtemplate, suffix: read, role_type: JobTemplate, executor_role: Execute}
-      - {kind: jobtemplate, suffix: simulate_change, role_type: JobTemplate, executor_role: Execute}
+    ad_scope_objects: *ad_owned_objects
+  when: item.0 == 'admin' or item.1.kind != 'project'
   no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
