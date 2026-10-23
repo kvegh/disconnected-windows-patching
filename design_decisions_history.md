@@ -1,5 +1,72 @@
 # Design decisions history
 
+## Separate country ownership from EU-approved access and add Hungary
+
+Implementation: `ac5fd54` (directory/profile), `75289ca` (AAP resources,
+migration, verifier and presenter guides), `5020a24` (migration label lookup),
+`75c8714` (fresh domain Administrator password selection), `d118c25` (bounded
+native API retries and guarded resource-stage resume).
+
+The operator clarified that every customer resource belongs to a country.
+Replace the generic EU resource pool with DKlocal, NOlocal, DKEUapproved,
+NOEUapproved and NZlocal. Each set has a separate Project, inventory, synthetic
+credential and two inert jobs. Denmark and Norway can access their own strict
+local set and both approved sets; Hungary can access only both approved sets;
+New Zealand can access only its own local set. Each country retains distinct
+reader, executor and resource-admin identities. EU is a shared access scope,
+not another user cohort or resource owner.
+
+Keep twelve country global groups and twelve domain-local access groups, add
+Hungary and retire only the three owned EU-only accounts and global groups.
+Preserve the shared EU access groups and OU. The native script validates owned
+objects, handles obsolete scoped-policy subjects before retirement, reconciles
+managed memberships and verifies the entire nested access graph. The encrypted
+profile preserves existing credentials and PKI, adds the three new identities
+and five independent mock-credential values, and contains password-free
+retirement metadata. Fresh profile generation supports protected password
+derivation only with the explicitly selected account-scoped demo policy.
+
+Rename existing owned AAP objects while preserving IDs. A read-only inspector
+rejects ambiguous or foreign resources and checks remaining references before
+retiring the shared source Project. Native Ansible modules apply all changes.
+Twelve access teams receive 75 object-scoped grants. Readers can view; executors
+can use inventory/credentials and execute fixed jobs with view-only Project
+access; scoped admins can manage assigned resources. Explicitly disable surveys
+and launch prompts. LDAP maps nested domain-local membership to existing teams.
+
+The independent verifier checks the exact five-set matrix, both job operations,
+direct and inherited team membership, visible resource lists, admin-only edits,
+retired account absence and actual localhost task statistics. It drains every
+launched job even after an access failure. All 60 local AD/model, migration,
+resource and verifier tests passed, along with Ansible syntax checks. The
+identity-only live run passed: twelve users, twenty-four groups, three retired
+users and three retired global groups, expected nesting and unchanged default
+domain password policy. A later resource run hit the collection's hard-coded
+five-second connection-manager startup deadline after earlier stages passed.
+Bound idempotent native API retries and allow a selected resource-stage resume
+only after all final owned objects and references pass inspection. This skips
+successful Project/team preparation while retaining cleanup, authentication
+and full independent verification. The focused resume succeeded, followed by
+the complete live verifier: twelve LDAP logins, seventy-five scoped grants,
+360 primary access checks, 108 admin-only description PATCH checks, 48 exact
+resource-list checks and 24 gateway/controller team-membership checks. All 36
+mock jobs completed and executed on localhost. The legacy shared Project and
+all three EU-only AAP accounts are absent; fourteen LDAP maps remain enabled.
+The detailed guide now consolidates all twelve group-to-team mappings,
+resource scopes and exact object-role permissions into explicit tables.
+At the operator's explicit request, presenter tables use the twelve actual demo
+usernames. Split the access matrix into four short country tables and replace
+single-letter permission codes with View, Run/use and Admin to reduce lookup
+and scanning effort. Passwords and privileged connection details stay protected.
+
+The operator also requested original-image Administrator passwords on all five
+Windows demo VMs. Read-only authentication checks passed for the four standalone
+Administrators and domain Administrator; protected values match the existing
+image password in CaC. No reset or credential replacement was necessary. Fresh
+profile generation now selects that same protected image password rather than
+generating a different domain Administrator password.
+No VM redeployment or full combined infrastructure workflow was launched.
+
 ## Apply approved demo passwords with an account-scoped AD policy
 
 Implementation: `a03b2b6`; matching encrypted rollout profile: `784c0c9`.

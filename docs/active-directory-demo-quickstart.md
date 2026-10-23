@@ -13,33 +13,51 @@ but DK, NO and HU identities can access both. NZ identities see only `NZlocal`.
 HU has no resources of its own, and there are no EU-only users. This demonstrates
 identity-based regional clearance, not detection of a user's physical location.
 
-Use the protected deployment prefix in place of `<prefix>`; account names use
-its lowercase form. Obtain passwords privately from the encrypted demo profile
-before presenting. Run the redesigned access verifier successfully before using
-the expected results below as live proof.
+The tables use the deployed demo usernames. For group and team placeholders,
+replace `<prefix>` with the prefix visible in the deployment. Obtain passwords
+privately from the encrypted demo profile before presenting. Rerun the access
+verifier after configuration changes before demonstrating the results.
 
 ## Complete access matrix
 
 The same cell applies to that set's inventory, credential, Project and both
-job templates. **R** = view only; **X** = view and execute/use; **A** = view,
-execute/use and manage the scoped resources; **—** = no access. Credential
+job templates. **View** = read only; **Run/use** = view and execute/use;
+**Admin** = view, execute/use and manage the scoped resources;
+**—** = **no access**. Credential
 visibility never reveals its stored password. Executor Project access is
 view-only. A scoped admin is not an AAP platform or AD domain administrator.
 
-| AD account pattern | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+### Denmark
+
+| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
 | --- | --- | --- | --- | --- | --- |
-| `<prefix>-dk-reader` | R | — | R | R | — |
-| `<prefix>-dk-executor` | X | — | X | X | — |
-| `<prefix>-dk-admin` | A | — | A | A | — |
-| `<prefix>-no-reader` | — | R | R | R | — |
-| `<prefix>-no-executor` | — | X | X | X | — |
-| `<prefix>-no-admin` | — | A | A | A | — |
-| `<prefix>-nz-reader` | — | — | — | — | R |
-| `<prefix>-nz-executor` | — | — | — | — | X |
-| `<prefix>-nz-admin` | — | — | — | — | A |
-| `<prefix>-hu-reader` | — | — | R | R | — |
-| `<prefix>-hu-executor` | — | — | X | X | — |
-| `<prefix>-hu-admin` | — | — | A | A | — |
+| `geo-dk-reader` | **View** | — | **View** | **View** | — |
+| `geo-dk-executor` | **Run/use** | — | **Run/use** | **Run/use** | — |
+| `geo-dk-admin` | **Admin** | — | **Admin** | **Admin** | — |
+
+### Norway
+
+| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| --- | --- | --- | --- | --- | --- |
+| `geo-no-reader` | — | **View** | **View** | **View** | — |
+| `geo-no-executor` | — | **Run/use** | **Run/use** | **Run/use** | — |
+| `geo-no-admin` | — | **Admin** | **Admin** | **Admin** | — |
+
+### New Zealand
+
+| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| --- | --- | --- | --- | --- | --- |
+| `geo-nz-reader` | — | — | — | — | **View** |
+| `geo-nz-executor` | — | — | — | — | **Run/use** |
+| `geo-nz-admin` | — | — | — | — | **Admin** |
+
+### Hungary
+
+| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| --- | --- | --- | --- | --- | --- |
+| `geo-hu-reader` | — | — | **View** | **View** | — |
+| `geo-hu-executor` | — | — | **Run/use** | **Run/use** | — |
+| `geo-hu-admin` | — | — | **Admin** | **Admin** | — |
 
 Each set has its own names: for example, `DKlocal Inventory`,
 `DKlocal Credential`, Project `DKlocal`, and `DKlocal Read` / `DKlocal Simulate Change`.
@@ -53,7 +71,7 @@ AAP object permissions, not private Git repository protection.
 2. Press **Win+R**, enter **`dsa.msc`**, and press Enter. This opens **Active
    Directory Users and Computers**.
 3. Expand the domain, then the **`<prefix>`** folder, then **DK**.
-4. Double-click **`<prefix>-dk-executor`**. On **Account**, the short username
+4. Double-click **`geo-dk-executor`**. On **Account**, the short username
    appears under **User logon name (pre-Windows 2000)**.
 5. Select **Member Of**. Show **`<prefix>-GG-DK-executor`**. Close the properties
    window without changing anything.
@@ -115,26 +133,26 @@ and jobs can use them normally. See the
 Sign out of the private window between accounts. Use these comparisons to
 explain the full matrix above:
 
-| AD account pattern | Sets visible | Demonstration |
+| AD username | Sets visible | Demonstration |
 | --- | --- | --- |
-| `<prefix>-hu-executor` | DKEUapproved, NOEUapproved | Launch an approved mock job. Both strict-local sets and NZlocal are absent. |
-| `<prefix>-no-reader` | NOlocal, DKEUapproved, NOEUapproved | Show NOlocal and both approved sets; DKlocal and NZlocal are absent. |
-| `<prefix>-nz-admin` | NZlocal only | Show scoped Edit, then Cancel; all DK/NO sets are absent. |
-| `<prefix>-dk-reader` | DKlocal, DKEUapproved, NOEUapproved | View resources; launch and editing are unavailable. |
-| `<prefix>-dk-admin` | DKlocal, DKEUapproved, NOEUapproved | Show scoped Edit, then Cancel; NOlocal and NZlocal stay absent. |
+| `geo-hu-executor` | DKEUapproved, NOEUapproved | Launch an approved mock job. Both strict-local sets and NZlocal are absent. |
+| `geo-no-reader` | NOlocal, DKEUapproved, NOEUapproved | Show NOlocal and both approved sets; DKlocal and NZlocal are absent. |
+| `geo-nz-admin` | NZlocal only | Show scoped Edit, then Cancel; all DK/NO sets are absent. |
+| `geo-dk-reader` | DKlocal, DKEUapproved, NOEUapproved | View resources; launch and editing are unavailable. |
+| `geo-dk-admin` | DKlocal, DKEUapproved, NOEUapproved | Show scoped Edit, then Cancel; NOlocal and NZlocal stay absent. |
 
 Say: **“AD controls who receives each access role. AAP maps those groups to
 teams and enforces their resource permissions.”**
 
 ## Validation and preparation
 
-The redesigned model expects **12 LDAP logins, 12 teams, 75 scoped grants,
-360 primary resource-read/launch checks and 36 successful mock jobs**, exercising
-both job-template operations. Description PATCH and exact-list checks are
-additional. Live validation of this revision is pending; earlier successful
-regional checks covered a different resource model. Inspect a successful
-**Verify AD AAP Access** run with `ad_verify_ldap_logins: true` before presenting
-these figures as completed results.
+Live validation of this model passed on 2026-10-23: **12 LDAP logins, 12 teams,
+75 scoped grants, 360 primary resource-read/launch checks and 36 successful
+mock jobs**, exercising both job-template operations and proving localhost
+execution. It also passed 108 admin-only description PATCH checks, 48 exact-list
+checks and 24 gateway/controller membership checks. All three retired EU-only
+accounts are absent from both services. Use the successful **Verify AD AAP
+Access** run with `ad_verify_ldap_logins: true` as the automated evidence.
 
 This script uses the configured memberships. It does not demonstrate live
 membership removal or claim an end-to-end VNC/browser rehearsal. A new AD group

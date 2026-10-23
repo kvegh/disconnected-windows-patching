@@ -38,12 +38,16 @@ identity-based regional clearance; AAP does not detect the user's physical
 location or IP geography. Both presenter guides contain the full twelve-user
 access matrix.
 
-The earlier regional model passed live deployment and access checks. Live
-validation of this revised five-set model is pending; its expected totals are
-75 scoped grants, twelve LDAP logins, 360 primary resource-read/launch checks
-and 36 completed mock jobs, with description PATCH and list checks counted
-separately. The complete fresh combined Windows/AD infrastructure workflow has
-not been run over this existing deployment.
+Live validation of this five-set model passed: 75 scoped grants, twelve LDAP
+logins, 360 primary resource-read/launch checks and 36 completed mock jobs.
+It also passed 108 admin-only description PATCH checks, 48 exact resource-list
+checks and 24 gateway/controller team-membership checks. All three retired
+EU-only accounts are absent from both services. The detailed guide contains the
+complete AD-group → AAP-team → resource-set → permission table and exact object
+role names. The presenter matrices use the actual demo usernames and four short
+country tables with full permission labels, as requested by the operator.
+The complete fresh combined Windows/AD infrastructure workflow has not been
+run over this existing deployment.
 The test guest has the current Server cumulative update, build 26100.33650,
 with no pending reboot. Windows Update still reoffers KB5007651 after successful
 installer runs. Microsoft's [applicability documentation](https://support.microsoft.com/en-us/servicing/os/windows/2021/10/windows-security-app-update)

@@ -54,26 +54,43 @@ not confidentiality of source code in that public repository.
 ### Complete access matrix
 
 Each cell covers the set's inventory, credential, Project and both templates.
-**R** means view only. **X** means view and execute/use; Projects remain
-view-only for executors. **A** means view, execute/use and administer the scoped
-resources. **—** means no access. Credential viewing permits metadata access,
+**View** means read only. **Run/use** means view and execute/use; Projects remain
+view-only for executors. **Admin** means view, execute/use and administer the scoped
+resources. **—** means **no access**. Credential viewing permits metadata access,
 not disclosure of its stored password. A resource admin is not an AAP platform
 administrator or an AD domain administrator.
 
-| AD account pattern | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+#### Denmark
+
+| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
 | --- | --- | --- | --- | --- | --- |
-| `<prefix>-dk-reader` | R | — | R | R | — |
-| `<prefix>-dk-executor` | X | — | X | X | — |
-| `<prefix>-dk-admin` | A | — | A | A | — |
-| `<prefix>-no-reader` | — | R | R | R | — |
-| `<prefix>-no-executor` | — | X | X | X | — |
-| `<prefix>-no-admin` | — | A | A | A | — |
-| `<prefix>-nz-reader` | — | — | — | — | R |
-| `<prefix>-nz-executor` | — | — | — | — | X |
-| `<prefix>-nz-admin` | — | — | — | — | A |
-| `<prefix>-hu-reader` | — | — | R | R | — |
-| `<prefix>-hu-executor` | — | — | X | X | — |
-| `<prefix>-hu-admin` | — | — | A | A | — |
+| `geo-dk-reader` | **View** | — | **View** | **View** | — |
+| `geo-dk-executor` | **Run/use** | — | **Run/use** | **Run/use** | — |
+| `geo-dk-admin` | **Admin** | — | **Admin** | **Admin** | — |
+
+#### Norway
+
+| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| --- | --- | --- | --- | --- | --- |
+| `geo-no-reader` | — | **View** | **View** | **View** | — |
+| `geo-no-executor` | — | **Run/use** | **Run/use** | **Run/use** | — |
+| `geo-no-admin` | — | **Admin** | **Admin** | **Admin** | — |
+
+#### New Zealand
+
+| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| --- | --- | --- | --- | --- | --- |
+| `geo-nz-reader` | — | — | — | — | **View** |
+| `geo-nz-executor` | — | — | — | — | **Run/use** |
+| `geo-nz-admin` | — | — | — | — | **Admin** |
+
+#### Hungary
+
+| AD username | DKlocal | NOlocal | DKEUapproved | NOEUapproved | NZlocal |
+| --- | --- | --- | --- | --- | --- |
+| `geo-hu-reader` | — | — | **View** | **View** | — |
+| `geo-hu-executor` | — | — | **Run/use** | **Run/use** | — |
+| `geo-hu-admin` | — | — | **Admin** | **Admin** | — |
 
 The relationship you will trace is:
 
@@ -139,11 +156,9 @@ a separate organization merely because their identities come from AD.
    See [validation status](#12-validation-status-and-rehearsal-checks) for the
    completed checks and remaining rehearsal limits.
 
-This guide uses `<prefix>` for the deployment's chosen identity prefix. Replace
-it with the prefix visible in your existing groups and AAP teams. Names below
-are patterns, not additional objects to create. The generated account pattern
-is `<prefix-lowercase>-<region-lowercase>-<role>`, using user-region codes `dk`,
-`no`, `nz` and `hu`.
+The tables and sign-in steps use the actual twelve demo usernames. Group and
+team examples use `<prefix>` for the deployment's chosen identity prefix;
+replace it with the prefix visible in your existing groups and AAP teams.
 
 The protected profile is `vars/active_directory_vault.yml`. The corresponding
 `active_directory.users` entries contain `username`, `password`, `region` and
@@ -405,12 +420,14 @@ Suggested closing words:
 
 ## 12. Validation status and rehearsal checks
 
-Live validation of the redesigned five-set model is **pending**. Its expected
-completed counts are **12 teams, 75 scoped grants, 12 real LDAP logins,
-360 primary resource-read/launch checks and 36 successful mock jobs**, with
-description PATCH and exact-list checks counted separately. The earlier model
-passed real LDAP and effective-permission checks, but those historical results
-do not prove the new matrix, HU membership or removal of the EU-only accounts.
+Live validation of this five-set model **passed on 2026-10-23**: **12 teams,
+75 scoped grants, 12 real LDAP logins, 360 primary resource-read/launch checks
+and 36 successful mock jobs**. Both template operations executed their tasks on
+localhost. Additional checks passed: 108 admin-only description PATCH checks,
+48 exact resource-list checks and 24 gateway/controller team-membership checks.
+These results cover HU membership, strict-local and NZ isolation, shared
+approved access and role boundaries. All three EU-only accounts are absent
+from both gateway and controller, and the legacy shared Project is removed.
 
 Earlier runs stopped at first-login controller access for Norway identities.
 Inspection found a gateway identity and correct memberships before a controller
@@ -443,8 +460,9 @@ revocation demonstration; do not improvise directory edits during this one.
 ## 13. Setup reference for the existing Ansible automation
 
 This section is for preparing the demo, rather than narration during it.
-Environment-specific accounts, addresses, keys and passwords remain in Vault or
-protected AAP credentials, not this guide.
+Connection details, privileged account credentials, keys and passwords remain
+in Vault or protected AAP credentials. The tables above list the requested demo
+usernames for presentation.
 
 1. Use the existing Server 2025 image, hypervisor inventory and an execution
    environment compatible with the pinned
@@ -541,20 +559,34 @@ Each row maps an access group to **Team Member** in the named AAP team. All
 teams belong to `<prefix> Regional Identity Demo`. The actual trigger uses the
 group's full lowercase DN, not just the short name in this table.
 
-| AD access group | AAP team |
-| --- | --- |
-| `<prefix>-DL-DK-reader` | `<prefix> DKlocal reader` |
-| `<prefix>-DL-DK-executor` | `<prefix> DKlocal executor` |
-| `<prefix>-DL-DK-admin` | `<prefix> DKlocal admin` |
-| `<prefix>-DL-NO-reader` | `<prefix> NOlocal reader` |
-| `<prefix>-DL-NO-executor` | `<prefix> NOlocal executor` |
-| `<prefix>-DL-NO-admin` | `<prefix> NOlocal admin` |
-| `<prefix>-DL-EU-reader` | `<prefix> EUapproved reader` |
-| `<prefix>-DL-EU-executor` | `<prefix> EUapproved executor` |
-| `<prefix>-DL-EU-admin` | `<prefix> EUapproved admin` |
-| `<prefix>-DL-NZ-reader` | `<prefix> NZlocal reader` |
-| `<prefix>-DL-NZ-executor` | `<prefix> NZlocal executor` |
-| `<prefix>-DL-NZ-admin` | `<prefix> NZlocal admin` |
+| AD access group | AAP team | Resource sets | Permissions |
+| --- | --- | --- | --- |
+| `<prefix>-DL-DK-reader` | `<prefix> DKlocal reader` | DKlocal | View only |
+| `<prefix>-DL-DK-executor` | `<prefix> DKlocal executor` | DKlocal | Run/use; Project view only |
+| `<prefix>-DL-DK-admin` | `<prefix> DKlocal admin` | DKlocal | Administer assigned resources |
+| `<prefix>-DL-NO-reader` | `<prefix> NOlocal reader` | NOlocal | View only |
+| `<prefix>-DL-NO-executor` | `<prefix> NOlocal executor` | NOlocal | Run/use; Project view only |
+| `<prefix>-DL-NO-admin` | `<prefix> NOlocal admin` | NOlocal | Administer assigned resources |
+| `<prefix>-DL-EU-reader` | `<prefix> EUapproved reader` | DKEUapproved, NOEUapproved | View only |
+| `<prefix>-DL-EU-executor` | `<prefix> EUapproved executor` | DKEUapproved, NOEUapproved | Run/use; Project view only |
+| `<prefix>-DL-EU-admin` | `<prefix> EUapproved admin` | DKEUapproved, NOEUapproved | Administer assigned resources |
+| `<prefix>-DL-NZ-reader` | `<prefix> NZlocal reader` | NZlocal | View only |
+| `<prefix>-DL-NZ-executor` | `<prefix> NZlocal executor` | NZlocal | Run/use; Project view only |
+| `<prefix>-DL-NZ-admin` | `<prefix> NZlocal admin` | NZlocal | Administer assigned resources |
+
+Each resource set contains one Project, one inventory, one synthetic credential
+and both mock Job Templates. The table above means these exact object roles:
+
+| Permission level | Project | Inventory | Credential | Both Job Templates |
+| --- | --- | --- | --- | --- |
+| View only | `<prefix> project Reader` | `<prefix> inventory Reader` | `<prefix> credential Reader` | `<prefix> jobtemplate Reader` |
+| Run/use | `<prefix> project Reader` | Inventory Use | Credential Use | JobTemplate Execute |
+| Administer assigned resources | Project Admin | Inventory Admin | Credential Admin | JobTemplate Admin |
+
+Each custom Reader definition contains only its resource's `view` permission.
+Credential viewing exposes metadata, with its password masked. These rows grant
+no organization, platform or AD administrator privileges. The JT applies this
+declared table; LDAP reads actual nested user membership during authentication.
 
 HU's three global groups join the matching EU domain-local groups above.
 There are no HU-specific AAP teams or domain-local groups. `EUapproved` team
