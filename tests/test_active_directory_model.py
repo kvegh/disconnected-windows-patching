@@ -145,7 +145,8 @@ class ProfileGenerationTests(unittest.TestCase):
 
     def generate(self, **extra):
         seed = {'prefix': 'Sample', 'dns_domain': 'example.test',
-                'hostname': 'directory', 'netbios': 'EXAMPLE'}
+                'hostname': 'directory', 'netbios': 'EXAMPLE',
+                'bootstrap_password': secrets.token_urlsafe(32) + 'aA1!'}
         seed.update(extra)
         return subprocess.run([sys.executable, str(self.script)], input=json.dumps(seed),
                               text=True, capture_output=True, check=False)
@@ -162,6 +163,12 @@ class ProfileGenerationTests(unittest.TestCase):
         self.assertTrue(all('password' not in user for user in profile['retired_users']))
         self.assertTrue(profile['ca_certificate'].startswith('-----BEGIN CERTIFICATE-----'))
         self.assertTrue(profile['ca_private_key_encrypted'].startswith('-----BEGIN ENCRYPTED PRIVATE KEY-----'))
+        self.assertEqual(profile['domain_admin_password'], profile['bootstrap_password'])
+
+    def test_original_image_password_is_required_for_fresh_domain_administrator(self):
+        result = self.generate(bootstrap_password='')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, '')
 
     def test_protected_derivation_input_is_used_and_removed_from_the_profile(self):
         suffix = secrets.token_urlsafe(12)

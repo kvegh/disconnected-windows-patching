@@ -99,6 +99,9 @@ time. With the scoped demo policy enabled, `ad_reset_demo_user_passwords: true`
 explicitly applies the Vault-supplied passwords to the twelve owned regional
 users. Ordinary reruns preserve existing
 passwords. New accounts always receive their protected profile passwords.
+Fresh directory-profile initialization keeps the domain Administrator password
+equal to the protected original image password; other service and certificate
+secrets are generated independently.
 The protected profile can enable `allow_simple_demo_passwords`. This creates an
 owned fine-grained policy applied directly to exactly those twelve users, allowing
 the approved demo passwords while preserving every other domain password-policy

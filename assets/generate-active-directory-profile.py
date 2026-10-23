@@ -23,7 +23,10 @@ def main():
     profile = dict(seed)
     profile.update(module.model(seed['prefix'], seed['dns_domain']))
     profile['domain_admin_username'] = seed['netbios'] + '\\Administrator'
-    for key in ('domain_admin_password', 'dsrm_password', 'bind_password',
+    if not isinstance(seed.get('bootstrap_password'), str) or not seed['bootstrap_password']:
+        raise ValueError('The protected original image password is required.')
+    profile['domain_admin_password'] = seed['bootstrap_password']
+    for key in ('dsrm_password', 'bind_password',
                 'ca_key_password', 'certificate_password'):
         profile[key] = secrets.token_urlsafe(36) + 'aA1!'
     profile['bind_username'] = seed['prefix'].lower() + '-ldap'
