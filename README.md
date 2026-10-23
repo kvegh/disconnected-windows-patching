@@ -183,6 +183,11 @@ LDAP configuration. It first independently verifies all twelve teams, all 75
 scoped grants and the fixed mock inputs; missing or changed resources stop the
 resume. Normal fresh deployment still configures every resource. Configuration
 API calls use a 60-second timeout, configurable with `ad_aap_request_timeout`.
+Idempotent grant assignments retry a transient API connection-manager startup
+failure with a bounded delay. If all five resources and their fixed links
+already exist, `ad_aap_resume_resource_sets` can select only failed resource
+sets. A complete owned-object inspection must pass before this mode skips
+successful Project/team preparation; cleanup and authentication still run.
 
 `configure_active_directory_address.yml` adds the dedicated clone's exact live
 and persistent DHCP reservation after checking clone ownership, NIC topology,

@@ -26,6 +26,7 @@ class RegionalResourceTests(unittest.TestCase):
         self.mock = yaml.safe_load((ROOT / 'mock_regional_job.yml').read_text())[0]
         self.jinja = NativeEnvironment(undefined=StrictUndefined)
         self.jinja.filters['product'] = lambda left, right: list(product(left, right))
+        self.jinja.filters['bool'] = bool
 
     def render(self, value, variables):
         return self.jinja.from_string(value).render(variables) if isinstance(value, str) else value
@@ -65,6 +66,40 @@ class RegionalResourceTests(unittest.TestCase):
         definitions = self.mock['tasks'][0]['vars']['demo_sets']
         self.assertEqual(definitions, {item['key']: {'owner': item['owner'], 'access': item['access']}
                                        for item in RESOURCE_SETS})
+
+    def test_resource_resume_selects_only_requested_sets_and_skips_preparation(self):
+        block = next(task['block'] for task in self.play['tasks'] if 'block' in task)
+        resource_task = next(task for task in block if task.get('ansible.builtin.include_tasks') ==
+                             'tasks/configure_aap_ad_region.yml')
+        base = {'active_directory': {'resource_sets': RESOURCE_SETS},
+                'ad_aap_authentication_only': False}
+        for selection in (['NZlocal'], ['DKEUapproved', 'NOEUapproved']):
+            context = dict(base, ad_aap_resuming_resources=True,
+                           ad_aap_resume_resource_sets=selection)
+            actual = self.render(resource_task['loop'], context)
+            self.assertEqual([item['key'] for item in actual], selection)
+            for task in block:
+                if any(module in task for module in ('ansible.controller.project',
+                       'ansible.controller.project_update', 'ansible.platform.team',
+                       'ansible.platform.role_definition')) and task.get('ansible.controller.project', {}).get('state') != 'absent':
+                    conditions = task.get('when', [])
+                    self.assertIsInstance(conditions, list)
+                    self.assertFalse(all(self.jinja.compile_expression(condition)(context)
+                                         for condition in conditions))
+        self.assertEqual(self.render(resource_task['loop'],
+                                     dict(base, ad_aap_resuming_resources=False)), RESOURCE_SETS)
+        inspection = next(task for task in block if task['name'].startswith('Inspect owned objects'))
+        self.assertIn("'require_migrated': ad_aap_resuming_resources | bool",
+                      inspection['ansible.builtin.command']['stdin'])
+
+    def test_grant_and_authentication_retries_are_bounded(self):
+        authentication = yaml.safe_load((ROOT / 'tasks/configure_aap_ad_authentication.yml').read_text())
+        tasks = [task for task in self.tasks if 'ansible.platform.role_team_assignment' in task]
+        tasks += [task for task in authentication if any(key.startswith('ansible.platform.') for key in task)]
+        for task in tasks:
+            self.assertTrue(1 <= task['retries'] <= 3)
+            self.assertGreaterEqual(task['delay'], 1)
+            self.assertEqual(task['until'], task['register'] + ' is succeeded')
 
     def test_team_migration_resolves_inspected_access_labels(self):
         block = next(task['block'] for task in self.play['tasks'] if 'block' in task)

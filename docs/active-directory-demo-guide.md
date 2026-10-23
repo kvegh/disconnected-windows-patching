@@ -494,12 +494,41 @@ protected AAP credentials, not this guide.
    old generic regional resources through the guarded owned-object cleanup;
    preserve the existing controller and unrelated objects. For a failed stage,
    retry that stage rather than launching fresh VM creation over the controller.
+   If all five sets already have their final names and fixed links, a focused
+   `ad_aap_resume_resource_sets` list can retry only selected resource sets.
+   This mode first requires complete owned-object/reference inspection, skips
+   successful Project/team preparation, and still performs cleanup and LDAP
+   configuration. Grant and mapping calls have bounded retries for transient
+   collection connection-manager startup failures. Run the full verifier after
+   any resume; a partial grant count is not completed validation.
    The guest inspector is
    [`inspect_active_directory_guest.yml`](../inspect_active_directory_guest.yml);
    use `ad_inspect_domain_auth: true` after promotion.
 7. Keep the encrypted profile backup in the private Windows CaC repository
    consistent with the profile loaded by the public playbooks. The capture's
    `cac` Vault identity and the playbook-profile Vault password are separate.
+
+### Adding people or another country
+
+For another person using an existing role, create an enabled AD user with a
+valid password **inside the demo OU searched by LDAP**, then add the user to
+the appropriate country global group, such as `<prefix>-GG-DK-reader`.
+The existing nesting supplies both local and EU-approved reader membership.
+The person signs in to AAP with the AD account; first login creates the AAP
+identity and applies the existing team maps. No manual AAP user, team or grant
+is needed. AD changes are evaluated on authentication, so sign out and sign
+in again when demonstrating a changed membership.
+
+For a new country receiving only existing EU-approved access, its matching-role
+global groups can nest into the existing EU domain-local groups. Those access
+groups already have AAP mappings. For a new country with its own local
+resources, extend the declared directory model, protected profile, resource
+sets and acceptance matrix, then run **Deploy Active Directory** in
+identity-only mode, **Configure AD AAP Regions**, and **Verify AD AAP Access**.
+The configuration template creates the declared teams, grants and LDAP maps
+together. There is no separate add-country survey template. The supplied model
+and verifier deliberately cover the four demo countries and twelve demo users;
+their ownership guards reject unexpected members during reconciliation.
 
 The Microsoft patch check reports the Windows 11-only KB5007651 Security UI
 offer separately on Server 2025. It does not exclude applicable Server updates

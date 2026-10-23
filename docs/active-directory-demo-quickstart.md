@@ -140,6 +140,9 @@ This script uses the configured memberships. It does not demonstrate live
 membership removal or claim an end-to-end VNC/browser rehearsal. A new AD group
 alone does not appear in AAP: its mapping and resource grants must be declared
 in Ansible. Existing mappings evaluate nested membership when users authenticate.
+An enabled new user inside the searched demo OU can use an existing mapped
+country group immediately: set a valid AD password, add the membership, then
+sign in to AAP. No manual AAP account is needed.
 
 For the full explanation, setup and troubleshooting, see the
 [detailed presenter guide](active-directory-demo-guide.md).

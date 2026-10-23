@@ -13,6 +13,7 @@
     ad_access_labels: {'DK': DKlocal, 'NO': NOlocal, 'EU': EUapproved, 'NZ': NZlocal}
     ad_roles: [reader, executor, admin]
     ad_resource_types: [project, inventory, credential, jobtemplate]
+    ad_aap_resuming_resources: "{{ ad_aap_resume_resource_sets | default([]) | length > 0 }}"
   module_defaults:
     group/ansible.platform.gateway:
       aap_hostname: "{{ ad_target_api_url }}"
@@ -30,6 +31,15 @@
   tasks:
     - name: Check the selected target credential before any platform changes
       ansible.builtin.include_tasks: tasks/require_active_directory_target.yml
+
+    - name: Validate an optional focused resource-stage resume
+      ansible.builtin.assert:
+        that:
+          - ad_aap_resume_resource_sets | default([]) | type_debug == 'list'
+          - ad_aap_resume_resource_sets | default([]) | difference(active_directory.resource_sets | map(attribute='key') | list) | length == 0
+          - not (ad_aap_resuming_resources | bool and ad_aap_authentication_only | default(false) | bool)
+        fail_msg: Resource resume must select declared resource sets and cannot combine with authentication-only recovery.
+        quiet: true
 
     - name: Create a private API CA bundle file
       ansible.builtin.tempfile:
@@ -72,12 +82,20 @@
           ansible.platform.organization:
             name: "{{ ad_organization }}"
             description: AD regional access demonstration with isolated mock resources.
+          register: ad_organization_result
+          until: ad_organization_result is succeeded
+          retries: 3
+          delay: 5
           no_log: true
-          when: not (ad_aap_authentication_only | default(false) | bool)
+          when:
+            - not (ad_aap_authentication_only | default(false) | bool)
+            - not (ad_aap_resuming_resources | bool)
 
         - name: Reuse reviewed Hub sources before regional project synchronization
           ansible.builtin.include_tasks: tasks/configure_aap_ad_galaxy_sources.yml
-          when: not (ad_aap_authentication_only | default(false) | bool)
+          when:
+            - not (ad_aap_authentication_only | default(false) | bool)
+            - not (ad_aap_resuming_resources | bool)
 
         - name: Inspect owned objects before renaming or retiring the previous model
           ansible.builtin.command:
@@ -85,7 +103,8 @@
             stdin: >-
               {{ {'url': ad_target_api_url, 'ca': ad_target_api_ca,
                   'admin_username': 'admin', 'admin_password': ad_target_admin_password,
-                  'prefix': active_directory.prefix, 'authenticator_name': ad_authenticator} | to_json }}
+                  'prefix': active_directory.prefix, 'authenticator_name': ad_authenticator,
+                  'require_migrated': ad_aap_resuming_resources | bool} | to_json }}
           register: ad_migration_inspection
           changed_when: false
           failed_when: false
@@ -112,8 +131,14 @@
             organization: "{{ ad_organization }}"
             description: "{{ item.1 }} access to {{ item.0.value }} mock resources."
           loop: "{{ ad_access_labels | dict2items | product(ad_roles) | list }}"
+          register: ad_team_result
+          until: ad_team_result is succeeded
+          retries: 3
+          delay: 5
           no_log: true
-          when: not (ad_aap_authentication_only | default(false) | bool)
+          when:
+            - not (ad_aap_authentication_only | default(false) | bool)
+            - not (ad_aap_resuming_resources | bool)
 
         - name: Create separate country-owned projects with trusted collection sources
           ansible.controller.project:
@@ -130,7 +155,9 @@
             SSL_CERT_FILE: "{{ ad_api_ca.path }}"
             REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
           no_log: true
-          when: not (ad_aap_authentication_only | default(false) | bool)
+          when:
+            - not (ad_aap_authentication_only | default(false) | bool)
+            - not (ad_aap_resuming_resources | bool)
 
         - name: Create view-only roles for each scoped resource type
           ansible.platform.role_definition:
@@ -139,8 +166,14 @@
             content_type: "awx.{{ item }}"
             permissions: ["awx.view_{{ item }}"]
           loop: "{{ ad_resource_types }}"
+          register: ad_reader_role_result
+          until: ad_reader_role_result is succeeded
+          retries: 3
+          delay: 5
           no_log: true
-          when: not (ad_aap_authentication_only | default(false) | bool)
+          when:
+            - not (ad_aap_authentication_only | default(false) | bool)
+            - not (ad_aap_resuming_resources | bool)
 
         - name: Refresh each source before validating its playbooks
           ansible.controller.project_update:
@@ -152,11 +185,13 @@
             SSL_CERT_FILE: "{{ ad_api_ca.path }}"
             REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
           no_log: true
-          when: not (ad_aap_authentication_only | default(false) | bool)
+          when:
+            - not (ad_aap_authentication_only | default(false) | bool)
+            - not (ad_aap_resuming_resources | bool)
 
         - name: Create each country-owned resource set and its scoped role grants
           ansible.builtin.include_tasks: tasks/configure_aap_ad_region.yml
-          loop: "{{ active_directory.resource_sets }}"
+          loop: "{{ active_directory.resource_sets | selectattr('key', 'in', ad_aap_resume_resource_sets) | list if ad_aap_resuming_resources | bool else active_directory.resource_sets }}"
           loop_control:
             loop_var: ad_resource_set
           when: not (ad_aap_authentication_only | default(false) | bool)
@@ -200,6 +235,10 @@
             username: "{{ item }}"
             state: absent
           loop: "{{ ad_migration.retired_usernames | default([]) }}"
+          register: ad_retired_user_result
+          until: ad_retired_user_result is succeeded
+          retries: 3
+          delay: 5
           no_log: true
           when: not (ad_aap_authentication_only | default(false) | bool)
 

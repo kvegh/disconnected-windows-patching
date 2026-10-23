@@ -83,6 +83,10 @@
     - {kind: credential, suffix: ' Credential', role_type: Credential, executor_role: Use}
     - {kind: jobtemplate, suffix: ' Read', role_type: JobTemplate, executor_role: Execute}
     - {kind: jobtemplate, suffix: ' Simulate Change', role_type: JobTemplate, executor_role: Execute}
+  register: ad_reader_grant
+  until: ad_reader_grant is succeeded
+  retries: 3
+  delay: 5
   no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
 
 - name: Give executors project visibility without granting project use
@@ -93,6 +97,10 @@
       - name: "{{ ad_resource_set.key }}"
         type: awx.project
         organization: "{{ ad_organization }}"
+  register: ad_executor_project_grant
+  until: ad_executor_project_grant is succeeded
+  retries: 3
+  delay: 5
   no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
 
 - name: Grant object-scoped executor and admin access
@@ -106,5 +114,9 @@
   loop: "{{ ['executor', 'admin'] | product(ad_scope_objects) | list }}"
   vars:
     ad_scope_objects: *ad_owned_objects
+  register: ad_scoped_grant
+  until: ad_scoped_grant is succeeded
+  retries: 3
+  delay: 5
   when: item.0 == 'admin' or item.1.kind != 'project'
   no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
