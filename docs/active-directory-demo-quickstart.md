@@ -13,9 +13,10 @@ but DK, NO and HU identities can access both. NZ identities see only `NZ-local`.
 HU has no resources of its own, and there are no EU-only users. This demonstrates
 identity-based regional clearance, not detection of a user's physical location.
 
-The tables use the deployed demo usernames. For group and team placeholders,
-replace `<prefix>` with the prefix visible in the deployment. Obtain passwords
-privately from the encrypted demo profile before presenting. Rerun the access
+The tables use username patterns. Replace `<prefix>` with the deployment prefix
+obtained privately from the encrypted profile or the authorized AD/AAP console;
+account names use its lower-case form. Obtain passwords
+privately before presenting. Keep deployed identities out of Git. Rerun the access
 verifier after configuration changes before demonstrating the results.
 
 ### Readable names and current AAP names
@@ -49,33 +50,33 @@ view-only. A scoped admin is not an AAP platform or AD domain administrator.
 
 | AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
-| `geo-dk-reader` | **View** | — | **View** | **View** | — |
-| `geo-dk-executor` | **Run/use** | — | **Run/use** | **Run/use** | — |
-| `geo-dk-admin` | **Admin** | — | **Admin** | **Admin** | — |
+| `<prefix>-dk-reader` | **View** | — | **View** | **View** | — |
+| `<prefix>-dk-executor` | **Run/use** | — | **Run/use** | **Run/use** | — |
+| `<prefix>-dk-admin` | **Admin** | — | **Admin** | **Admin** | — |
 
 ### Norway
 
 | AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
-| `geo-no-reader` | — | **View** | **View** | **View** | — |
-| `geo-no-executor` | — | **Run/use** | **Run/use** | **Run/use** | — |
-| `geo-no-admin` | — | **Admin** | **Admin** | **Admin** | — |
+| `<prefix>-no-reader` | — | **View** | **View** | **View** | — |
+| `<prefix>-no-executor` | — | **Run/use** | **Run/use** | **Run/use** | — |
+| `<prefix>-no-admin` | — | **Admin** | **Admin** | **Admin** | — |
 
 ### New Zealand
 
 | AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
-| `geo-nz-reader` | — | — | — | — | **View** |
-| `geo-nz-executor` | — | — | — | — | **Run/use** |
-| `geo-nz-admin` | — | — | — | — | **Admin** |
+| `<prefix>-nz-reader` | — | — | — | — | **View** |
+| `<prefix>-nz-executor` | — | — | — | — | **Run/use** |
+| `<prefix>-nz-admin` | — | — | — | — | **Admin** |
 
 ### Hungary
 
 | AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
-| `geo-hu-reader` | — | — | **View** | **View** | — |
-| `geo-hu-executor` | — | — | **Run/use** | **Run/use** | — |
-| `geo-hu-admin` | — | — | **Admin** | **Admin** | — |
+| `<prefix>-hu-reader` | — | — | **View** | **View** | — |
+| `<prefix>-hu-executor` | — | — | **Run/use** | **Run/use** | — |
+| `<prefix>-hu-admin` | — | — | **Admin** | **Admin** | — |
 
 Each set has its own names: for example, `DK-local Inventory`,
 `DK-local Credential`, Project `DK-local`, and `DK-local Read` / `DK-local Simulate Change`.
@@ -89,7 +90,7 @@ AAP object permissions, not private Git repository protection.
 2. Press **Win+R**, enter **`dsa.msc`**, and press Enter. This opens **Active
    Directory Users and Computers**.
 3. Expand the domain, then the **`<prefix>`** folder, then **DK**.
-4. Double-click **`geo-dk-executor`**. On **Account**, the short username
+4. Double-click **`<prefix>-dk-executor`**. On **Account**, the short username
    appears under **User logon name (pre-Windows 2000)**.
 5. Select **Member Of**. Show **`<prefix>-GG-DK-executor`**. Close the properties
    window without changing anything.
@@ -153,11 +154,11 @@ explain the full matrix above:
 
 | AD username | Sets visible | Demonstration |
 | --- | --- | --- |
-| `geo-hu-executor` | DK-EU-approved, NO-EU-approved | Launch an approved mock job. Both strict-local sets and NZ-local are absent. |
-| `geo-no-reader` | NO-local, DK-EU-approved, NO-EU-approved | Show NO-local and both approved sets; DK-local and NZ-local are absent. |
-| `geo-nz-admin` | NZ-local only | Show scoped Edit, then Cancel; all DK/NO sets are absent. |
-| `geo-dk-reader` | DK-local, DK-EU-approved, NO-EU-approved | View resources; launch and editing are unavailable. |
-| `geo-dk-admin` | DK-local, DK-EU-approved, NO-EU-approved | Show scoped Edit, then Cancel; NO-local and NZ-local stay absent. |
+| `<prefix>-hu-executor` | DK-EU-approved, NO-EU-approved | Launch an approved mock job. Both strict-local sets and NZ-local are absent. |
+| `<prefix>-no-reader` | NO-local, DK-EU-approved, NO-EU-approved | Show NO-local and both approved sets; DK-local and NZ-local are absent. |
+| `<prefix>-nz-admin` | NZ-local only | Show scoped Edit, then Cancel; all DK/NO sets are absent. |
+| `<prefix>-dk-reader` | DK-local, DK-EU-approved, NO-EU-approved | View resources; launch and editing are unavailable. |
+| `<prefix>-dk-admin` | DK-local, DK-EU-approved, NO-EU-approved | Show scoped Edit, then Cancel; NO-local and NZ-local stay absent. |
 
 Say: **“AD controls who receives each access role. AAP maps those groups to
 teams and enforces their resource permissions.”**

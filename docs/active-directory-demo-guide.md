@@ -9,6 +9,10 @@ uses VNC to view the domain controller and a browser to view the dedicated test
 AAP. The demonstration reads the existing configuration and runs inert mock
 jobs; it does not require editing directory membership or AAP permissions.
 
+Usernames below are patterns using `<prefix>`. Obtain the deployment prefix
+privately from the encrypted profile or authorized AD/AAP console; account names
+use its lower-case form. Keep deployed identities and passwords out of Git.
+
 For your first presentation, use the Denmark reader walkthrough in sections
 2–9. Section 10 adds optional role/region comparisons. The setup reference at
 the end is preparation material, not something to walk through on stage.
@@ -84,33 +88,33 @@ administrator or an AD domain administrator.
 
 | AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
-| `geo-dk-reader` | **View** | — | **View** | **View** | — |
-| `geo-dk-executor` | **Run/use** | — | **Run/use** | **Run/use** | — |
-| `geo-dk-admin` | **Admin** | — | **Admin** | **Admin** | — |
+| `<prefix>-dk-reader` | **View** | — | **View** | **View** | — |
+| `<prefix>-dk-executor` | **Run/use** | — | **Run/use** | **Run/use** | — |
+| `<prefix>-dk-admin` | **Admin** | — | **Admin** | **Admin** | — |
 
 #### Norway
 
 | AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
-| `geo-no-reader` | — | **View** | **View** | **View** | — |
-| `geo-no-executor` | — | **Run/use** | **Run/use** | **Run/use** | — |
-| `geo-no-admin` | — | **Admin** | **Admin** | **Admin** | — |
+| `<prefix>-no-reader` | — | **View** | **View** | **View** | — |
+| `<prefix>-no-executor` | — | **Run/use** | **Run/use** | **Run/use** | — |
+| `<prefix>-no-admin` | — | **Admin** | **Admin** | **Admin** | — |
 
 #### New Zealand
 
 | AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
-| `geo-nz-reader` | — | — | — | — | **View** |
-| `geo-nz-executor` | — | — | — | — | **Run/use** |
-| `geo-nz-admin` | — | — | — | — | **Admin** |
+| `<prefix>-nz-reader` | — | — | — | — | **View** |
+| `<prefix>-nz-executor` | — | — | — | — | **Run/use** |
+| `<prefix>-nz-admin` | — | — | — | — | **Admin** |
 
 #### Hungary
 
 | AD username | DK-local | NO-local | DK-EU-approved | NO-EU-approved | NZ-local |
 | --- | --- | --- | --- | --- | --- |
-| `geo-hu-reader` | — | — | **View** | **View** | — |
-| `geo-hu-executor` | — | — | **Run/use** | **Run/use** | — |
-| `geo-hu-admin` | — | — | **Admin** | **Admin** | — |
+| `<prefix>-hu-reader` | — | — | **View** | **View** | — |
+| `<prefix>-hu-executor` | — | — | **Run/use** | **Run/use** | — |
+| `<prefix>-hu-admin` | — | — | **Admin** | **Admin** | — |
 
 The relationship you will trace is:
 

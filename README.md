@@ -10,53 +10,31 @@ offline suites prove and what still needs live AAP validation.
 
 ## Review release
 
-The first tracked major version is **1.0.0**, representing the code-review and
-cleanup baseline under the
-[agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
-Work continues directly on `main`, as requested by the owner, with patch-version
-increments for subsequent cleanup changes. `VERSION` identifies this repository
-independently of other umbrella projects.
+The first tracked major version is **1.0.0**, representing the review and cleanup
+baseline under the [agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
+The current cleanup version is **1.0.6**. Work proceeds directly on `main`, as
+requested by the owner; `VERSION` identifies this project independently of the
+other umbrella projects. Implementation changes and their reasons are recorded
+in [the decision history](design_decisions_history.md).
 
-Review and validation are in progress. The dated completion report requires
-resolved findings or documented accepted deviations, functionality confirmation,
-and a successful final AAP end-to-end test within the declared scope and
-available environment. The version marker alone does not claim review acceptance
-or new runtime verification.
+The cleanup replaces deprecated IIS modules, uses the native AD forest/reboot
+module, pins dependencies to the actual AAP core version, fixes strict lint,
+and documents the retained supporting code. Native Ansible orchestrates all six
+PowerShell regression suites. Guarded preservation supports four core Windows
+clones or an explicitly selected fifth AD clone, with ownership checks and a
+fresh target-bound baseline. Public presenter guides use identity placeholders;
+resolve the actual deployment prefix and credentials through protected sources.
 
-The first cleanup patch, **1.0.1**, uses the explicit
-`ansible.builtin.runas` privilege-escalation plugin and the Windows-capable
-`ansible.builtin.slurp` module for Nexus first-start password retrieval. Both
-resolve in the AAP-matching ansible-core 2.16.19 environment. The existing 103
-Python tests pass after these changes; AAP functionality verification and the
-completed review remain pending.
+Strict production lint passes 116 processed files, all 107 Python tests pass,
+and the six PowerShell suites pass on both managed Windows servers, including
+normal protected-output execution. The live IIS/WSUS export test also passed.
+The full review and fresh 29-stage AAP end-to-end test remain in progress.
 
-Patch **1.0.2** documents the non-Ansible test code and its coverage in the
-[test guide](tests/README.md). Mocked Ansible runs now expose and reject Ansible
-deprecation warnings. The Server update-policy regression requires both the
-installation and final-search tasks, preventing a pass when neither is checked.
-Offline checks complement the required live AAP functionality and end-to-end
-tests; their results do not establish review acceptance.
-
-Cleanup patch **1.0.3** replaces deprecated IIS modules with `microsoft.iis`,
-uses `microsoft.ad.domain` for forest creation and its required reboot, and pins
-Chocolatey collection 1.5.3 to match the actual AAP core version. It also fixes
-strict lint findings, documents all retained supporting code and adds native
-Ansible orchestration for the six Windows PowerShell regression suites.
-Strict production lint passes across 115 Ansible files and all 103 Python tests
-pass with the pinned dependencies. Live verification of this batch is still pending.
-
-Patch **1.0.4** adds an explicit diagnostic-output survey to the Windows
-regression template after its first live run exposed failing mocked tests.
-Output remains protected by default; a targeted diagnostic rerun can expose
-the real test error and temporary paths. Test failures remain unresolved until
-the corrected suites and subsequent live validation pass.
-
-Patch **1.0.5** corrects PowerShell mock isolation and module-autoload ordering
-in the two failing test scripts. It also allows the preservation workflow to
-include the optional fifth Windows AD clone through an explicit opt-in, requires
-ownership markers, and binds verification to a freshly captured target list.
-Four new safety regressions cover invalid counts, changed/duplicate target
-lists, missing baseline binding and unrelated domains. Live reruns are pending.
+A successful review still requires resolved findings or documented accepted
+deviations, explicit functionality confirmation, and the final complete test
+within the declared environment. The version alone does not establish review
+acceptance. The dated completion report will identify the exact functional
+revision and evidence after those requirements pass.
 
 The managed-node proof reporter uses the same live PowerShell query from a
 **Windows Demo Proof** desktop shortcut and the **Show Managed Windows Demo
@@ -133,8 +111,8 @@ It also passed 108 admin-only description PATCH checks, 48 exact resource-list
 checks and 24 gateway/controller team-membership checks. All three retired
 EU-only accounts are absent from both services. The detailed guide contains the
 complete AD-group → AAP-team → resource-set → permission table and exact object
-role names. The presenter matrices use the actual demo usernames and four short
-country tables with full permission labels, as requested by the operator.
+role names. The presenter matrices use private-prefix username patterns and four short
+country tables with full permission labels.
 The complete fresh combined Windows/AD infrastructure workflow has not been
 run over this existing deployment.
 The test guest has the current Server cumulative update, build 26100.33650,
