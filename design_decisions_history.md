@@ -1,5 +1,31 @@
 # Design decisions history
 
+## Scope controller defaults and preserve the required workflow survey answer
+
+Implementation commit: `386026c` (version 1.0.7).
+
+A real syntax check reproduced an Ansible deprecation warning for the controller
+collection's role plugin even though the project does not invoke that module.
+The collection-wide module-defaults group causes it to be loaded. Scope defaults
+to the modules actually used, including the regional task-file modules. Short
+YAML aliases retain the same connection settings without duplicating secrets or
+loading unused deprecated plugins. Keep warnings enabled.
+
+The controller's workflow launch inspection also rejected the Chocolatey
+synchronization node because its required chocolatey_no_log survey answer was
+absent. The existing workflow configurator now explicitly preserves protected
+output with the string true, retains the node's other inputs and convergence
+setting, and verifies the answer from the resulting graph. No diagnostic-output
+override or relaxation of survey requirements is introduced.
+
+Validation: all four affected configurators passed syntax checking without the
+Ansible deprecation warning. Strict production lint passed 116 processed files
+with no failures or warnings, and all 107 existing Python tests passed in 26.568
+seconds. The separate vendor Python crypt warning remains visible and unresolved
+for acceptance. The updated end-to-end configurator passed against the existing
+controller with zero changes and verified all required edges and inputs. Full
+Windows deployment and final review acceptance remain outstanding.
+
 ## Keep deployment identities out of the public presenter guides
 
 Implementation commit: `7c76036` (version 1.0.6).
