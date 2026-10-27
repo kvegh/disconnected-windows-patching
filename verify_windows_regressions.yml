@@ -46,7 +46,7 @@
               - "{{ windows_regression_workspace.path }}\\tests\\{{ item }}"
           loop: "{{ windows_regression_scripts }}"
           changed_when: false
-          no_log: true
+          no_log: "{{ not (windows_regression_diagnostics | default(false) | bool) }}"
 
         - name: Run the proof rules with the same Ansible result container as production
           # Native Windows mocks: [rationale](tests/README.md#powershell-tests).
@@ -57,7 +57,7 @@
               ReporterPath: "{{ windows_regression_workspace.path }}\\assets\\show-windows-demo-proof.ps1"
           register: windows_regression_proof
           changed_when: false
-          no_log: true
+          no_log: "{{ not (windows_regression_diagnostics | default(false) | bool) }}"
 
         - name: Require every proof-rule assertion to complete
           ansible.builtin.assert:

@@ -45,6 +45,12 @@ Ansible orchestration for the six Windows PowerShell regression suites.
 Strict production lint passes across 115 Ansible files and all 103 Python tests
 pass with the pinned dependencies. Live verification of this batch is still pending.
 
+Patch **1.0.4** adds an explicit diagnostic-output survey to the Windows
+regression template after its first live run exposed failing mocked tests.
+Output remains protected by default; a targeted diagnostic rerun can expose
+the real test error and temporary paths. Test failures remain unresolved until
+the corrected suites and subsequent live validation pass.
+
 The managed-node proof reporter uses the same live PowerShell query from a
 **Windows Demo Proof** desktop shortcut and the **Show Managed Windows Demo
 Proof** AAP template. It reads current internal WSUS policy and reachability,

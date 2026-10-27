@@ -104,6 +104,11 @@ result container. It checks every exit/result and removes the staged sources in
 an `always` block. It uses the normal Windows inventory, Machine credential and
 supported EE; no packages, execution-policy changes or additional Python helper
 are required. Check mode is refused because it cannot establish executed tests.
+Output is protected by default. For a failed diagnostic rerun, select `true` in
+the template's diagnostic-output survey. API launches must send the string
+`"true"` for `windows_regression_diagnostics`; this is a multiple-choice survey,
+not a JSON boolean field. The override exposes mock errors and temporary paths
+to job readers and does not expose deployment credentials.
 
 ## JavaScript walkthrough tests
 

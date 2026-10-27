@@ -36,7 +36,8 @@
         credentials: "{{ wsus_controller_credentials | map('string') | list }}"
         playbook: "{{ item.playbook }}"
         job_type: run
-        survey_enabled: false
+        survey_enabled: "{{ item.survey_spec is defined }}"
+        survey_spec: "{{ item.survey_spec | default(omit) }}"
         ask_variables_on_launch: false
         ask_limit_on_launch: false
         ask_job_type_on_launch: false
@@ -62,6 +63,17 @@
           description: >-
             Run all six mocked PowerShell regression suites on both managed Windows servers,
             check their results and remove the temporary sources. Does not prove live service integration.
+          survey_spec:
+            name: PowerShell regression diagnostics
+            description: Test output is protected by default.
+            spec:
+              - question_name: Show diagnostic test output
+                question_description: Exposes mock test errors and temporary paths to job readers.
+                variable: windows_regression_diagnostics
+                type: multiplechoice
+                choices: "false\ntrue"
+                default: 'false'
+                required: false
       register: windows_demo_proof_templates
       no_log: true
 
