@@ -1,5 +1,48 @@
 # Design decisions history
 
+## Align the automation with the deployed AAP runtime and document supporting code
+
+Implementation commit: `09f570f` (version 1.0.3).
+
+Review found three deprecated community IIS modules and a Chocolatey dependency
+that requires a newer core than the deployed AAP-supported EE. Replace the IIS
+modules with microsoft.iis 1.3.0, preserving the exact management binding through
+the replacement module's binding schema. Pin Chocolatey 1.5.3 for the actual
+ansible-core 2.16.19 baseline. The owner authorized the required collection
+releases; publish and verify their unchanged artifacts in private automation hub
+before consuming them in the isolated review environment.
+
+Use microsoft.ad 1.12.1 for native forest creation and its reboot instead of the
+custom Install-ADDSForest/shutdown block. Retain explicit Server 2025 functional
+levels and the existing wrong-host/domain guards. The protected lab inputs use a
+bare builtin Administrator account with matching bootstrap/future domain-admin
+passwords. That supports the native action's reboot transition; fresh live
+promotion still must verify it before acceptance. The owned identity batch and
+readiness checks retain separately documented reasons and review obligations.
+
+Wrap long YAML values without changing their parsed values; format embedded
+diagnostics for readability. Host CA trust and Windows Update service changes
+use handlers flushed before dependent checks. Keep a narrow documented
+no-handler exception for the immediate Chocolatey connection reset. Explicit
+empty mappings make argumentless reboot calls unambiguous to parsers.
+
+Add a supporting-code inventory and rationale links in all remaining Python and
+PowerShell assets and their Ansible execution points, plus a project TLDR.
+Remove the unused legacy upstream remoting-script copy and its reference note;
+no playbook referenced them. The separate scoped manual image-preparation
+utility remains documented. Add native Ansible orchestration for all six mocked
+PowerShell suites on both managed servers with temporary-source cleanup, and
+include its Job Template in the existing reproducible template configurator.
+
+Validation: strict production ansible-lint passed 115 files with zero failures
+and warnings; all 103 Python tests passed in 25.152 seconds. The new Windows
+test playbook passed syntax checking. Gitleaks found no leaks in the working
+tree or 180 Git commits. An intermediate YAML formatting error was caught,
+corrected and followed by a successful complete Python rerun. No live Windows
+or AAP functionality result is claimed by this commit. Those tests, the full
+review restart, accepted-deviation decisions and the final scoped end-to-end
+test remain required before the dated completion report.
+
 ## Review the test implementations and document their language choices
 
 Implementation commit: `bb7abd7` (version 1.0.2).
