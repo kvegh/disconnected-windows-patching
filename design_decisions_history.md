@@ -1,5 +1,23 @@
 # Design decisions history
 
+## Keep deployment identities out of the public presenter guides
+
+Implementation commit: `7c76036` (version 1.0.6).
+
+The review found that the two AD presenter guides included current deployment
+account names. Replace those names with private-prefix patterns and direct
+presenters to the encrypted profile or authorized console for actual values.
+The workspace confidentiality requirement takes precedence over the earlier
+presenter preference for literal deployed names. Existing Git history is not
+rewritten, and no deployed identity or credential is changed.
+
+Update the README's review status to distinguish completed targeted checks from
+the outstanding full review and AAP deployment validation. A comparison against
+the twelve current demo identities found no remaining matches in tracked
+plaintext, and whitespace checks passed. Executable content is unchanged from
+the tested 1.0.5 revision; this documentation change does not establish final
+acceptance or justify repeating unchanged offline suites.
+
 ## Isolate the Windows mocks and bind preservation checks to the approved targets
 
 Implementation commit: `9a76208` (version 1.0.5).
