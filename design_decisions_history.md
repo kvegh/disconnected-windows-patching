@@ -1,5 +1,20 @@
 # Design decisions history
 
+## Use explicit builtin Windows privilege escalation and file retrieval
+
+Implementation commit: `4fdfd7f` (version 1.0.1).
+
+The first review patch replaces seven short runas privilege-escalation
+references with ansible.builtin.runas so strict schema checks resolve the
+explicit plugin. Nexus first-start password retrieval uses the Windows-capable
+ansible.builtin.slurp module rather than the collection-qualified alias.
+The operations, protected inputs, and logging defaults remain the same.
+
+Both builtin interfaces resolve in ansible-core 2.16.19, matching the actual AAP
+execution environment. All 103 existing Python tests pass after the changes.
+These checks do not establish live AAP functionality; targeted job validation
+and the final complete review/end-to-end cycle remain pending.
+
 ## Continue the review directly on main from version 1.0.0
 
 Implementation commit: `6aa81e6`.
