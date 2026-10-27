@@ -1,5 +1,20 @@
 # Design decisions history
 
+## Continue the review directly on main from version 1.0.0
+
+Implementation commit: `6aa81e6`.
+
+The owner explicitly requested working directly on main rather than a review
+branch and starting at version 1.0.0. The initial review-branch metadata commits
+were fast-forwarded into main, VERSION now records 1.0.0, and subsequent cleanup
+implementations increment the patch version. This owner instruction supersedes
+the earlier branching/prerelease choice for this project.
+
+The version marks the review baseline, not completed acceptance. A dated review
+report still requires resolved or accepted findings, functionality confirmation,
+and the complete scoped AAP end-to-end test. Pending source edits were preserved
+and remain separate from the version metadata commit.
+
 ## Start the first tracked major review release
 
 Implementation commit: `11c3a25`.
