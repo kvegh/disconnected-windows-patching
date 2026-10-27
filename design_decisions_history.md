@@ -1,5 +1,22 @@
 # Design decisions history
 
+## Start the first tracked major review release
+
+Implementation commit: `11c3a25`.
+
+The owner requested a new major version representing the code review. The
+repository had no existing release tags or version file, so the first tracked
+major release line is 1.0.0. VERSION records 1.0.0-rc.1 while review and
+validation are in progress. A stable release requires resolved findings or
+documented accepted deviations, functionality confirmation, a successful final
+AAP end-to-end test in the agreed scope, and the dated review report.
+
+The review proceeds on a dedicated branch and covers the current codebase and
+its declared environment rather than adding every possible platform or scenario.
+The owner authorized recreation of Windows demo VMs only; unrelated VMs and
+base images must be preserved. This version marker introduces no runtime change
+and does not claim completed review or testing.
+
 ## Query live Windows proof from desktops and AAP
 
 Implementation: `291ffd2`; retained-history and patch-comparison fix: `5694fe0`.
