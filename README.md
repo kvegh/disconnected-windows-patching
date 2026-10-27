@@ -5,18 +5,18 @@ in a simulated disconnected environment.
 
 ## Review release
 
-The first tracked major release line is **1.0.0**, representing the code review
-and resulting cleanup under the
-[agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review/tree/docs/define-review-requirements).
-`VERSION` currently records **1.0.0-rc.1**: review and validation are in progress.
-The stable `1.0.0` release and dated review report require the completed review,
-documented accepted deviations, functionality confirmation, and a successful
-final AAP end-to-end test within the declared scope and available environment.
-No successful review or new runtime validation is claimed by this version marker.
+The first tracked major version is **1.0.0**, representing the code-review and
+cleanup baseline under the
+[agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
+Work continues directly on `main`, as requested by the owner, with patch-version
+increments for subsequent cleanup changes. `VERSION` identifies this repository
+independently of other umbrella projects.
 
-Review changes are developed on `review/major-1`. The version identifies this
-repository independently of other umbrella projects. Release tags are immutable;
-the stable tag is created only after its acceptance evidence is recorded.
+Review and validation are in progress. The dated completion report requires
+resolved findings or documented accepted deviations, functionality confirmation,
+and a successful final AAP end-to-end test within the declared scope and
+available environment. The version marker alone does not claim review acceptance
+or new runtime verification.
 
 The managed-node proof reporter uses the same live PowerShell query from a
 **Windows Demo Proof** desktop shortcut and the **Show Managed Windows Demo
