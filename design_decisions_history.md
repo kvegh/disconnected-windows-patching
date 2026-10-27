@@ -1,5 +1,32 @@
 # Design decisions history
 
+## Review the test implementations and document their language choices
+
+Implementation commit: `bb7abd7` (version 1.0.2).
+
+The owner asked whether the non-Ansible test directory had been checked. Review
+covered all thirteen Python and six PowerShell test files, plus the three
+JavaScript walkthrough test files. Retain these languages where they exercise
+the real Python assets, Windows APIs, Ansible parsers/control flow or JavaScript
+models without translating the behavior into another implementation. The test
+guide records the rationale, commands, scope and limitations; every test file
+links to its applicable rationale. Temporary mock action plugins remain isolated
+test scaffolding rather than shipped runtime collections.
+
+Two Python subprocess harnesses previously disabled Ansible deprecation warnings.
+Enable them and reject any Ansible deprecation warning in captured output,
+including the activation inventory preflight. The Server update-policy test
+previously allowed an empty operation list to pass without an assertion; require
+both the installation and final search. A negative check confirmed that removing
+the update tasks now fails the regression.
+
+Validation: all 103 Python tests passed in 21.264 seconds with ansible-core
+2.16.19, and all fourteen JavaScript tests passed, with no skips. The existing
+core dependency's Python crypt deprecation warning remains visible for separate
+assessment. This patch did not rerun the PowerShell suites on Windows or live AAP
+functionality. Those checks and the complete review/end-to-end cycle remain
+pending; the offline results do not establish final acceptance.
+
 ## Use explicit builtin Windows privilege escalation and file retrieval
 
 Implementation commit: `4fdfd7f` (version 1.0.1).
