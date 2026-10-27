@@ -137,7 +137,7 @@
           SnapshotPath: "{{ wsus_import_root }}\\{{ wsus_snapshot_reference.snapshot }}"
           ContentPath: "{{ wsus_import_preparation.result.ContentPath }}"
       become: true
-      become_method: runas
+      become_method: ansible.builtin.runas
       become_user: SYSTEM
       async: "{{ wsus_transfer_timeout | int }}"
       poll: 0

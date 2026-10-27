@@ -5,7 +5,7 @@
   ansible.builtin.async_status:
     jid: "{{ wsus_operation.ansible_job_id }}"
   become: true
-  become_method: runas
+  become_method: ansible.builtin.runas
   become_user: SYSTEM
   register: wsus_operation_status
   until: >-
@@ -20,6 +20,6 @@
     jid: "{{ wsus_operation.ansible_job_id }}"
     mode: cleanup
   become: true
-  become_method: runas
+  become_method: ansible.builtin.runas
   become_user: SYSTEM
   no_log: "{{ wsus_no_log | bool }}"

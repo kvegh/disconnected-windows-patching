@@ -84,7 +84,7 @@
               DownloadTimeout: "{{ wsus_download_timeout | int }}"
               GroupName: "{{ wsus_download_group }}"
           become: true
-          become_method: runas
+          become_method: ansible.builtin.runas
           become_user: SYSTEM
           async: "{{ (wsus_download_timeout | int) + 600 }}"
           poll: 0

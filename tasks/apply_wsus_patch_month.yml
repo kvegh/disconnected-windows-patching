@@ -16,7 +16,7 @@
       Classifications: "{{ wsus_classifications }}"
       PrerequisiteMonths: "{{ wsus_patch_prerequisite_months }}"
   become: true
-  become_method: runas
+  become_method: ansible.builtin.runas
   become_user: SYSTEM
   register: wsus_patch_month_policy
   no_log: "{{ wsus_no_log | bool }}"

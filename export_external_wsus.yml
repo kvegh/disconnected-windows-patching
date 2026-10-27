@@ -118,7 +118,7 @@
           ExportRoot: "{{ wsus_export_root }}"
           StatePath: "{{ wsus_state_root }}"
       become: true
-      become_method: runas
+      become_method: ansible.builtin.runas
       become_user: SYSTEM
       async: "{{ wsus_transfer_timeout | int }}"
       poll: 0

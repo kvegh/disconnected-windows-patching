@@ -18,6 +18,13 @@ and a successful final AAP end-to-end test within the declared scope and
 available environment. The version marker alone does not claim review acceptance
 or new runtime verification.
 
+The first cleanup patch, **1.0.1**, uses the explicit
+`ansible.builtin.runas` privilege-escalation plugin and the Windows-capable
+`ansible.builtin.slurp` module for Nexus first-start password retrieval. Both
+resolve in the AAP-matching ansible-core 2.16.19 environment. The existing 103
+Python tests pass after these changes; AAP functionality verification and the
+completed review remain pending.
+
 The managed-node proof reporter uses the same live PowerShell query from a
 **Windows Demo Proof** desktop shortcut and the **Show Managed Windows Demo
 Proof** AAP template. It reads current internal WSUS policy and reachability,
