@@ -1,5 +1,35 @@
 # Design decisions history
 
+## Isolate the Windows mocks and bind preservation checks to the approved targets
+
+Implementation commit: `9a76208` (version 1.0.5).
+
+Diagnostic AAP job 2621 exposed source-policy fixture failure across an external
+script boundary and a native Get-FileHash call against fictional content paths.
+Run the real inspector source as a script block within the fixture's script
+scope, matching the other mocked suites. Load Microsoft.PowerShell.Utility
+before defining the hash mock so later module autoload does not replace it.
+These focused fixes require a fresh Windows execution; source inspection alone
+does not establish they pass.
+
+The combined deployed workflow has 29 stages: four core Windows clones and an
+eight-stage optional AD branch using a fifth Windows clone. Supporting fresh AD
+promotion testing requires an explicit five-Windows preservation scope. Keep the
+default at four, require windows_demo_include_ad for five, and reject larger or
+duplicate lists. Capture the Windows ownership marker and exact target list in
+the protected baseline; verify that same list and marker before accepting
+removed domains. Older unbound artifacts require a fresh capture. Unrelated
+domains, Linux AAP platforms and original base images remain protected by the
+existing definition/state and image-metadata comparisons and destroy guards.
+
+Four new tests use Ansible's real conditional engine against the production
+assertions to reject wrong counts, missing AD opt-in, duplicate/substituted
+targets, unmarked domains and old baselines. All 107 Python tests passed in
+25.449 seconds and strict production lint passed 116 processed files with no
+failures or warnings. No VM was destroyed or recreated for these checks.
+Live regression reruns, fresh baseline validation, the complete review restart
+and the scoped end-to-end test remain required before acceptance.
+
 ## Expose regression errors only through an explicit diagnostic rerun
 
 Implementation commit: `d203fc0` (version 1.0.4).
