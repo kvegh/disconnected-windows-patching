@@ -55,6 +55,10 @@ in `collections/requirements.yml`; do not copy collection source into this repo.
 Fresh replay may require the guarded Windows-only teardown because an upgraded
 endnode deliberately refuses an implicit application downgrade. Capture and
 verify preservation evidence around that reset.
+The default capture covers four owned Windows targets. Set
+`windows_demo_include_ad: true` with an exact five-target list to include AD.
+Fresh baseline artifacts bind that target list and record ownership markers;
+old unbound artifacts cannot be used for verification.
 
 ## Review and evidence
 

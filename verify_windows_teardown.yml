@@ -5,6 +5,8 @@
   gather_facts: false
   vars_files:
     - vars/main.yml
+  vars:
+    windows_demo_expected_count: "{{ 5 if windows_demo_include_ad | default(false) | bool else 4 }}"
   tasks:
     - name: Require a pre-teardown baseline and exact target list
       ansible.builtin.assert:
@@ -12,9 +14,18 @@
           - teardown_baseline is mapping
           - teardown_baseline.domains is mapping
           - teardown_baseline.images is mapping
-          - windows_demo_vm_names | length == 4
-          - windows_demo_vm_names | unique | length == 4
+          - teardown_baseline.target_vm_names is defined
+          - windows_demo_vm_names | length == windows_demo_expected_count | int
+          - windows_demo_vm_names | unique | length == windows_demo_expected_count | int
+          - windows_demo_vm_names | sort == teardown_baseline.target_vm_names | sort
           - windows_demo_vm_names | difference(teardown_baseline.domains.keys() | list) | length == 0
+      no_log: true
+
+    - name: Require the captured target ownership before accepting any removed domain
+      ansible.builtin.assert:
+        that: teardown_baseline.domains[item].marker == 'aap-disconnected-windows-clone'
+        fail_msg: A captured target is not a marked Windows demo clone.
+      loop: "{{ windows_demo_vm_names }}"
       no_log: true
 
     - name: Read remaining VM names
@@ -25,7 +36,7 @@
       changed_when: false
       check_mode: false
 
-    - name: Confirm exactly the four approved domains were removed
+    - name: Confirm exactly the captured approved domains were removed
       ansible.builtin.assert:
         that:
           - remaining_domains.stdout.split() | sort == (teardown_baseline.domains.keys() | list | difference(windows_demo_vm_names) | sort)
@@ -85,7 +96,7 @@
       loop: "{{ preserved_images.results }}"
       no_log: true
 
-    - name: Inspect the four clone disk paths
+    - name: Inspect only the captured Windows clone disk paths
       ansible.builtin.stat:
         path: "{{ vm_dir }}/win-{{ item }}-clone.disk.qcow2"
         follow: false
@@ -94,7 +105,7 @@
       loop: "{{ windows_demo_vm_names }}"
       register: clone_files
 
-    - name: Verify all four clone disks are absent
+    - name: Verify every captured Windows clone disk is absent
       ansible.builtin.assert:
         that: not item.stat.exists
         fail_msg: A Windows clone disk remains after teardown.
@@ -103,4 +114,6 @@
 
     - name: Report successful teardown verification
       ansible.builtin.debug:
-        msg: All four Windows clones are absent; other VM definitions and states and original base image metadata match the baseline.
+        msg: >-
+          All {{ windows_demo_expected_count }} approved Windows clones are absent;
+          other VM definitions and states and original base image metadata match the baseline.

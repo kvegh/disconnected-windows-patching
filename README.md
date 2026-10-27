@@ -51,6 +51,13 @@ Output remains protected by default; a targeted diagnostic rerun can expose
 the real test error and temporary paths. Test failures remain unresolved until
 the corrected suites and subsequent live validation pass.
 
+Patch **1.0.5** corrects PowerShell mock isolation and module-autoload ordering
+in the two failing test scripts. It also allows the preservation workflow to
+include the optional fifth Windows AD clone through an explicit opt-in, requires
+ownership markers, and binds verification to a freshly captured target list.
+Four new safety regressions cover invalid counts, changed/duplicate target
+lists, missing baseline binding and unrelated domains. Live reruns are pending.
+
 The managed-node proof reporter uses the same live PowerShell query from a
 **Windows Demo Proof** desktop shortcut and the **Show Managed Windows Demo
 Proof** AAP template. It reads current internal WSUS policy and reachability,
@@ -1001,10 +1008,16 @@ Capture the baseline before invoking the guarded destroy JT for each approved
 Windows domain. Pass the capture job's `teardown_baseline` artifact (pre-teardown
 domain XML/state and base-image file metadata) and the exact
 `windows_demo_vm_names` list as protected inputs to verification after destruction.
-It verifies only those four domains disappeared, their clone disks are absent,
+It verifies only the captured approved domains disappeared, their clone disks are absent,
 and other domain definitions/states and base-image size/inode/mtime are unchanged.
-This is a metadata comparison, not a full disk-content checksum.
-Keep environment-specific baseline values outside plaintext Git.
+The default scope is four core Windows clones. To include the optional AD
+Windows clone, set `windows_demo_include_ad: true` and supply exactly five owned
+Windows target names. Capture and verification both require the Windows clone
+ownership marker and bind the verification list to the captured target list.
+Capture a fresh baseline after this review upgrade; older artifacts lack that
+target binding. Linux AAP platforms and unrelated domains remain preserved.
+This is a metadata comparison, not a full disk-content checksum. Keep
+environment-specific baseline values outside plaintext Git.
 
 `inspect_windows_network.yml` provides a read-only diagnostic JT for the saved
 network result, scheduled-task status, current adapters, addresses and routes.

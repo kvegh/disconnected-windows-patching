@@ -5,6 +5,8 @@
   gather_facts: false
   vars_files:
     - vars/main.yml
+  vars:
+    windows_demo_expected_count: "{{ 5 if windows_demo_include_ad | default(false) | bool else 4 }}"
   tasks:
     - name: Read VM definitions, states and original image metadata
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -13,12 +15,14 @@
       vars:
         baseline_script: |
           # Language choice: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
-          import json, os, subprocess, sys
+          import json, os, subprocess, sys, xml.etree.ElementTree as ET
           def virsh(*args):
               return subprocess.check_output(['virsh', *args], text=True).strip()
-          domains = {name: {'xml': virsh('dumpxml', name, '--inactive'),
-                            'state': virsh('domstate', name)}
-                     for name in virsh('list', '--all', '--name').split()}
+          domains = {}
+          for name in virsh('list', '--all', '--name').split():
+              xml = virsh('dumpxml', name, '--inactive')
+              domains[name] = {'xml': xml, 'state': virsh('domstate', name),
+                               'marker': ET.fromstring(xml).findtext('description', '')}
           images = {}
           for path in json.loads(sys.argv[1]):
               stat = os.stat(path, follow_symlinks=False)
@@ -30,18 +34,27 @@
       check_mode: false
       no_log: true
 
-    - name: Require all four intended Windows domains in the baseline
+    - name: Require the exact declared Windows target count in the baseline
       ansible.builtin.assert:
         that:
-          - windows_demo_vm_names | default([]) | length == 4
-          - windows_demo_vm_names | unique | length == 4
+          - windows_demo_vm_names | default([]) | length == windows_demo_expected_count | int
+          - windows_demo_vm_names | unique | length == windows_demo_expected_count | int
           - windows_demo_vm_names | difference((windows_teardown_baseline.stdout | from_json).domains.keys() | list) | length == 0
+      no_log: true
+
+    - name: Require every selected target to carry the owned Windows clone marker
+      ansible.builtin.assert:
+        that: (windows_teardown_baseline.stdout | from_json).domains[item].marker == 'aap-disconnected-windows-clone'
+        fail_msg: A selected target is not a marked Windows demo clone.
+      loop: "{{ windows_demo_vm_names }}"
       no_log: true
 
     - name: Store the baseline as protected AAP job artifacts
       ansible.builtin.set_stats:
         data:
-          teardown_baseline: "{{ windows_teardown_baseline.stdout | from_json }}"
+          teardown_baseline: >-
+            {{ (windows_teardown_baseline.stdout | from_json)
+               | combine({'target_vm_names': windows_demo_vm_names}) }}
         per_host: false
       no_log: true
 

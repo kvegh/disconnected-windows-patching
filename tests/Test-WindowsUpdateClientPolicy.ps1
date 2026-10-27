@@ -2,7 +2,9 @@
 # Read-only regression tests using mocks; no WSUS or registry changes occur.
 # Run with Windows PowerShell 5.1 or PowerShell 7.
 $ErrorActionPreference = 'Stop'
-$scriptPath = Join-Path $PSScriptRoot '..\assets\inspect-windows-update-client.ps1'
+# Keep fixture script scope when invoking the production source, as win_powershell does.
+$inspector = [scriptblock]::Create((Get-Content -LiteralPath (
+    Join-Path $PSScriptRoot '..\assets\inspect-windows-update-client.ps1') -Raw))
 $script:Assertions = 0
 function Assert-True {
     param([bool]$Condition, [string]$Message)
@@ -12,7 +14,7 @@ function Assert-True {
 function Assert-Rejected {
     param([string]$Expected = 'https://updates.internal.example:8531')
     $rejected = $false
-    try { & $scriptPath -ExpectedWsusUrl $Expected } catch { $rejected = $true }
+    try { & $inspector -ExpectedWsusUrl $Expected } catch { $rejected = $true }
     Assert-True $rejected 'Unsafe or unsupported update-source configuration must be rejected.'
 }
 function Reset-TestState {
@@ -44,7 +46,7 @@ function Get-HotFix { return [pscustomobject]@{ HotFixID = 'KB1234567' } }
 function Test-Path { return $false }
 
 Reset-TestState
-& $scriptPath -ExpectedWsusUrl 'https://UPDATES.internal.example:8531/'
+& $inspector -ExpectedWsusUrl 'https://UPDATES.internal.example:8531/'
 Assert-True ($Ansible.Result.source_verified) 'The normalized protected source must be accepted.'
 Assert-True ($Ansible.Result.installed_build -eq '26100.1742') 'Report actual installed build, without assuming an April target.'
 Assert-True (-not $Ansible.Changed) 'Client inspection must remain read-only in check mode.'
@@ -69,7 +71,7 @@ $policy | Add-Member NoteProperty SetPolicyDrivenUpdateSourceForQualityUpdates 0
 Assert-Rejected
 Reset-TestState
 $policy | Add-Member NoteProperty SetPolicyDrivenUpdateSourceForQualityUpdates 1
-& $scriptPath -ExpectedWsusUrl 'https://updates.internal.example:8531'
+& $inspector -ExpectedWsusUrl 'https://updates.internal.example:8531'
 Assert-True ($Ansible.Result.source_verified) 'An explicit corporate source policy is permitted.'
 Reset-TestState
 $policy | Add-Member NoteProperty UpdateServiceUrlAlternate 'https://another.internal.example:8531'

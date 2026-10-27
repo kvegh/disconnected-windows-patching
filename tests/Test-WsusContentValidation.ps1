@@ -1,6 +1,8 @@
 # Mock Windows APIs in their native language; see [rationale](README.md#powershell-tests).
 param([string]$FunctionsSource, [string]$PrepareSource)
 $ErrorActionPreference = 'Stop'
+# Load the module before defining mocks; late autoload would replace Get-FileHash.
+Import-Module Microsoft.PowerShell.Utility
 if (-not $FunctionsSource) {
     $FunctionsSource = Get-Content (Join-Path $PSScriptRoot '..\assets\wsus-patch-month-functions.ps1') -Raw
 }
