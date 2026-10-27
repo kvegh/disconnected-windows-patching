@@ -3,6 +3,21 @@
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
 in a simulated disconnected environment.
 
+## Review release
+
+The first tracked major release line is **1.0.0**, representing the code review
+and resulting cleanup under the
+[agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review/tree/docs/define-review-requirements).
+`VERSION` currently records **1.0.0-rc.1**: review and validation are in progress.
+The stable `1.0.0` release and dated review report require the completed review,
+documented accepted deviations, functionality confirmation, and a successful
+final AAP end-to-end test within the declared scope and available environment.
+No successful review or new runtime validation is claimed by this version marker.
+
+Review changes are developed on `review/major-1`. The version identifies this
+repository independently of other umbrella projects. Release tags are immutable;
+the stable tag is created only after its acceptance evidence is recorded.
+
 The managed-node proof reporter uses the same live PowerShell query from a
 **Windows Demo Proof** desktop shortcut and the **Show Managed Windows Demo
 Proof** AAP template. It reads current internal WSUS policy and reachability,
