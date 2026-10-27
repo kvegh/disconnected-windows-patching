@@ -18,10 +18,15 @@
       windows: "{{ ad_control_windows_credentials | map('string') | list }}"
       target: "{{ ad_control_target_credentials | map('string') | list }}"
   module_defaults:
-    group/ansible.controller.controller:
+    # Scope defaults to used modules; the broad group loads a deprecated role plugin.
+    ansible.controller.project_update: &ad_controller_connection
       controller_host: "{{ ad_control_url | default(omit) }}"
       controller_oauthtoken: "{{ ad_control_token | default(omit) }}"
       validate_certs: true
+    ansible.controller.credential_type: *ad_controller_connection
+    ansible.controller.credential: *ad_controller_connection
+    ansible.controller.job_template: *ad_controller_connection
+    ansible.controller.workflow_job_template_node: *ad_controller_connection
   tasks:
     - name: Require exact existing Windows controller references
       ansible.builtin.assert:

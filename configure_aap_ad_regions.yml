@@ -22,12 +22,19 @@
       aap_validate_certs: true
       aap_ca_bundle: "{{ ad_api_ca.path | default(omit) }}"
       aap_request_timeout: "{{ ad_aap_request_timeout | default(60) }}"
-    group/ansible.controller.controller:
+    # Include task-file modules while avoiding the broad group's deprecated role plugin.
+    ansible.controller.project: &regional_controller_connection
       controller_host: "{{ ad_target_api_url }}"
       controller_username: admin
       controller_password: "{{ ad_target_admin_password }}"
       validate_certs: true
       request_timeout: "{{ ad_aap_request_timeout | default(60) }}"
+    ansible.controller.project_update: *regional_controller_connection
+    ansible.controller.organization: *regional_controller_connection
+    ansible.controller.inventory: *regional_controller_connection
+    ansible.controller.host: *regional_controller_connection
+    ansible.controller.credential: *regional_controller_connection
+    ansible.controller.job_template: *regional_controller_connection
   tasks:
     - name: Check the selected target credential before any platform changes
       ansible.builtin.include_tasks: tasks/require_active_directory_target.yml

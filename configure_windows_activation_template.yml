@@ -9,10 +9,13 @@
     windows_activation_basics_identifier: configure-windows-server-basics
     windows_activation_prepare_identifier: prepare-repository-servers
   module_defaults:
-    group/ansible.controller.controller:
+    # Scope defaults to used modules; the broad group loads a deprecated role plugin.
+    ansible.controller.project_update: &activation_controller_connection
       controller_host: "{{ wsus_controller_host | default(omit) }}"
       controller_oauthtoken: "{{ wsus_controller_token | default(omit) }}"
       validate_certs: true
+    ansible.controller.job_template: *activation_controller_connection
+    ansible.controller.workflow_job_template_node: *activation_controller_connection
   tasks:
     - name: Require exact protected controller references and Hypervisor SSH plus Vault credentials
       ansible.builtin.assert:

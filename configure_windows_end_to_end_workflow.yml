@@ -10,6 +10,7 @@
       - configure-windows-server-basics
       - activate-windows-evaluations
       - prepare-repository-servers
+      - synchronize-external-chocolatey-repo
       - replicate-and-import-wsus
       - replicate-and-import-chocolatey
       - deploy-baseline-applications
@@ -18,7 +19,7 @@
       - "{{ windows_e2e_target_2022 }}"
       - "{{ windows_e2e_target_2025 }}"
   module_defaults:
-    group/ansible.controller.controller:
+    ansible.controller.workflow_job_template_node:
       controller_host: "{{ wsus_controller_host | default(omit) }}"
       controller_oauthtoken: "{{ wsus_controller_token | default(omit) }}"
       validate_certs: true
@@ -57,6 +58,18 @@
         that: windows_e2e_existing_nodes | selectattr('identifier', 'equalto', item) | list | length == 1
         fail_msg: The selected workflow lacks an expected Windows stage.
       loop: "{{ windows_e2e_required_nodes }}"
+      no_log: true
+
+    - name: Supply the required protected-output answer for Chocolatey synchronization
+      ansible.controller.workflow_job_template_node:
+        workflow_job_template: "{{ windows_e2e_workflow | string }}"
+        identifier: synchronize-external-chocolatey-repo
+        unified_job_template: "{{ sync_node.unified_job_template | string }}"
+        extra_data: "{{ sync_node.extra_data | combine({'chocolatey_no_log': 'true'}) }}"
+        all_parents_must_converge: "{{ sync_node.all_parents_must_converge }}"
+        state: present
+      vars:
+        sync_node: "{{ windows_e2e_existing_nodes | selectattr('identifier', 'equalto', 'synchronize-external-chocolatey-repo') | first }}"
       no_log: true
 
     - name: Refuse to replace an unexpected import successor
@@ -172,6 +185,14 @@
       ansible.builtin.assert:
         that: (windows_e2e_final_nodes | selectattr('identifier', 'equalto', item) | first).all_parents_must_converge | bool
       loop: ["{{ windows_e2e_ceiling_identifier }}", deploy-baseline-applications]
+      no_log: true
+
+    - name: Verify the required synchronization survey answer remains protected
+      ansible.builtin.assert:
+        that: sync_node.extra_data.chocolatey_no_log == 'true'
+        quiet: true
+      vars:
+        sync_node: "{{ windows_e2e_final_nodes | selectattr('identifier', 'equalto', 'synchronize-external-chocolatey-repo') | first }}"
       no_log: true
 
     - name: Report verified end-to-end ordering

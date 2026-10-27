@@ -12,7 +12,7 @@ offline suites prove and what still needs live AAP validation.
 
 The first tracked major version is **1.0.0**, representing the review and cleanup
 baseline under the [agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
-The current cleanup version is **1.0.6**. Work proceeds directly on `main`, as
+The current cleanup version is **1.0.7**. Work proceeds directly on `main`, as
 requested by the owner; `VERSION` identifies this project independently of the
 other umbrella projects. Implementation changes and their reasons are recorded
 in [the decision history](design_decisions_history.md).
@@ -24,6 +24,12 @@ PowerShell regression suites. Guarded preservation supports four core Windows
 clones or an explicitly selected fifth AD clone, with ownership checks and a
 fresh target-bound baseline. Public presenter guides use identity placeholders;
 resolve the actual deployment prefix and credentials through protected sources.
+
+Workflow configuration explicitly supplies the required protected-output answer
+for Chocolatey synchronization. Controller connection defaults cover the modules
+actually used, including included task files, so configuring them does not load
+the collection's unused deprecated role plugin. Review validation keeps warnings
+enabled and checks the actual workflow launch configuration before recreation.
 
 Strict production lint passes 116 processed files, all 107 Python tests pass,
 and the six PowerShell suites pass on both managed Windows servers, including
