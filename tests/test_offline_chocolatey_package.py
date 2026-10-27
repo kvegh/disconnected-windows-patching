@@ -1,3 +1,4 @@
+# Exercise production Python and Ansible behavior offline; see [rationale](README.md#python-tests).
 """Verify offline package contents, reproducibility, and binary upload integrity."""
 import email
 import hashlib

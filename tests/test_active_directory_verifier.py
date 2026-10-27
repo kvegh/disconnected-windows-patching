@@ -1,3 +1,4 @@
+# Exercise production Python and Ansible behavior offline; see [rationale](README.md#python-tests).
 """Offline acceptance checks for the AD/AAP verifier, including failed-run cleanup."""
 
 import importlib.util

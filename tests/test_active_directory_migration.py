@@ -1,3 +1,4 @@
+# Exercise production Python and Ansible behavior offline; see [rationale](README.md#python-tests).
 """Exercise migration ownership and retirement guards without contacting AAP."""
 
 import copy

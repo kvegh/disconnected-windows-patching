@@ -1,3 +1,4 @@
+# Exercise production Python and Ansible behavior offline; see [rationale](README.md#python-tests).
 """Exercise real Ansible block/always behavior with all remote operations mocked.
 
 The production task structure/conditions/assertions are retained; only remote
@@ -165,11 +166,13 @@ class ActivationFlowTests(unittest.TestCase):
             env = dict(os.environ, ANSIBLE_LOCAL_TEMP=str(directory / 'tmp'),
                        ANSIBLE_COLLECTIONS_PATH=str(directory / 'collections'),
                        ANSIBLE_NOCOLOR='1', ANSIBLE_RETRY_FILES_ENABLED='false',
-                       ANSIBLE_DEPRECATION_WARNINGS='false', ACTIVATION_TEST_STATE=str(statefile))
+                       ANSIBLE_DEPRECATION_WARNINGS='true', ACTIVATION_TEST_STATE=str(statefile))
             process = subprocess.run(['ansible-playbook', '-i', str(inventory), str(playbook)],
                                      cwd=directory, env=env, capture_output=True, text=True, timeout=45)
             state = json.loads(statefile.read_text())
-            return process.returncode, state, process.stdout + process.stderr
+            output = process.stdout + process.stderr
+            self.assertNotIn('[DEPRECATION WARNING]', output, output)
+            return process.returncode, state, output
 
     def assert_restored(self, state):
         self.assertFalse(state['temporary'])
@@ -259,10 +262,13 @@ class ActivationInventoryTests(unittest.TestCase):
             playbook.write_text(yaml.safe_dump([play]))
             inventory_file = directory / 'inventory.yml'
             inventory_file.write_text(yaml.safe_dump(inventory))
-            env = dict(os.environ, ANSIBLE_LOCAL_TEMP=str(directory / 'tmp'), ANSIBLE_NOCOLOR='1')
+            env = dict(os.environ, ANSIBLE_LOCAL_TEMP=str(directory / 'tmp'),
+                       ANSIBLE_NOCOLOR='1', ANSIBLE_DEPRECATION_WARNINGS='true')
             result = subprocess.run(['ansible-playbook', '-i', str(inventory_file), str(playbook)],
                                     cwd=directory, env=env, capture_output=True, text=True, timeout=20)
-            return result.returncode, result.stdout + result.stderr
+            output = result.stdout + result.stderr
+            self.assertNotIn('[DEPRECATION WARNING]', output, output)
+            return result.returncode, output
 
     def test_host_alias_does_not_require_a_same_named_inventory_group(self):
         code, output = self.run_preflight({'all': {'hosts': {'hypervisor': {}}}})

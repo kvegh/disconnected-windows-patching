@@ -1,3 +1,4 @@
+# Exercise production Python and Ansible behavior offline; see [rationale](README.md#python-tests).
 import unittest
 from pathlib import Path
 

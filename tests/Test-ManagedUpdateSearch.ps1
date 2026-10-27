@@ -1,3 +1,4 @@
+# Mock Windows APIs in their native language; see [rationale](README.md#powershell-tests).
 # Reproduce a restricted WinRM context using mocks; no update or registry changes.
 [CmdletBinding()]
 param([string]$SearchSource)

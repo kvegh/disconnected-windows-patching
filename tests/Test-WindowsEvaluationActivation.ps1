@@ -1,3 +1,4 @@
+# Mock Windows APIs in their native language; see [rationale](README.md#powershell-tests).
 # Read-only regression tests: every Windows licensing/network command is mocked.
 param([string]$ActivationSource = '')
 $ErrorActionPreference = 'Stop'

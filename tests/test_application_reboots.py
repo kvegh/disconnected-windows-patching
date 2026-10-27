@@ -1,3 +1,4 @@
+# Exercise production Python and Ansible behavior offline; see [rationale](README.md#python-tests).
 """Exercise production Ansible reboot conditions with Windows operations mocked."""
 
 import json
@@ -72,11 +73,13 @@ class ApplicationRebootTests(unittest.TestCase):
             state.write_text(json.dumps({'cbs': cbs, 'wu': wu, 'clears': clears, 'reboots': 0}))
             env = dict(os.environ, ANSIBLE_LOCAL_TEMP=str(directory / 'tmp'),
                        ANSIBLE_COLLECTIONS_PATH=str(directory / 'collections'),
-                       ANSIBLE_NOCOLOR='1', ANSIBLE_DEPRECATION_WARNINGS='false',
+                       ANSIBLE_NOCOLOR='1', ANSIBLE_DEPRECATION_WARNINGS='true',
                        APPLICATION_REBOOT_TEST_STATE=str(state))
             completed = subprocess.run(['ansible-playbook', '-i', 'guest,', str(playbook)],
                                        cwd=directory, env=env, text=True, capture_output=True, timeout=30)
-            return completed.returncode, json.loads(state.read_text()), completed.stdout + completed.stderr
+            output = completed.stdout + completed.stderr
+            self.assertNotIn('[DEPRECATION WARNING]', output, output)
+            return completed.returncode, json.loads(state.read_text()), output
 
     def test_clean_host_does_not_reboot(self):
         code, state, output = self.run_flow()

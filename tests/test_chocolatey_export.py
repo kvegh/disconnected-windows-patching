@@ -1,3 +1,4 @@
+# Exercise production Python and Ansible behavior offline; see [rationale](README.md#python-tests).
 """Verify export integrity and reproducibility independently of Nexus availability."""
 import hashlib
 import importlib.util

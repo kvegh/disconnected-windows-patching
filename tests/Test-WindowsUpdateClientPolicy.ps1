@@ -1,3 +1,4 @@
+# Mock Windows APIs in their native language; see [rationale](README.md#powershell-tests).
 # Read-only regression tests using mocks; no WSUS or registry changes occur.
 # Run with Windows PowerShell 5.1 or PowerShell 7.
 $ErrorActionPreference = 'Stop'

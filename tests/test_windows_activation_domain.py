@@ -1,3 +1,4 @@
+# Exercise production Python and Ansible behavior offline; see [rationale](README.md#python-tests).
 """Read-only topology evidence must distinguish permanent NICs from live hotplug."""
 
 import importlib.util

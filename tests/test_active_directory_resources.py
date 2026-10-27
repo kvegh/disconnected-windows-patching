@@ -1,3 +1,4 @@
+# Exercise production Python and Ansible behavior offline; see [rationale](README.md#python-tests).
 """Verify scoped resource grants and inert fixed-input mock jobs locally."""
 
 from itertools import product

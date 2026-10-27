@@ -25,6 +25,13 @@ resolve in the AAP-matching ansible-core 2.16.19 environment. The existing 103
 Python tests pass after these changes; AAP functionality verification and the
 completed review remain pending.
 
+Patch **1.0.2** documents the non-Ansible test code and its coverage in the
+[test guide](tests/README.md). Mocked Ansible runs now expose and reject Ansible
+deprecation warnings. The Server update-policy regression requires both the
+installation and final-search tasks, preventing a pass when neither is checked.
+Offline checks complement the required live AAP functionality and end-to-end
+tests; their results do not establish review acceptance.
+
 The managed-node proof reporter uses the same live PowerShell query from a
 **Windows Demo Proof** desktop shortcut and the **Show Managed Windows Demo
 Proof** AAP template. It reads current internal WSUS policy and reachability,

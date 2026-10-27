@@ -1,3 +1,4 @@
+# Exercise production Python and Ansible behavior offline; see [rationale](README.md#python-tests).
 """Verify the effective access matrix without Windows or AAP dependencies."""
 
 import importlib.util

@@ -1,3 +1,4 @@
+// Test the JavaScript presentation model; see [rationale](../../tests/README.md#javascript-walkthrough-tests).
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { planFor, play } = require('../src/orchestration.js');

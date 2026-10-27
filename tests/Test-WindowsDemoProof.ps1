@@ -1,3 +1,4 @@
+# Mock Windows APIs in their native language; see [rationale](README.md#powershell-tests).
 param([Parameter(Mandatory)][string]$ReporterPath)
 $ErrorActionPreference = 'Stop'
 . $ReporterPath -FunctionsOnly

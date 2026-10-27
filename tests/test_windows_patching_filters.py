@@ -1,3 +1,4 @@
+# Exercise production Python and Ansible behavior offline; see [rationale](README.md#python-tests).
 """Check the actual Ansible filters used across Windows update/reboot cycles.
 
 Run with a Python interpreter containing the existing ansible-core and PyYAML:

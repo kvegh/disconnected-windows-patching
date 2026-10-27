@@ -1,3 +1,4 @@
+# Mock Windows APIs in their native language; see [rationale](README.md#powershell-tests).
 # Run with Windows PowerShell 5.1 or PowerShell 7; no WSUS service is required.
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\assets\wsus-patch-month-functions.ps1')
