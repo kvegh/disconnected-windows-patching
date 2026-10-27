@@ -1,5 +1,22 @@
 # Design decisions history
 
+## Expose regression errors only through an explicit diagnostic rerun
+
+Implementation commit: `d203fc0` (version 1.0.4).
+
+The first native AAP execution of the six mocked PowerShell suites failed in
+some standalone scripts on both managed servers. Its default protected output
+hid the actual error, so those failures remain findings rather than successful
+coverage. Add a narrowly scoped diagnostic survey to the regression template;
+it controls only the test command/proof result logging and defaults to false.
+Keep arbitrary launch-variable prompting disabled and leave credential-bearing
+staging operations protected. API callers must send the survey's string choice.
+
+Strict production lint passed both changed playbooks. This patch enables the
+necessary failed-test investigation; it does not claim the suites are fixed or
+that runtime and end-to-end acceptance have passed. The original run removed
+its temporary staged sources through the always block.
+
 ## Align the automation with the deployed AAP runtime and document supporting code
 
 Implementation commit: `09f570f` (version 1.0.3).
