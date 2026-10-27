@@ -62,11 +62,13 @@
       no_log: "{{ wsus_no_log | default(true) | bool }}"
 
     - name: Initialize WSUS database and content location
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
         error_action: stop
         parameters:
           ContentPath: "{{ wsus_content_path }}"
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#wsus-server-operations).
           param([string]$ContentPath)
           $Ansible.Changed = $false
           $setup = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup'
@@ -107,9 +109,11 @@
           }
 
     - name: Serve UUP update file types through inherited IIS MIME mappings
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
         error_action: stop
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#wsus-server-operations).
           [CmdletBinding(SupportsShouldProcess)]
           param()
           $Ansible.Changed = $false
@@ -140,9 +144,11 @@
       tags: wsus_uup_mime
 
     - name: Configure manual synchronization and local update storage
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
         error_action: stop
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#wsus-server-operations).
           $Ansible.Changed = $false
           Import-Module UpdateServices
           $server = Get-WsusServer
@@ -215,13 +221,10 @@
           name: NoAutoUpdate
           data: 1
           type: dword
-      register: update_policy
+      notify: Restart the managed Windows Update service
 
-    - name: Restart Windows Update after policy changes
-      ansible.windows.win_service:
-        name: wuauserv
-        state: restarted
-      when: update_policy.changed
+    - name: Apply notified update policy before checking client readiness
+      ansible.builtin.meta: flush_handlers
 
     - name: Ensure Windows Update service is available for Ansible patch jobs
       ansible.windows.win_service:
@@ -234,3 +237,8 @@
         url: "{{ wsus_internal_url | regex_replace('/$', '') }}/ClientWebService/client.asmx"
         status_code: 200
       changed_when: false
+  handlers:
+    - name: Restart the managed Windows Update service
+      ansible.windows.win_service:
+        name: wuauserv
+        state: restarted

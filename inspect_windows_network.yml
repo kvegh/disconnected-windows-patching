@@ -28,12 +28,15 @@
       when: network_result_file.stat.exists
 
     - name: Inspect current adapters, addresses and routes
+      # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
           $Ansible.Changed = $false
           $Ansible.Result = @{
               Adapters = @(Get-NetAdapter | Select-Object Name, MacAddress, Status)
               Addresses = @(Get-NetIPAddress -AddressFamily IPv4 | Select-Object InterfaceAlias, IPAddress, PrefixLength, AddressState)
               Interfaces = @(Get-NetIPInterface -AddressFamily IPv4 | Select-Object InterfaceAlias, Dhcp, Forwarding)
-              Defaults = @(Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Select-Object InterfaceAlias, NextHop)
+              Defaults = @(Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
+                  Select-Object InterfaceAlias, NextHop)
           }

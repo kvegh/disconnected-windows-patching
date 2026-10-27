@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
 """Build a guarded, read-only plan for migrating this demo's AAP objects.
 
 Protected input is JSON on stdin. Only existing owned object IDs and desired

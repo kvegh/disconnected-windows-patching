@@ -72,6 +72,7 @@
   no_log: true
 
 - name: Validate the selected existing activation network
+  # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
   ansible.builtin.command:
     argv: [virsh, --connect, 'qemu:///system', net-info, "{{ windows_activation_connected_network }}"]
   delegate_to: "{{ windows_activation_hypervisor }}"
@@ -93,6 +94,7 @@
 - name: Perform the bounded activation exception with unconditional hypervisor cleanup
   block:
     - name: Arm a hypervisor deadline before exposing the temporary adapter
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
       ansible.builtin.command:
         argv:
           - systemd-run
@@ -116,6 +118,7 @@
       no_log: true
 
     - name: Attach only a live e1000e activation NIC while retaining every original adapter
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
       ansible.builtin.command:
         argv:
           - virsh
@@ -137,6 +140,7 @@
       no_log: true
 
     - name: Wait for temporary DHCP routing without altering permanent adapters
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
         error_action: stop
@@ -160,6 +164,7 @@
       no_log: true
 
     - name: Activate only the already-installed evaluation license when automatic activation has not completed
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
         error_action: stop
@@ -179,6 +184,7 @@
       no_log: true
 
     - name: Verify licensed status before removing temporary connectivity
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
         error_action: stop
@@ -204,6 +210,7 @@
 
   always:
     - name: Inspect actual live topology even if attach or Windows activation failed
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
       ansible.builtin.command:
         argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/inspect-activation-domain.py') }}", "{{ windows_activation_settings.vm_name }}"]
       delegate_to: "{{ windows_activation_hypervisor }}"
@@ -213,6 +220,7 @@
       no_log: true
 
     - name: Remove only this operation's temporary live NIC
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
       ansible.builtin.command:
         argv:
           - virsh
@@ -233,6 +241,7 @@
       no_log: true
 
     - name: Verify detachment completed and every original persistent and live NIC was preserved
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
       ansible.builtin.command:
         argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/inspect-activation-domain.py') }}", "{{ windows_activation_settings.vm_name }}"]
       delegate_to: "{{ windows_activation_hypervisor }}"
@@ -257,6 +266,7 @@
       no_log: true
 
     - name: Verify original Windows addresses DNS and routes even when licensing failed
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
         error_action: stop

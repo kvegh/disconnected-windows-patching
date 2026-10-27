@@ -1,5 +1,6 @@
 ---
 - name: Create owned OUs, users and nested regional access groups
+  # Platform/API reason: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
   ansible.windows.win_powershell:
     script: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
     sensitive_parameters:

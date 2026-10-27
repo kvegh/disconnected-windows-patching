@@ -21,6 +21,7 @@
           - KB5082417
   tasks:
     - name: Read installed build, hotfix identifiers and pending reboot indicators
+      # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
         error_action: stop
         depth: 5

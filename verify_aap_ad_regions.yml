@@ -11,6 +11,7 @@
       ansible.builtin.include_tasks: tasks/require_active_directory_target.yml
 
     - name: Check exact resource scopes and optionally exercise real login permissions
+      # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
       ansible.builtin.command:
         argv: [python3, "{{ playbook_dir }}/assets/verify-aap-ad-regions.py"]
         stdin: >-

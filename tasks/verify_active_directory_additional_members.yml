@@ -6,6 +6,7 @@
   no_log: true
 
 - name: Run the guarded additional-member test phase
+  # Platform/API reason: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
   ansible.windows.win_powershell:
     script: "{{ lookup('ansible.builtin.file', 'assets/verify-active-directory-additional-members.ps1') }}"
     sensitive_parameters:

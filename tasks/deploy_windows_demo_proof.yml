@@ -48,6 +48,7 @@
   no_log: true
 
 - name: Test the report's evidence rules on Windows without changing server state
+  # Platform/API reason: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
   ansible.windows.win_powershell:
     script: "{{ lookup('ansible.builtin.file', 'tests/Test-WindowsDemoProof.ps1') }}"
     parameters:
@@ -61,10 +62,12 @@
     quiet: true
 
 - name: Create the public desktop shortcut with a persistent PowerShell window
+  # Platform/API reason: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
   ansible.windows.win_powershell:
     parameters:
       Directory: "{{ windows_demo_proof_directory }}"
     script: |
+      # Language choice: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
       param([string]$Directory)
       $ErrorActionPreference = 'Stop'
       $desktop = [Environment]::GetFolderPath('CommonDesktopDirectory')
@@ -73,7 +76,8 @@
       $shell = New-Object -ComObject WScript.Shell
       $shortcut = $shell.CreateShortcut($path)
       $target = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-      $arguments = '-NoLogo -NoProfile -NoExit -File "' + (Join-Path $Directory 'Show-WindowsDemoProof.ps1') + '" -ConfigPath "' + (Join-Path $Directory 'expected.json') + '"'
+      $arguments = '-NoLogo -NoProfile -NoExit -File "' + (Join-Path $Directory 'Show-WindowsDemoProof.ps1') +
+          '" -ConfigPath "' + (Join-Path $Directory 'expected.json') + '"'
       $description = 'Live read-only Windows demo proof: internal WSUS, April patch level, applications and upgrade history.'
       $changed = -not (Test-Path -LiteralPath $path) -or $shortcut.TargetPath -ne $target -or
           $shortcut.Arguments -ne $arguments -or $shortcut.Description -ne $description -or $shortcut.WorkingDirectory -ne $Directory
@@ -87,10 +91,14 @@
           $shortcut.Save()
       }
       $Ansible.Changed = $changed
-      $Ansible.Result = @{ ShortcutPresent=(Test-Path -LiteralPath $path); UsesNoExit=$shortcut.Arguments.Contains('-NoExit'); ExecutionPolicy=[string](Get-ExecutionPolicy) }
+      $Ansible.Result = @{
+          ShortcutPresent=(Test-Path -LiteralPath $path);
+          UsesNoExit=$shortcut.Arguments.Contains('-NoExit'); ExecutionPolicy=[string](Get-ExecutionPolicy)
+      }
   register: windows_demo_shortcut
 
 - name: Verify the installed script through the normal PowerShell file entry point
+  # Platform/API reason: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
   ansible.windows.win_command:
     argv:
       - 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'

@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#hypervisor-inspection-and-recovery).
 """Read Linux memory, swap activity and KSM counters without changing the host."""
 
 import datetime

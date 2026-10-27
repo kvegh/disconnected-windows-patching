@@ -83,6 +83,7 @@
       no_log: "{{ wsus_no_log | bool }}"
 
     - name: Validate manifest, matching settings and disk budget before transfer
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
         error_action: stop
         depth: 5
@@ -130,6 +131,7 @@
       no_log: "{{ wsus_no_log | bool }}"
 
     - name: Import WSUS metadata after the verified transfer
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
         error_action: stop
         path: assets/import-wsus-metadata.ps1

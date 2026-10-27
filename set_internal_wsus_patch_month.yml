@@ -19,6 +19,7 @@
         fail_msg: Choose an available named 2026 patchset and supply exactly one external and one internal WSUS.
 
     - name: Preview baseline identities, dependency graph and internal payload readiness
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
         error_action: stop
         depth: 6
@@ -68,6 +69,7 @@
             state: directory
 
         - name: Explicitly select and download the monthly baseline and its prerequisites
+          # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
           ansible.windows.win_powershell:
             error_action: stop
             depth: 8

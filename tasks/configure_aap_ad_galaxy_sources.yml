@@ -28,7 +28,9 @@
 
 - name: Select only the three existing platform Hub sources
   ansible.builtin.set_fact:
-    ad_galaxy_sources: "{{ ad_existing_galaxy_credentials.json.results | selectattr('inputs.url', 'match', '^https://[^/]+/api/galaxy/content/(rh-certified|validated|community)/?$') | list }}"
+    ad_galaxy_sources: >-
+      {{ ad_existing_galaxy_credentials.json.results | selectattr('inputs.url', 'match',
+      '^https://[^/]+/api/galaxy/content/(rh-certified|validated|community)/?$') | list }}
   no_log: true
 
 - name: Require reviewed certified, validated and community PAH sources

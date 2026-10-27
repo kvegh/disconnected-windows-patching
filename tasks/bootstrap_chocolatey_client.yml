@@ -40,9 +40,10 @@
   when: not chocolatey_existing.stat.exists
 
 - name: Reboot if MSI installation requires it
-  ansible.windows.win_reboot:
+  ansible.windows.win_reboot: {}
   when: chocolatey_install.reboot_required | default(false)
 
-- name: Refresh connection after initial Chocolatey installation
+# Refresh before dependent tasks; see ../docs/supporting-code.md#immediate-connection-refresh.
+- name: Refresh connection after initial Chocolatey installation # noqa: no-handler
   ansible.builtin.meta: reset_connection
   when: chocolatey_install.changed | default(false)

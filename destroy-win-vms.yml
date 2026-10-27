@@ -24,10 +24,12 @@
       no_log: true
 
     - name: Inspect domain ownership and every disk reference before stopping
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [python3, -c, "{{ domain_inspection_script }}", "{{ vm_name }}", "{{ vm_disk_path }}"]
       vars:
         domain_inspection_script: |
+          # Language choice: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
           import json, subprocess, sys, xml.etree.ElementTree as ET
           name, disk = sys.argv[1:]
           def xml(domain):
@@ -82,6 +84,7 @@
         fail_msg: Expected a regular standalone clone disk; inspect this VM manually.
 
     - name: Inspect active domains
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [virsh, list, --name]
       register: active_domains
@@ -89,12 +92,14 @@
       check_mode: false
 
     - name: Force stop only the validated domain
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [virsh, destroy, "{{ vm_name }}"]
       when: vm_name in active_domains.stdout_lines
       changed_when: true
 
     - name: Verify standalone qcow2 clone after stopping
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [qemu-img, info, --output=json, "{{ vm_disk_path }}"]
       register: stopped_clone_info
@@ -109,6 +114,7 @@
       when: not ansible_check_mode
 
     - name: Undefine the validated domain and its standard UEFI NVRAM if present
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: "{{ ['virsh', 'undefine', vm_name] + (['--nvram'] if (domain_inspection.stdout | from_json).nvram else []) }}"
       changed_when: true

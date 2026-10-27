@@ -1,0 +1,76 @@
+---
+- name: Run isolated PowerShell regressions on the two managed Windows servers
+  hosts: windows_managed
+  gather_facts: false
+  vars:
+    windows_regression_scripts:
+      - Test-WsusPatchMonthSelection.ps1
+      - Test-WsusContentValidation.ps1
+      - Test-WindowsUpdateClientPolicy.ps1
+      - Test-ManagedUpdateSearch.ps1
+      - Test-WindowsEvaluationActivation.ps1
+  tasks:
+    - name: Require a normal run against the two demo endnodes
+      ansible.builtin.assert:
+        that:
+          - not ansible_check_mode
+          - ansible_play_hosts_all | length == 2
+        fail_msg: Run this verification normally against the two managed demo servers.
+        quiet: true
+
+    - name: Create an isolated temporary regression workspace
+      ansible.windows.win_tempfile:
+        state: directory
+        prefix: aap-windows-regressions-
+      register: windows_regression_workspace
+      no_log: true
+
+    - name: Execute the regressions and always remove their staged sources
+      block:
+        - name: Stage the asset and test sources without credentials or inventories
+          ansible.windows.win_copy:
+            src: "{{ item }}/"
+            dest: "{{ windows_regression_workspace.path }}\\{{ item }}\\"
+          loop: [assets, tests]
+          no_log: true
+
+        - name: Run each mocked regression in a separate Windows PowerShell process
+          # Native Windows mocks: [rationale](tests/README.md#powershell-tests).
+          ansible.windows.win_command:
+            argv:
+              - 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+              - -NoLogo
+              - -NoProfile
+              - -NonInteractive
+              - -File
+              - "{{ windows_regression_workspace.path }}\\tests\\{{ item }}"
+          loop: "{{ windows_regression_scripts }}"
+          changed_when: false
+          no_log: true
+
+        - name: Run the proof rules with the same Ansible result container as production
+          # Native Windows mocks: [rationale](tests/README.md#powershell-tests).
+          ansible.windows.win_powershell:
+            error_action: stop
+            script: "{{ lookup('ansible.builtin.file', 'tests/Test-WindowsDemoProof.ps1') }}"
+            parameters:
+              ReporterPath: "{{ windows_regression_workspace.path }}\\assets\\show-windows-demo-proof.ps1"
+          register: windows_regression_proof
+          changed_when: false
+          no_log: true
+
+        - name: Require every proof-rule assertion to complete
+          ansible.builtin.assert:
+            that: windows_regression_proof.result.CasesPassed == 11
+            fail_msg: The PowerShell proof rules did not complete all expected assertions.
+            quiet: true
+
+        - name: Confirm the six mocked suites passed on this Windows server
+          ansible.builtin.debug:
+            msg: All six PowerShell regression suites passed; live service integration still requires separate validation.
+      always:
+        - name: Remove this run's temporary regression sources
+          ansible.windows.win_file:
+            path: "{{ windows_regression_workspace.path }}"
+            state: absent
+          no_log: true

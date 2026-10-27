@@ -51,6 +51,7 @@
       no_log: true
 
     - name: List existing service-account containers before selecting the gateway
+      # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
       ansible.builtin.command:
         argv: [runuser, -u, "{{ ad_target_install_username }}", --, podman, ps, --format=json]
         chdir: /
@@ -68,7 +69,9 @@
 
     - name: Select the existing non-proxy gateway container
       ansible.builtin.set_fact:
-        ad_gateway_candidates: "{{ (ad_gateway_containers.stdout | from_json) | selectattr('Names', 'search', 'gateway') | rejectattr('Names', 'search', 'proxy') | list }}"
+        ad_gateway_candidates: >-
+          {{ (ad_gateway_containers.stdout | from_json) | selectattr('Names', 'search', 'gateway') | rejectattr('Names', 'search', 'proxy') |
+          list }}
       no_log: true
 
     - name: Require exactly one existing gateway runtime
@@ -82,6 +85,7 @@
       no_log: true
 
     - name: Inspect the existing gateway container mounts
+      # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
       ansible.builtin.command:
         argv: [runuser, -u, "{{ ad_target_install_username }}", --, podman, inspect, "{{ ad_gateway_container_name }}"]
         chdir: /
@@ -93,7 +97,9 @@
 
     - name: Locate the existing read-only CA trust mount
       ansible.builtin.set_fact:
-        ad_gateway_ca_mounts: "{{ (ad_gateway_container.stdout | from_json | first).Mounts | selectattr('Destination', 'equalto', '/etc/pki/ca-trust/extracted') | list }}"
+        ad_gateway_ca_mounts: >-
+          {{ (ad_gateway_container.stdout | from_json | first).Mounts | selectattr('Destination', 'equalto', '/etc/pki/ca-trust/extracted') |
+          list }}
       no_log: true
 
     - name: Require the expected bind-mounted certificate trust layout
@@ -112,14 +118,11 @@
         owner: root
         group: root
         mode: '0644'
-      register: ad_ca_anchor
+      notify: Refresh the Active Directory host trust
       no_log: true
 
-    - name: Refresh host trust after adding the anchor
-      ansible.builtin.command:
-        argv: [update-ca-trust, extract]
-      when: ad_ca_anchor.changed
-      changed_when: true
+    - name: Apply notified trust changes before gateway verification
+      ansible.builtin.meta: flush_handlers
 
     - name: Preserve existing gateway trust and add the dedicated public CA
       ansible.builtin.blockinfile:
@@ -131,6 +134,7 @@
       no_log: true
 
     - name: Verify the CA is readable inside the actual gateway container
+      # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
       ansible.builtin.command:
         chdir: /
         argv:
@@ -144,6 +148,7 @@
           - python3
           - -c
           - |
+            # Language choice: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
             import ssl,sys
             context=ssl.create_default_context()
             wanted=sys.argv[1]
@@ -157,6 +162,7 @@
       no_log: true
 
     - name: Verify named LDAPS with the gateway's normal certificate validation
+      # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
       ansible.builtin.command:
         chdir: /
         argv:
@@ -170,6 +176,7 @@
           - python3
           - -c
           - |
+            # Language choice: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
             import socket,ssl,sys
             name=sys.argv[1]
             with socket.create_connection((name,636),timeout=15) as tcp:
@@ -192,6 +199,13 @@
           ad_gateway_trust_ready: true
         aggregate: false
       when: ad_trust_verify_ldaps | default(false) | bool
+
+  handlers:
+    - name: Refresh the Active Directory host trust
+      # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
+      ansible.builtin.command:
+        argv: [update-ca-trust, extract]
+      changed_when: true
 
 - name: Remove the temporary SSH trust files
   hosts: localhost

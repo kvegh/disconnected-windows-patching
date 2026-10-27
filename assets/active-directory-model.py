@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
 """Separate actor countries, access scopes and country-owned resource sets."""
 
 REGIONS = (('DK', 'Denmark'), ('NO', 'Norway'), ('NZ', 'New Zealand'), ('HU', 'Hungary'))

@@ -5,6 +5,7 @@
     fail_msg: The saved or selected patch month is unsupported; no approval policy was changed.
 
 - name: Reconcile internal WSUS approvals, declines and automatic approval settings
+  # Platform/API reason: [rationale](../docs/supporting-code.md#wsus-server-operations).
   ansible.windows.win_powershell:
     error_action: stop
     depth: 6

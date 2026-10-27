@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#wsus-server-operations).
 # Pure selection helpers and read-only WSUS/file inspection shared by the jobs.
 function Get-WsusTitleMonth {
     param([string]$Title)

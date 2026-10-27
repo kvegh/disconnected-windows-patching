@@ -74,6 +74,7 @@
       no_log: "{{ windows_patch_no_log | bool }}"
 
     - name: Verify existing client source policies and record installed patch evidence
+      # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
         error_action: stop
         depth: 5
@@ -92,7 +93,9 @@
     - name: Require the verified WSUS plan to include the audited OS baseline KB
       ansible.builtin.assert:
         that:
-          - windows_patch_expected_baseline.kb | regex_replace('^KB', '') in (windows_patch_allowed_updates | map(attribute='kb') | flatten | map('regex_replace', '^KB', '') | list)
+          - >-
+            windows_patch_expected_baseline.kb | regex_replace('^KB', '') in
+            (windows_patch_allowed_updates | map(attribute='kb') | flatten | map('regex_replace', '^KB', '') | list)
         fail_msg: The WSUS selection does not contain the audited OS baseline. Verify the ceiling before patching clients.
       no_log: "{{ windows_patch_no_log | bool }}"
 

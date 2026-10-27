@@ -88,7 +88,7 @@
   no_log: true
 
 - name: Complete installer or Windows servicing reboot requirements
-  ansible.windows.win_reboot:
+  ansible.windows.win_reboot: {}
   when: >-
     (installed_applications.results | selectattr('rc', 'defined') | selectattr('rc', 'in', [1641, 3010]) | list | length > 0) or
     (installed_applications.results | selectattr('reboot_required', 'defined') | selectattr('reboot_required', 'equalto', true) | list | length > 0) or

@@ -7,10 +7,12 @@
     - vars/main.yml
   tasks:
     - name: Read VM definitions, states and original image metadata
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [python3, -c, "{{ baseline_script }}", "{{ windows_images.values() | list | to_json }}"]
       vars:
         baseline_script: |
+          # Language choice: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
           import json, os, subprocess, sys
           def virsh(*args):
               return subprocess.check_output(['virsh', *args], text=True).strip()

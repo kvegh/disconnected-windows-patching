@@ -10,6 +10,7 @@
       ansible.builtin.include_tasks: tasks/validate_windows_patch_ceiling.yml
 
     - name: Inspect applicable managed updates without accepting licenses
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
         error_action: stop
         depth: 6
@@ -39,6 +40,7 @@
     # Query WUA itself: a stopped trigger-start wuauserv can be healthy and the
     # search starts it when needed. Retry readiness rather than service state.
     - name: Search internal WSUS for remaining approved updates after all passes
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
         error_action: stop
         depth: 6
@@ -52,6 +54,7 @@
       when: not ansible_check_mode
 
     - name: Read final installed build and verify the source remains protected
+      # Platform/API reason: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
         error_action: stop
         depth: 5
@@ -122,7 +125,9 @@
           baseline_comparison: "{{ windows_patch_baseline_comparison }}"
           check_mode: "{{ ansible_check_mode }}"
           applicable_updates_before: "{{ windows_patch_scan_before.result.found_update_count }}"
-          applicable_updates_remaining: "{{ windows_patch_scan_before.result.found_update_count if ansible_check_mode else windows_patch_scan_after.result.found_update_count }}"
+          applicable_updates_remaining: >-
+            {{ windows_patch_scan_before.result.found_update_count if ansible_check_mode else windows_patch_scan_after.result.found_update_count
+            }}
           pending_license_updates: "{{ windows_patch_scan_before.result.pending_eula_count }}"
           hidden_updates: "{{ windows_patch_scan_before.result.hidden_update_count }}"
           completed_passes: "{{ windows_patch_passes | length }}"

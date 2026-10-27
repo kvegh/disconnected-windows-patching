@@ -14,6 +14,7 @@
       no_log: true
 
     - name: Read the test platform state
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [virsh, domstate, "{{ ad_test_vm_name }}"]
       register: ad_test_state
@@ -27,6 +28,7 @@
       no_log: true
 
     - name: Start the selected test platform
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [virsh, start, "{{ ad_test_vm_name }}"]
       when: ad_test_state.stdout | trim == 'shut off'

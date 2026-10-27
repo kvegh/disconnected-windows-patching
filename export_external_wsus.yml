@@ -29,7 +29,7 @@
       register: wsus_web_features
 
     - name: Reboot if IIS features require it
-      ansible.windows.win_reboot:
+      ansible.windows.win_reboot: {}
       when: wsus_web_features.reboot_required
 
     - name: Create publication directory
@@ -43,9 +43,11 @@
         state: directory
 
     - name: Discover registered update binary directory
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
         error_action: stop
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#wsus-server-operations).
           $Ansible.Changed = $false
           $root = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup').ContentDir.TrimEnd('\')
           if ((Split-Path $root -Leaf) -ne 'WsusContent') { $root = Join-Path $root 'WsusContent' }
@@ -72,24 +74,27 @@
         dest: "{{ wsus_export_root }}\\web.config"
 
     - name: Create dedicated static IIS application pool
-      community.windows.win_iis_webapppool:
+      microsoft.iis.web_app_pool:
         name: AAP WSUS Export
         state: started
         attributes:
           managedRuntimeVersion: ''
 
     - name: Bind the export site only to the management address
-      community.windows.win_iis_website:
+      microsoft.iis.website:
         name: AAP WSUS Export
         state: started
         physical_path: "{{ wsus_export_root }}"
         application_pool: AAP WSUS Export
-        ip: "{{ wsus_transfer_bind_address }}"
-        port: "{{ wsus_transfer_port | int }}"
+        bindings:
+          set:
+            - ip: "{{ wsus_transfer_bind_address }}"
+              port: "{{ wsus_transfer_port | int }}"
+              protocol: http
       no_log: "{{ wsus_no_log | bool }}"
 
     - name: Serve existing update files without duplicating them
-      community.windows.win_iis_virtualdirectory:
+      microsoft.iis.virtual_directory:
         name: content
         site: AAP WSUS Export
         physical_path: "{{ wsus_binary_directory.result }}"
@@ -111,6 +116,7 @@
       no_log: "{{ wsus_no_log | bool }}"
 
     - name: Export metadata and publish a verified manifest
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
         error_action: stop
         path: assets/export-external-wsus.ps1

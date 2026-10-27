@@ -3,6 +3,11 @@
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
 in a simulated disconnected environment.
 
+Start with the [TLDR](TLDR.md) for scope, execution and the demonstration sequence.
+The [supporting-code guide](docs/supporting-code.md) explains the retained Python,
+PowerShell and command usage; the [test guide](tests/README.md) states what the
+offline suites prove and what still needs live AAP validation.
+
 ## Review release
 
 The first tracked major version is **1.0.0**, representing the code-review and
@@ -31,6 +36,14 @@ deprecation warnings. The Server update-policy regression requires both the
 installation and final-search tasks, preventing a pass when neither is checked.
 Offline checks complement the required live AAP functionality and end-to-end
 tests; their results do not establish review acceptance.
+
+Cleanup patch **1.0.3** replaces deprecated IIS modules with `microsoft.iis`,
+uses `microsoft.ad.domain` for forest creation and its required reboot, and pins
+Chocolatey collection 1.5.3 to match the actual AAP core version. It also fixes
+strict lint findings, documents all retained supporting code and adds native
+Ansible orchestration for the six Windows PowerShell regression suites.
+Strict production lint passes across 115 Ansible files and all 103 Python tests
+pass with the pinned dependencies. Live verification of this batch is still pending.
 
 The managed-node proof reporter uses the same live PowerShell query from a
 **Windows Demo Proof** desktop shortcut and the **Show Managed Windows Demo
@@ -157,8 +170,9 @@ to replace an existing encrypted profile, and removes its temporary plaintext.
 Keep the profile and its issuing private key encrypted and reuse it on reruns.
 
 `deploy_active_directory.yml` installs AD DS/DNS, promotes the selected patched
-guest and creates the regional directory. Its Windows-native AD cmdlets run
-through `ansible.windows.win_powershell`, using the existing declared runtime.
+guest and creates the regional directory. Forest creation and its required
+reboot use `microsoft.ad.domain`; the owned identity reconciliation uses the
+documented Windows-native AD cmdlets through `ansible.windows.win_powershell`.
 The encrypted `vars/active_directory_vault.yml` supplies deployed identities.
 For an existing controller, `ad_identities_only: true` configures identities
 without reinstalling features, promoting the forest, changing DNS or resynchronizing
@@ -194,9 +208,11 @@ two minutes of the automation runtime before configuring identities. This
 prevents an inherited virtual hardware clock from becoming the domain's time
 authority. The playbook preserves the existing peer and correction limits.
 The live verification measured a four-second offset after synchronization.
-It schedules the restart inside the promotion command because local-account
-authentication can stop working as soon as the forest is created. After an
-interrupted earlier promotion, `ad_complete_promotion_reboot: true` completes a
+The native AD action manages promotion reboots before subsequent tasks select
+the domain administrator. The declared bootstrap and future domain-administrator
+passwords match; the review must verify the actual credential transition during
+fresh promotion. After an interrupted earlier promotion,
+`ad_complete_promotion_reboot: true` completes a
 controlled recovery restart on the verified domain controller before continuing.
 The management connection resets after selecting the administrator password,
 so subsequent role installation uses the current credential.

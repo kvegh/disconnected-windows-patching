@@ -9,7 +9,9 @@
 
 - name: Locate the exact synchronized Nexus asset
   ansible.builtin.uri:
-    url: "{{ nexus_external_url }}/service/rest/v1/search/assets?repository={{ chocolatey_external_feed_name | urlencode }}&name={{ synchronized_artifact.id | urlencode }}&version={{ synchronized_artifact.version | urlencode }}"
+    url: >-
+      {{ nexus_external_url }}/service/rest/v1/search/assets?repository={{ chocolatey_external_feed_name | urlencode }}&name={{
+      synchronized_artifact.id | urlencode }}&version={{ synchronized_artifact.version | urlencode }}
     url_username: "{{ nexus_external_admin_username }}"
     url_password: "{{ nexus_external_admin_password }}"
     force_basic_auth: true

@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
 # Task Scheduler supplies the SYSTEM session; no runas token or policy changes.
 $ErrorActionPreference = 'Stop'
 $Ansible = [pscustomobject]@{ Changed = $false; CheckMode = $false; Result = @{} }

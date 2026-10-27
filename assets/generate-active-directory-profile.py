@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
 """Create the initial private AD profile for the Ansible initialization playbook."""
 
 import base64

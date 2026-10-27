@@ -22,12 +22,14 @@
       ansible.builtin.include_tasks: tasks/connect_active_directory_guest.yml
 
     - name: Verify guest identity, current membership and expected management address
+      # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
       ansible.windows.win_powershell:
         parameters:
           Hostname: "{{ active_directory.hostname }}"
           Domain: "{{ active_directory.dns_domain }}"
           Address: "{{ active_directory.ipv4 }}"
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           param([string]$Hostname,[string]$Domain,[string]$Address)
           $cs = Get-CimInstance Win32_ComputerSystem
           if ($cs.Name -ne $Hostname) { throw 'Unexpected Windows hostname.' }
@@ -89,27 +91,16 @@
         - ad_features.reboot_required
 
     - name: Create the requested new forest without bypassing prerequisite checks
-      ansible.windows.win_powershell:
-        parameters:
-          Domain: "{{ active_directory.dns_domain }}"
-          Netbios: "{{ active_directory.netbios }}"
-          DsrmPassword: "{{ active_directory.dsrm_password }}"
-        script: |
-          param([string]$Domain,[string]$Netbios,[string]$DsrmPassword)
-          $cs = Get-CimInstance Win32_ComputerSystem
-          if ($cs.DomainRole -in @(4,5)) {
-              if ($cs.Domain -ne $Domain) { throw 'Unexpected existing forest.' }
-              $Ansible.Changed = $false
-              $Ansible.Result = @{ RebootRequired=$false }
-          } else {
-              Import-Module ADDSDeployment
-              $safe = ConvertTo-SecureString $DsrmPassword -AsPlainText -Force
-              Install-ADDSForest -DomainName $Domain -DomainNetbiosName $Netbios -DomainMode Win2025 -ForestMode Win2025 -InstallDns:$true -CreateDnsDelegation:$false -SafeModeAdministratorPassword $safe -NoRebootOnCompletion:$true -Force:$true -ErrorAction Stop
-              & shutdown.exe /r /t 30 /d p:2:4 /c 'Complete Active Directory promotion'
-              if ($LASTEXITCODE -ne 0) { throw 'Could not schedule the promotion restart.' }
-              $Ansible.Changed = $true
-              $Ansible.Result = @{ RebootRequired=$true }
-          }
+      microsoft.ad.domain:
+        dns_domain_name: "{{ active_directory.dns_domain }}"
+        domain_netbios_name: "{{ active_directory.netbios }}"
+        domain_mode: Win2025
+        forest_mode: Win2025
+        install_dns: true
+        create_dns_delegation: false
+        safe_mode_password: "{{ active_directory.dsrm_password }}"
+        reboot: true
+        reboot_timeout: 1200
       register: ad_promotion
       when: not (ad_identities_only | default(false) | bool)
       no_log: true
@@ -125,7 +116,6 @@
 
     - name: Wait for the promoted domain controller
       ansible.builtin.wait_for_connection:
-        delay: "{{ 45 if ad_promotion.result.RebootRequired | default(false) else 0 }}"
         timeout: 1200
 
     - name: Use AD-integrated DNS on the domain controller
@@ -136,6 +126,7 @@
       no_log: true
 
     - name: Wait for AD Web Services and SYSVOL readiness
+      # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
       ansible.windows.win_powershell:
         parameters:
           Domain: "{{ active_directory.dns_domain }}"
@@ -144,6 +135,7 @@
             username: "{{ active_directory.domain_admin_username }}"
             password: "{{ active_directory.domain_admin_password }}"
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           param([string]$Domain,[PSCredential]$DomainCredential)
           $Ansible.Changed = $false
           try {
@@ -162,6 +154,7 @@
       when: not (ad_identities_only | default(false) | bool)
 
     - name: Parse the directory and optional test scripts before any identity changes
+      # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
       ansible.windows.win_powershell:
         parameters:
           Sources: >-
@@ -169,6 +162,7 @@
                + ([lookup('ansible.builtin.file', 'assets/verify-active-directory-additional-members.ps1')]
                   if ad_verify_additional_members | default(false) | bool else []) }}
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           param([string[]]$Sources)
           foreach ($source in $Sources) {
               $tokens = $null

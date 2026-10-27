@@ -1,9 +1,11 @@
 ---
 - name: Read the saved successfully enforced internal ceiling
+  # Platform/API reason: [rationale](../docs/supporting-code.md#wsus-server-operations).
   ansible.windows.win_powershell:
     error_action: stop
     depth: 3
     script: |
+      # Language choice: [rationale](../docs/supporting-code.md#wsus-server-operations).
       [CmdletBinding(SupportsShouldProcess)]
       param([Parameter(Mandatory)][string]$StateRoot)
       $ErrorActionPreference = 'Stop'
@@ -33,6 +35,7 @@
   no_log: "{{ windows_patch_no_log | bool }}"
 
 - name: Revalidate approvals, declines, readiness and file lengths without changing WSUS
+  # Platform/API reason: [rationale](../docs/supporting-code.md#wsus-server-operations).
   ansible.windows.win_powershell:
     error_action: stop
     depth: 6

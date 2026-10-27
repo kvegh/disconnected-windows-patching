@@ -76,7 +76,9 @@
     nexus_service_name: SonatypeNexusRepository
     nexus_port: 8081
     nexus_api_url: "http://localhost:{{ nexus_port }}/service/rest"
-    nexus_repository_names: "{{ [chocolatey_external_feed_name] if inventory_hostname in groups['wsus_external'] else [chocolatey_baseline_feed_name, chocolatey_current_feed_name] }}"
+    nexus_repository_names: >-
+      {{ [chocolatey_external_feed_name] if inventory_hostname in groups['wsus_external'] else [chocolatey_baseline_feed_name,
+      chocolatey_current_feed_name] }}
   pre_tasks:
     - name: Require credentials and scoped repository access
       ansible.builtin.assert:
@@ -128,12 +130,14 @@
         creates: "{{ nexus_install_directory }}\\bin\\install-nexus-service.bat"
 
     - name: Validate modern Windows distribution and existing service
+      # Platform/API reason: [rationale](docs/supporting-code.md#artifact-creation-and-nexus-upload).
       ansible.windows.win_powershell:
         error_action: stop
         parameters:
           InstallDirectory: "{{ nexus_install_directory }}"
           ServiceName: "{{ nexus_service_name }}"
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#artifact-creation-and-nexus-upload).
           param([string]$InstallDirectory, [string]$ServiceName)
           $Ansible.Changed = $false
           if (-not (Test-Path "$InstallDirectory\bin\install-nexus-service.bat")) {
@@ -147,6 +151,7 @@
       register: nexus_service
 
     - name: Register Nexus service using vendor installer
+      # Platform/API reason: [rationale](docs/supporting-code.md#artifact-creation-and-nexus-upload).
       ansible.windows.win_command:
         argv:
           - cmd.exe
@@ -287,9 +292,11 @@
       no_log: true
 
     - name: Verify only the intended feed is enabled
+      # Platform/API reason: [rationale](docs/supporting-code.md#artifact-creation-and-nexus-upload).
       ansible.windows.win_powershell:
         error_action: stop
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#artifact-creation-and-nexus-upload).
           $Ansible.Changed = $false
           $root = [Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
           if (-not $root) { throw 'Chocolatey machine installation path is not defined.' }

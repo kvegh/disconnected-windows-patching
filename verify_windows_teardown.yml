@@ -18,6 +18,7 @@
       no_log: true
 
     - name: Read remaining VM names
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [virsh, list, --all, --name]
       register: remaining_domains
@@ -32,6 +33,7 @@
       no_log: true
 
     - name: Read preserved VM definitions
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [virsh, dumpxml, "{{ item }}", --inactive]
       loop: "{{ remaining_domains.stdout.split() }}"
@@ -48,6 +50,7 @@
       no_log: true
 
     - name: Read preserved VM states
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [virsh, domstate, "{{ item }}"]
       loop: "{{ remaining_domains.stdout.split() }}"

@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
 param(
     [Parameter(Mandatory)][string]$ProfileJson,
     [Parameter(Mandatory)][PSCredential]$DomainCredential,

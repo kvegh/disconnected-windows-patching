@@ -24,8 +24,10 @@
       ansible.builtin.include_tasks: tasks/connect_active_directory_guest.yml
 
     - name: Verify Windows Server 2025 and available system disk space
+      # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
           $os = Get-CimInstance Win32_OperatingSystem
           $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$($env:SystemDrive)'"
           if ($os.BuildNumber -ne '26100' -or $os.ProductType -eq 1) {

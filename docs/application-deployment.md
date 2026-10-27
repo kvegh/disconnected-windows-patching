@@ -193,8 +193,12 @@ ansible-playbook -i inventory.ini synchronize_external_chocolatey_repo.yml --syn
 python3 -m unittest discover -s tests -v
 ```
 
-The EE needs `pywinrm`, Python 3.8 or later, and ansible-core 2.18 or later for the
-pinned Chocolatey collection. Package/export helpers use the Python standard
+The deployed AAP-supported EE provides Python 3.12 and ansible-core 2.16.19 and
+needs `pywinrm`. The review pins Chocolatey collection 1.5.3, whose
+[runtime metadata](https://github.com/chocolatey/chocolatey-ansible/blob/1.5.3/chocolatey/meta/runtime.yml)
+requires ansible-core 2.15 or later. Collection 1.6.0 requires 2.18 and therefore
+does not match this AAP baseline. Consume the pinned release from private
+automation hub. Package/export helpers use the Python standard
 library. Ten local tests cover binary upload integrity, repeatable artifacts,
 offline hooks, checksum mismatch, modified-hook refusal and Windows path
 validation through Ansible's actual conditional parser. Run the suite with a

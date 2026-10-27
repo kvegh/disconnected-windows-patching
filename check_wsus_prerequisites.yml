@@ -42,11 +42,13 @@
         installed_features: "{{ wsus_feature_information.features | selectattr('installed') | map(attribute='name') | list }}"
 
     - name: Inspect WSUS, storage, services and outbound connectivity
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
         error_action: stop
         parameters:
           MinimumFreeGB: "{{ wsus_minimum_free_gb | default(8) | int }}"
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#wsus-server-operations).
           param([int]$MinimumFreeGB)
           $Ansible.Changed = $false
           Import-Module UpdateServices
@@ -100,11 +102,13 @@
         var: wsus_prerequisites.result
 
     - name: Validate pipeline scripts with the Windows PowerShell parser
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
         error_action: stop
         parameters:
           Source: "{{ lookup('ansible.builtin.file', item) }}"
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#wsus-server-operations).
           param([string]$Source)
           $Ansible.Changed = $false
           $tokens = $null

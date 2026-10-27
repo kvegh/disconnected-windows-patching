@@ -1,5 +1,5 @@
 ---
-- name: Configure the desktop reporter deployment and live-query Job Templates
+- name: Configure the Windows proof and regression Job Templates
   hosts: localhost
   connection: local
   gather_facts: false
@@ -23,7 +23,7 @@
         timeout: 600
       no_log: true
 
-    - name: Configure the two managed-server proof templates
+    - name: Configure the managed-server proof and regression templates
       ansible.controller.job_template:
         controller_host: "{{ wsus_controller_host }}"
         controller_oauthtoken: "{{ wsus_controller_token }}"
@@ -48,10 +48,20 @@
       loop:
         - name: Disconnected Windows Patching - Show Managed Windows Demo Proof
           playbook: report_managed_windows_demo.yml
-          description: Query both managed nodes live and display internal WSUS, April build/KBs, installed packages and retained baseline-to-upgrade history together at the end. No updates or packages are installed.
+          description: >-
+            Query both managed nodes live and display internal WSUS, April build/KBs,
+            installed packages and retained baseline-to-upgrade history together at the end.
+            No updates or packages are installed.
         - name: Disconnected Windows Patching - Install Managed Windows Demo Proof
           playbook: deploy_managed_windows_demo_report.yml
-          description: Install and validate the shared live-query PowerShell script and a public desktop shortcut using NoExit on both managed nodes. Does not patch or upgrade software.
+          description: >-
+            Install and validate the shared live-query PowerShell script and a public
+            desktop shortcut using NoExit on both managed nodes. Does not patch or upgrade software.
+        - name: Disconnected Windows Patching - Verify PowerShell Regressions
+          playbook: verify_windows_regressions.yml
+          description: >-
+            Run all six mocked PowerShell regression suites on both managed Windows servers,
+            check their results and remove the temporary sources. Does not prove live service integration.
       register: windows_demo_proof_templates
       no_log: true
 

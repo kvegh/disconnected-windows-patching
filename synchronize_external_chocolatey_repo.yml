@@ -40,7 +40,9 @@
           - item.version is version(baseline_versions[0], '>')
         fail_msg: Each application needs one older baseline and one newer current release.
       vars:
-        baseline_versions: "{{ chocolatey_packages | selectattr('id', 'equalto', item.id) | selectattr('track', 'equalto', 'baseline') | map(attribute='version') | list }}"
+        baseline_versions: >-
+          {{ chocolatey_packages | selectattr('id', 'equalto', item.id) | selectattr('track', 'equalto', 'baseline') | map(attribute='version') |
+          list }}
       loop: "{{ chocolatey_packages | selectattr('track', 'equalto', 'current') | list }}"
       loop_control:
         label: "{{ item.id }}"
@@ -86,6 +88,7 @@
       until: vendor_download is succeeded
 
     - name: Build deterministic self-contained packages
+      # Platform/API reason: [rationale](docs/supporting-code.md#artifact-creation-and-nexus-upload).
       ansible.builtin.command:
         argv:
           - "{{ ansible_playbook_python }}"
@@ -117,4 +120,6 @@
 
     - name: Report the synchronized package selection
       ansible.builtin.debug:
-        msg: "{{ chocolatey_packages | map(attribute='id') | unique | list }}: {{ chocolatey_packages | length }} pinned offline package versions verified in external Nexus."
+        msg: >-
+          {{ chocolatey_packages | map(attribute='id') | unique | list }}: {{ chocolatey_packages | length }} pinned offline package versions
+          verified in external Nexus.

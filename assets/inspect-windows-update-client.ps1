@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
 [CmdletBinding(SupportsShouldProcess)]
 param([Parameter(Mandatory)][string]$ExpectedWsusUrl)
 $ErrorActionPreference = 'Stop'

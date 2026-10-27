@@ -75,7 +75,9 @@
     url_password: "{{ nexus_admin_password }}"
     force_basic_auth: true
     content_type: application/json
-    body: "{{ {'userId': item.userId, 'firstName': item.firstName, 'lastName': item.lastName, 'emailAddress': item.emailAddress, 'roles': ['aap-chocolatey-read'], 'status': 'active'} | to_json }}"
+    body: >-
+      {{ {'userId': item.userId, 'firstName': item.firstName, 'lastName': item.lastName, 'emailAddress': item.emailAddress, 'roles':
+      ['aap-chocolatey-read'], 'status': 'active'} | to_json }}
     status_code: [200, 204]
   loop: "{{ nexus_users.json | selectattr('userId', 'equalto', chocolatey_source_username) | list }}"
   when: item.status != 'active' or item.roles | sort != ['aap-chocolatey-read']

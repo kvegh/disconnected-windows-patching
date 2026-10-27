@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Purpose and language choice: [rationale](../docs/supporting-code.md#artifact-creation-and-nexus-upload).
 """Create a deterministic selected-package export, never a Nexus database dump."""
 import argparse
 import hashlib

@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
 """Independently verify country-owned AAP resources and real LDAP permissions."""
 
 import base64

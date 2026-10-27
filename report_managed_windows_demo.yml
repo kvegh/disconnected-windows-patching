@@ -18,6 +18,7 @@
       ansible.builtin.include_tasks: tasks/prepare_windows_demo_proof.yml
 
     - name: Query this server's actual configuration, installed state and history
+      # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/show-windows-demo-proof.ps1') }}"
         depth: 12
@@ -47,7 +48,9 @@
     - name: Retain the actual queried reports as job artifacts
       ansible.builtin.set_stats:
         data:
-          windows_demo_proof: "{{ dict(groups['windows_managed'] | zip(groups['windows_managed'] | map('extract', hostvars, 'windows_demo_proof_result') | list)) }}"
+          windows_demo_proof: >-
+            {{ dict(groups['windows_managed'] |
+               zip(groups['windows_managed'] | map('extract', hostvars, 'windows_demo_proof_result') | list)) }}
         aggregate: false
       no_log: true
 

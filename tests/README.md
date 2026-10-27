@@ -96,6 +96,15 @@ powershell.exe -NoProfile -Command '$Ansible = @{ Changed = $false; Result = @{}
 Check each exit code and assertion result. These are mocked regressions; real
 Windows PowerShell and live service integration still need AAP validation.
 
+For AAP execution, `verify_windows_regressions.yml` stages this repository's
+`assets/` and `tests/` directories in a temporary workspace on each of the two
+managed servers, runs the five standalone scripts in separate Windows PowerShell
+processes, and runs the proof rules through `win_powershell` with its real Ansible
+result container. It checks every exit/result and removes the staged sources in
+an `always` block. It uses the normal Windows inventory, Machine credential and
+supported EE; no packages, execution-policy changes or additional Python helper
+are required. Check mode is refused because it cannot establish executed tests.
+
 ## JavaScript walkthrough tests
 
 The three JavaScript test files under `demo/tests/` and `demo-with-aap/tests/`

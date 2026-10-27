@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [ValidateSet('Inspect', 'Activate', 'Connected', 'Verify')][string]$Mode = 'Inspect',

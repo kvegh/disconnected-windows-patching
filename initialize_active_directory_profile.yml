@@ -33,6 +33,7 @@
     - name: Generate and encrypt the private profile
       block:
         - name: Generate credentials, nested groups and a dedicated LDAPS certificate
+          # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           ansible.builtin.command:
             argv: [python3, "{{ playbook_dir }}/assets/generate-active-directory-profile.py"]
             stdin: "{{ ad_profile_seed | to_json }}"
@@ -48,6 +49,7 @@
           no_log: true
 
         - name: Write only Ansible Vault ciphertext into the repository
+          # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           ansible.builtin.command:
             argv:
               - ansible-vault

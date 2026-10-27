@@ -72,6 +72,7 @@
         timeout: 180
 
     - name: Inspect the installed license and permanent guest network without changing either
+      # Platform/API reason: [rationale](docs/supporting-code.md#windows-networking-and-activation).
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
         error_action: stop
@@ -83,6 +84,7 @@
       no_log: true
 
     - name: Read live and persistent libvirt topology before any activation connectivity
+      # Platform/API reason: [rationale](docs/supporting-code.md#windows-networking-and-activation).
       ansible.builtin.command:
         argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/inspect-activation-domain.py') }}", "{{ windows_activation_settings.vm_name }}"]
       delegate_to: "{{ windows_activation_hypervisor }}"
@@ -125,6 +127,7 @@
         - not windows_activation_before.result.licensed | bool
 
     - name: Verify licensed state and original Windows topology after activation or a licensed skip
+      # Platform/API reason: [rationale](docs/supporting-code.md#windows-networking-and-activation).
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/windows-evaluation-activation.ps1') }}"
         error_action: stop

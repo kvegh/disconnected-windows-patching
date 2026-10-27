@@ -46,6 +46,7 @@
       no_log: true
 
     - name: Verify the manifest, package hashes and safe archive paths before extraction
+      # Platform/API reason: [rationale](docs/supporting-code.md#artifact-creation-and-nexus-upload).
       ansible.windows.win_powershell:
         path: assets/validate-chocolatey-export.ps1
         error_action: stop

@@ -12,7 +12,9 @@
 
 - name: Read the exact destination package version
   ansible.windows.win_uri:
-    url: "{{ nexus_api_url }}/v1/search/assets?repository={{ destination_feed | urlencode }}&name={{ imported_package.id | urlencode }}&version={{ imported_package.version | urlencode }}"
+    url: >-
+      {{ nexus_api_url }}/v1/search/assets?repository={{ destination_feed | urlencode }}&name={{ imported_package.id | urlencode }}&version={{
+      imported_package.version | urlencode }}
     url_username: "{{ nexus_admin_username }}"
     url_password: "{{ nexus_admin_password }}"
     force_basic_auth: true
@@ -29,6 +31,7 @@
   no_log: true
 
 - name: Upload only a missing version to local Nexus
+  # Platform/API reason: [rationale](../docs/supporting-code.md#artifact-creation-and-nexus-upload).
   ansible.windows.win_powershell:
     path: assets/upload-nexus-package.ps1
     error_action: stop
@@ -45,7 +48,9 @@
 
 - name: Locate the published destination asset
   ansible.windows.win_uri:
-    url: "{{ nexus_api_url }}/v1/search/assets?repository={{ destination_feed | urlencode }}&name={{ imported_package.id | urlencode }}&version={{ imported_package.version | urlencode }}"
+    url: >-
+      {{ nexus_api_url }}/v1/search/assets?repository={{ destination_feed | urlencode }}&name={{ imported_package.id | urlencode }}&version={{
+      imported_package.version | urlencode }}
     url_username: "{{ nexus_admin_username }}"
     url_password: "{{ nexus_admin_password }}"
     force_basic_auth: true

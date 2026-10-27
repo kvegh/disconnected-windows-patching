@@ -1,11 +1,13 @@
 ---
 - name: Record the package state only after its live version assertions passed
+  # Platform/API reason: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
   ansible.windows.win_powershell:
     parameters:
       Directory: "{{ windows_demo_proof_directory }}\\evidence"
       Track: "{{ application_release_track }}"
       PackagesJson: "{{ chocolatey_packages | selectattr('track', 'equalto', application_release_track) | list | to_json }}"
     script: |
+      # Language choice: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
       param([string]$Directory,[ValidateSet('baseline','current')][string]$Track,[string]$PackagesJson)
       $ErrorActionPreference = 'Stop'
       $root = [string](Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment' -Name ChocolateyInstall).ChocolateyInstall

@@ -57,6 +57,7 @@
           no_log: true
 
         - name: Verify the complete existing resource baseline before authentication-only recovery
+          # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           ansible.builtin.command:
             argv: [python3, "{{ playbook_dir }}/assets/verify-aap-ad-regions.py"]
             stdin: >-
@@ -98,6 +99,7 @@
             - not (ad_aap_resuming_resources | bool)
 
         - name: Inspect owned objects before renaming or retiring the previous model
+          # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           ansible.builtin.command:
             argv: [python3, "{{ playbook_dir }}/assets/inspect-aap-ad-migration.py"]
             stdin: >-
@@ -191,12 +193,15 @@
 
         - name: Create each country-owned resource set and its scoped role grants
           ansible.builtin.include_tasks: tasks/configure_aap_ad_region.yml
-          loop: "{{ active_directory.resource_sets | selectattr('key', 'in', ad_aap_resume_resource_sets) | list if ad_aap_resuming_resources | bool else active_directory.resource_sets }}"
+          loop: >-
+            {{ active_directory.resource_sets | selectattr('key', 'in', ad_aap_resume_resource_sets) | list if ad_aap_resuming_resources | bool
+            else active_directory.resource_sets }}
           loop_control:
             loop_var: ad_resource_set
           when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Reinspect references before retiring the shared legacy project
+          # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           ansible.builtin.command:
             argv: [python3, "{{ playbook_dir }}/assets/inspect-aap-ad-migration.py"]
             stdin: >-

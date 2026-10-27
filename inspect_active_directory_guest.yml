@@ -14,6 +14,7 @@
         timeout: 30
 
     - name: Inspect available configuration collections in the execution environment
+      # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.builtin.command:
         argv: [ansible-galaxy, collection, list, --format=json]
       delegate_to: localhost
@@ -24,11 +25,13 @@
       no_log: true
 
     - name: Inspect OS, networking, servicing, licensing and certificate metadata
+      # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
         depth: 5
         parameters:
           IdentityScript: "{{ lookup('ansible.builtin.file', 'assets/configure-active-directory-identities.ps1') }}"
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
           param([string]$IdentityScript)
           $tokens=$null; $errors=$null
           [System.Management.Automation.Language.Parser]::ParseInput($IdentityScript,[ref]$tokens,[ref]$errors) | Out-Null
@@ -36,9 +39,14 @@
           $os = Get-CimInstance Win32_OperatingSystem
           $cs = Get-CimInstance Win32_ComputerSystem
           $version = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
-          $licenses = @(Get-CimInstance SoftwareLicensingProduct -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" | Select-Object Name,LicenseStatus,GracePeriodRemaining)
-          $events = @(Get-WinEvent -LogName 'Microsoft-Windows-WindowsUpdateClient/Operational' -MaxEvents 8 -ErrorAction SilentlyContinue | Select-Object TimeCreated,Id,Message)
-          $systemUpdateEvents = @(Get-WinEvent -FilterHashtable @{LogName='System';ProviderName='Microsoft-Windows-WindowsUpdateClient'} -MaxEvents 12 -ErrorAction SilentlyContinue | Select-Object TimeCreated,Id,Message)
+          $licenseFilter = "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL"
+          $licenses = @(Get-CimInstance SoftwareLicensingProduct -Filter $licenseFilter |
+              Select-Object Name,LicenseStatus,GracePeriodRemaining)
+          $events = @(Get-WinEvent -LogName 'Microsoft-Windows-WindowsUpdateClient/Operational' -MaxEvents 8 -ErrorAction SilentlyContinue |
+              Select-Object TimeCreated,Id,Message)
+          $systemEventFilter = @{LogName='System';ProviderName='Microsoft-Windows-WindowsUpdateClient'}
+          $systemUpdateEvents = @(Get-WinEvent -FilterHashtable $systemEventFilter -MaxEvents 12 -ErrorAction SilentlyContinue |
+              Select-Object TimeCreated,Id,Message)
           $agentState = @{ Available=$false }
           try {
               $session = New-Object -ComObject Microsoft.Update.Session
@@ -52,14 +60,21 @@
               } catch {}
           })
           $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$($env:SystemDrive)'"
-          $servicing = @(Get-Process -Name TiWorker,TrustedInstaller,MoUsoCoreWorker,wuauclt -ErrorAction SilentlyContinue | Select-Object Name,Id,CPU,WorkingSet64,StartTime)
+          $servicing = @(Get-Process -Name TiWorker,TrustedInstaller,MoUsoCoreWorker,wuauclt -ErrorAction SilentlyContinue |
+              Select-Object Name,Id,CPU,WorkingSet64,StartTime)
           $delivery = @()
           if (Get-Command Get-DeliveryOptimizationStatus -ErrorAction SilentlyContinue) {
-              try { $delivery = @(Get-DeliveryOptimizationStatus -ErrorAction Stop | Select-Object FileId,Status,FileSize,TotalBytesDownloaded,BytesFromHttp,BytesFromPeers) } catch {}
+              try {
+                  $delivery = @(Get-DeliveryOptimizationStatus -ErrorAction Stop |
+                      Select-Object FileId,Status,FileSize,TotalBytesDownloaded,BytesFromHttp,BytesFromPeers)
+              } catch {}
           }
           $bits = @()
           if (Get-Command Get-BitsTransfer -ErrorAction SilentlyContinue) {
-              try { $bits = @(Get-BitsTransfer -AllUsers -ErrorAction Stop | Select-Object JobState,BytesTotal,BytesTransferred,CreationTime,ModificationTime) } catch {}
+              try {
+                  $bits = @(Get-BitsTransfer -AllUsers -ErrorAction Stop |
+                      Select-Object JobState,BytesTotal,BytesTransferred,CreationTime,ModificationTime)
+              } catch {}
           }
           $cbsPath = "$env:SystemRoot\Logs\CBS\CBS.log"
           $healthRoot = "$env:SystemRoot\System32\SecurityHealth"
@@ -69,11 +84,15 @@
                   @{ Path=$_.FullName; FileVersion=$_.VersionInfo.FileVersion; ProductVersion=$_.VersionInfo.ProductVersion; Modified=$_.LastWriteTime }
               })
           }
-          $healthService = @(Get-CimInstance Win32_Service -Filter "Name='SecurityHealthService'" -ErrorAction SilentlyContinue | Select-Object Name,State,StartMode,PathName)
+          $healthService = @(Get-CimInstance Win32_Service -Filter "Name='SecurityHealthService'" -ErrorAction SilentlyContinue |
+              Select-Object Name,State,StartMode,PathName)
           $healthServiceFile = Get-Item "$env:SystemRoot\System32\SecurityHealthService.exe" -ErrorAction SilentlyContinue
           $healthServiceVersion = if ($healthServiceFile) { $healthServiceFile.VersionInfo.FileVersion } else { $null }
           $healthApp = @()
-          try { $healthApp = @(Get-AppxPackage -AllUsers -Name Microsoft.SecHealthUI -ErrorAction Stop | Select-Object Name,Version,PackageFullName,InstallLocation,Status,PackageUserInformation) } catch {}
+          try {
+              $healthApp = @(Get-AppxPackage -AllUsers -Name Microsoft.SecHealthUI -ErrorAction Stop |
+                  Select-Object Name,Version,PackageFullName,InstallLocation,Status,PackageUserInformation)
+          } catch {}
           $healthRegistry = $null
           if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows Security Health\Platform') {
               $healthRegistry = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Security Health\Platform'
@@ -84,7 +103,10 @@
           }
           $Ansible.Changed = $false
           $Ansible.Result = @{
-              Clock=@{ Utc=[DateTime]::UtcNow.ToString('o'); TimeZone=(Get-TimeZone).Id; Source=@(& w32tm.exe /query /source); Service=(Get-Service W32Time).Status.ToString() };
+              Clock=@{
+                  Utc=[DateTime]::UtcNow.ToString('o'); TimeZone=(Get-TimeZone).Id;
+                  Source=@(& w32tm.exe /query /source); Service=(Get-Service W32Time).Status.ToString()
+              };
               Build="$($version.CurrentBuildNumber).$($version.UBR)";
               DomainRole=$cs.DomainRole; Domain=$cs.Domain; Hostname=$cs.Name;
               Boot=$os.LastBootUpTime; Licenses=$licenses; UpdateEvents=$events;
@@ -92,9 +114,15 @@
               UpdateAgent=$agentState; AnsibleScheduledTasks=$updateTasks;
               FreeSystemBytes=$disk.FreeSpace; ServicingProcesses=$servicing;
               DeliveryOptimization=$delivery; BitsTransfers=$bits; ServicingLog=$cbs;
-              SecurityHealth=@{ Files=$healthFiles; Service=$healthService; ServiceFileVersion=$healthServiceVersion; App=$healthApp; Registry=$healthRegistry };
+              SecurityHealth=@{
+                  Files=$healthFiles; Service=$healthService; ServiceFileVersion=$healthServiceVersion;
+                  App=$healthApp; Registry=$healthRegistry
+              };
               Network=@(Get-NetIPConfiguration | Select-Object InterfaceAlias,IPv4Address,IPv4DefaultGateway,DNSServer);
-              PendingReboot=((Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'));
+              PendingReboot=(
+                  (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or
+                  (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')
+              );
               Certificates=@(Get-ChildItem Cert:\LocalMachine\My | Select-Object Subject,Thumbprint,NotAfter,HasPrivateKey);
               IdentityScriptParsed=$true
           }

@@ -11,11 +11,13 @@
     ad_tls_directory: 'C:\ProgramData\AAP\ActiveDirectoryTLS'
   tasks:
     - name: Require the intended domain controller before importing certificates
+      # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
       ansible.windows.win_powershell:
         parameters:
           Domain: "{{ active_directory.dns_domain }}"
           Hostname: "{{ active_directory.hostname }}"
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           param([string]$Domain,[string]$Hostname)
           $cs = Get-CimInstance Win32_ComputerSystem
           if ($cs.DomainRole -notin @(4,5) -or $cs.Domain -ne $Domain -or $cs.Name -ne $Hostname) { throw 'Unexpected domain controller.' }
@@ -46,12 +48,14 @@
     - name: Import the encrypted profile's leaf key and public issuing certificate
       block:
         - name: Stage the certificate bytes without exposing private material
+          # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           ansible.windows.win_powershell:
             parameters:
               Directory: "{{ ad_tls_directory }}"
               Certificate: "{{ active_directory.certificate_pfx_base64 }}"
               Issuer: "{{ active_directory.ca_certificate }}"
             script: |
+              # Language choice: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
               param([string]$Directory,[string]$Certificate,[string]$Issuer)
               [IO.File]::WriteAllBytes((Join-Path $Directory 'server.pfx'),[Convert]::FromBase64String($Certificate))
               $base64 = $Issuer -replace '-----BEGIN CERTIFICATE-----','' -replace '-----END CERTIFICATE-----','' -replace '\s',''
@@ -91,11 +95,13 @@
       when: ad_ldaps_ca_import.changed or ad_ldaps_leaf_import.changed
 
     - name: Verify the expected certificate and local LDAPS listener
+      # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
       ansible.windows.win_powershell:
         parameters:
           Thumbprint: "{{ active_directory.certificate_thumbprint }}"
           Fqdn: "{{ active_directory.fqdn }}"
         script: |
+          # Language choice: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           param([string]$Thumbprint,[string]$Fqdn)
           $cert = Get-Item "Cert:\LocalMachine\My\$Thumbprint"
           if (-not $cert.HasPrivateKey -or $cert.NotAfter -lt (Get-Date)) { throw 'The expected LDAPS key/certificate is unusable.' }

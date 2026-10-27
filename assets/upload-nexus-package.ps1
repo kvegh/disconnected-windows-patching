@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#artifact-creation-and-nexus-upload).
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$PackagePath,

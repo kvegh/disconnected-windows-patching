@@ -29,6 +29,7 @@
         state: directory
 
     - name: Synchronize metadata and download selected update files
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
         error_action: stop
         path: assets/sync-external-wsus.ps1

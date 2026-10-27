@@ -8,11 +8,13 @@
     - vars/active_directory_vault.yml
   tasks:
     - name: Require an absent VM and clone disk before a fresh reservation
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv:
           - python3
           - -c
           - |
+            # Language choice: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
             import pathlib,subprocess,sys
             name=sys.argv[1]
             names=subprocess.check_output(['virsh','list','--all','--name'],text=True).splitlines()
@@ -25,6 +27,7 @@
       no_log: true
 
     - name: Verify the existing demo-owned domain and its single expected NIC
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/inspect-activation-domain.py') }}", "{{ active_directory.hostname }}"]
       register: ad_domain_inspection
@@ -48,16 +51,22 @@
       when: not (ad_address_reservation_before_create | default(false) | bool)
 
     - name: Inspect network address ownership without modifying leases
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv:
           - python3
           - -c
           - |
+            # Language choice: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
             import ipaddress,json,re,subprocess,sys,xml.etree.ElementTree as E
             network,mac,address,name=sys.argv[1:]
             root=E.fromstring(subprocess.check_output(['virsh','net-dumpxml',network],text=True))
             ip=ipaddress.ip_address(address)
-            matches=[x for x in root.findall('ip') if x.get('address') and ip in ipaddress.ip_network(x.get('address')+'/'+(x.get('prefix') or x.get('netmask')),strict=False)]
+            matches = [
+                entry for entry in root.findall('ip')
+                if entry.get('address') and ip in ipaddress.ip_network(
+                    entry.get('address') + '/' + (entry.get('prefix') or entry.get('netmask')), strict=False)
+            ]
             if len(matches)!=1:raise RuntimeError('Address does not belong to exactly one network subnet.')
             hosts=matches[0].findall('dhcp/host')
             for host in hosts:
@@ -88,15 +97,33 @@
       no_log: true
 
     - name: Publish the exact LDAPS DNS name on the management network
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
-        argv: [virsh, net-update, "{{ active_directory.libvirt_network }}", add-last, dns-host, "{{ (ad_reservation_inspection.stdout | from_json).dns_xml }}", --live, --config]
+        argv:
+          - virsh
+          - net-update
+          - "{{ active_directory.libvirt_network }}"
+          - add-last
+          - dns-host
+          - "{{ (ad_reservation_inspection.stdout | from_json).dns_xml }}"
+          - --live
+          - --config
       when: not (ad_reservation_inspection.stdout | from_json).dns_exists
       changed_when: true
       no_log: true
 
     - name: Add only the dedicated guest's persistent and live reservation
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
-        argv: [virsh, net-update, "{{ active_directory.libvirt_network }}", add-last, ip-dhcp-host, "{{ (ad_reservation_inspection.stdout | from_json).xml }}", --live, --config]
+        argv:
+          - virsh
+          - net-update
+          - "{{ active_directory.libvirt_network }}"
+          - add-last
+          - ip-dhcp-host
+          - "{{ (ad_reservation_inspection.stdout | from_json).xml }}"
+          - --live
+          - --config
       when: not (ad_reservation_inspection.stdout | from_json).exists
       changed_when: true
       no_log: true
@@ -115,6 +142,7 @@
             that: ad_promotion_recovery_reboot_mode | default('acpi') in ['acpi', 'agent', 'shutdown_start']
 
         - name: Request a graceful restart of the already verified dedicated clone
+          # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
           ansible.builtin.command:
             argv: [virsh, reboot, "{{ active_directory.hostname }}", --mode, "{{ ad_promotion_recovery_reboot_mode | default('acpi') }}"]
           changed_when: true
@@ -133,6 +161,7 @@
           when: ad_promotion_recovery_reboot_mode | default('acpi') != 'shutdown_start'
 
         - name: Request graceful shutdown when the guest does not support a reboot event
+          # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
           ansible.builtin.command:
             argv: [virsh, shutdown, "{{ active_directory.hostname }}", --mode, acpi]
           changed_when: true
@@ -140,6 +169,7 @@
           when: ad_promotion_recovery_reboot_mode | default('acpi') == 'shutdown_start'
 
         - name: Require the selected guest to finish shutting down before restarting it
+          # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
           ansible.builtin.command:
             argv: [virsh, domstate, "{{ active_directory.hostname }}"]
           register: ad_recovery_power_state
@@ -151,6 +181,7 @@
           when: ad_promotion_recovery_reboot_mode | default('acpi') == 'shutdown_start'
 
         - name: Start only the verified guest after its completed graceful shutdown
+          # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
           ansible.builtin.command:
             argv: [virsh, start, "{{ active_directory.hostname }}"]
           changed_when: true

@@ -57,6 +57,7 @@
       no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
 
     - name: Validate MAC matches and addresses before changing networking
+      # Platform/API reason: [rationale](docs/supporting-code.md#windows-networking-and-activation).
       ansible.windows.win_powershell:
         script: "{{ lookup('ansible.builtin.file', 'assets/configure-static-network.ps1') }}"
         error_action: stop

@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#hypervisor-inspection-and-recovery).
 """Read-only libvirt topology inspection for the evaluation activation playbook."""
 
 import json

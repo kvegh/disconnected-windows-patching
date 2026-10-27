@@ -96,6 +96,7 @@
         label: "{{ synchronized_artifact.package | basename }}"
 
     - name: Build a verified selected-package archive
+      # Platform/API reason: [rationale](docs/supporting-code.md#artifact-creation-and-nexus-upload).
       ansible.builtin.command:
         argv:
           - "{{ ansible_playbook_python }}"

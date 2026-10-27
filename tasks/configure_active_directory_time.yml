@@ -6,8 +6,10 @@
     state: started
 
 - name: Use the existing manual NTP peer on the forest-root time authority
+  # Platform/API reason: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
   ansible.windows.win_powershell:
     script: |
+      # Language choice: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
       $parameters = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Parameters'
       $configuration = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\W32Time\Config'
       if ([string]::IsNullOrWhiteSpace($parameters.NtpServer)) { throw 'No existing NTP peer is configured.' }
@@ -20,6 +22,7 @@
   no_log: "{{ not (ad_time_diagnostics | default(false) | bool) }}"
 
 - name: Request synchronization with the existing external time source
+  # Platform/API reason: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
   ansible.windows.win_command:
     argv: [w32tm.exe, /resync, /rediscover]
   register: ad_time_resync
@@ -30,10 +33,12 @@
   no_log: "{{ not (ad_time_diagnostics | default(false) | bool) }}"
 
 - name: Verify synchronized time against the automation runtime
+  # Platform/API reason: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
   ansible.windows.win_powershell:
     parameters:
       ReferenceUtc: "{{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}"
     script: |
+      # Language choice: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
       param([string]$ReferenceUtc)
       $source = (& w32tm.exe /query /source | Out-String).Trim()
       $reference = [DateTime]::Parse($ReferenceUtc).ToUniversalTime()

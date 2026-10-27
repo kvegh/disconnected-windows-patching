@@ -33,6 +33,7 @@
         that: vm_boot_mode in ['bios', 'uefi']
 
     - name: Verify selected libvirt networks are active
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [virsh, net-info, "{{ item }}"]
       environment:
@@ -44,6 +45,7 @@
       failed_when: selected_network_info.rc != 0 or selected_network_info.stdout is not search('Active:\s+yes')
 
     - name: List existing VM names
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [virsh, list, --all, --name]
       register: existing_vms
@@ -56,6 +58,7 @@
         fail_msg: "VM {{ vm_name }} already exists. Choose a new name; existing VMs are never modified."
 
     - name: Inspect base image
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [qemu-img, info, --output=json, "{{ selected_image }}"]
       register: base_image_info
@@ -85,6 +88,7 @@
         fail_msg: "Disk {{ vm_disk_path }} already exists. Inspect it before retrying with this name."
 
     - name: Create independent sparse qcow2 clone without resizing
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv:
           - qemu-img
@@ -100,6 +104,7 @@
         creates: "{{ vm_disk_path }}"
 
     - name: Verify cloned disk capacity
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [qemu-img, info, --output=json, "{{ vm_disk_path }}"]
       register: clone_info
@@ -131,11 +136,13 @@
               + ['--noautoconsole'] }}
 
     - name: Create and start Windows VM
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: "{{ vm_install_argv }}"
       changed_when: true
 
     - name: Read VM network interface
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [virsh, domiflist, "{{ vm_name }}"]
       register: vm_interfaces
@@ -153,6 +160,7 @@
       when: not ansible_check_mode
 
     - name: Wait for DHCP lease by MAC address when requested
+      # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
         argv: [virsh, net-dhcp-leases, "{{ vm_network }}", --mac, "{{ vm_mac }}"]
       register: dhcp_leases

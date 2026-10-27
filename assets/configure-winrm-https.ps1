@@ -1,3 +1,4 @@
+# Purpose and language choice: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
 # Run in Windows PowerShell as Administrator.
 # Creates a self-signed certificate, an HTTPS WinRM listener and a scoped firewall rule.
 # Configure certificate trust in AAP separately. Does not change remote UAC policy.

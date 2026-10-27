@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Purpose and language choice: [rationale](../docs/supporting-code.md#artifact-creation-and-nexus-upload).
 """Build deterministic offline NuGet packages from verified vendor installers.
 
 No network calls or credentials. Input is one public manifest entry on stdin.
@@ -30,6 +31,7 @@ def quoted(value):
     return "'" + value.replace("'", "''") + "'"
 
 
+# Offline package hook: see ../docs/supporting-code.md#artifact-creation-and-nexus-upload.
 def install_script(package):
     return "\n".join([
         "$ErrorActionPreference = 'Stop'",
