@@ -29,7 +29,7 @@ dependency. No additional test framework is required.
 | `test_windows_teardown_scope.py` | Run the production Ansible assertion guards against four/five/six targets, AD opt-in, duplicates, changed target sets, missing scope metadata and unowned domains. | Does not delete VMs or replace the real preservation comparison. |
 | `test_active_directory_model.py` | Verify group expansion and the allowed access matrix; invoke the profile generator with fresh synthetic credentials. | Does not create AD accounts or test LDAP. |
 | `test_active_directory_migration.py` | Inject an API fixture into the real ownership/migration inspector; reject foreign references and unsafe retirement. | Does not migrate live AAP objects. |
-| `test_active_directory_verifier.py` | Run the real verifier against a simulated API, including excessive access, failed jobs and draining already launched work. | Does not prove real AAP API behavior or authentication. |
+| `test_active_directory_verifier.py` | Run the real verifier against a simulated API, including excessive access, failed jobs and draining launched work. Exercise its actual urllib handler chain against synthetic redirects and reject non-HTTPS or non-root targets before transport setup. | No real network request, certificate handshake or LDAP login is performed. |
 | `test_active_directory_resources.py`, `test_active_directory_workflow.py`, `test_active_directory_update_policy.py` | Inspect production YAML, expand scoped grants, check graph ordering and evaluate the narrow update-title exclusion. | Structural checks; some depend on task names or layout and require maintenance during refactoring. |
 
 The control-flow tests generate temporary mock action plugins under an ephemeral
@@ -136,6 +136,12 @@ ansible-core 2.16.19 and all 14 JavaScript tests, with no skipped tests.
 The Python run reported the existing ansible-core dependency's `crypt`
 deprecation warning; it was retained for assessment rather than suppressed.
 This patch does not claim a new PowerShell-on-Windows execution result.
+
+The 1.0.8 transport regressions failed against the old implementation and passed
+after the focused client correction. They cover HTTP 301, 302, 303, 307 and 308
+for same-origin and cross-origin destinations, and six invalid target-root
+forms. They add two test methods, without another framework or live connection.
+The dated review record contains the complete current suite results.
 
 Record the tested commit, interpreter/core versions, executed suites, failures,
 skips and unexecuted suites in the review evidence. Review these scripts for

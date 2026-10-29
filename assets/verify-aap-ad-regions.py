@@ -378,13 +378,25 @@ def verify_with_request(p, request):
     return summary
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise AssertionError('Verification API redirects are not permitted.')
+
+
 def verify(p):
+    base = p['url'].rstrip('/')
+    parsed = urllib.parse.urlsplit(base)
+    require(parsed.scheme == 'https' and parsed.netloc and not parsed.username
+            and not parsed.password and not parsed.query and not parsed.fragment
+            and not parsed.path, 'Verification requires an HTTPS platform root URL.')
     with tempfile.TemporaryDirectory(prefix='ad-rbac-verification-') as directory:
         ca = Path(directory) / 'ca.pem'
         ca.write_text(p['ca'])
         ca.chmod(0o600)
         context = ssl.create_default_context(cafile=str(ca))
-        base = p['url'].rstrip('/')
+        # Keep credentials on the selected HTTPS origin; see ../docs/supporting-code.md#active-directory-and-aap-verification.
+        opener = urllib.request.build_opener(
+            urllib.request.HTTPSHandler(context=context), NoRedirect())
 
         def request(path, user=None, method='GET', body=None):
             principal = user or {'username': p['admin_username'], 'password': p['admin_password']}
@@ -394,7 +406,7 @@ def verify(p):
                                          headers={'Authorization': 'Basic ' + authorization,
                                                   'Content-Type': 'application/json'})
             try:
-                with urllib.request.urlopen(req, context=context, timeout=30) as response:
+                with opener.open(req, timeout=30) as response:
                     payload = response.read()
                     return response.status, json.loads(payload) if payload else {}
             except urllib.error.HTTPError as error:

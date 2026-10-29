@@ -1,3 +1,4 @@
+/* Browser UI requires JavaScript; [rationale](../../docs/supporting-code.md#browser-walkthroughs). */
 /* Public, illustrative data only. This walkthrough does not call AAP. */
 (() => {
   'use strict';
@@ -39,7 +40,7 @@
       description: 'Export compressed WSUS metadata and publish its manifest and existing update files through a management-only IIS site. The application export is a separate ZIP served by Nexus.',
       short: 'Compressed metadata and update files become available.',
       source: 'export_external_wsus.yml',
-      example: '- name: Export compressed WSUS metadata\n  ansible.windows.win_command:\n    cmd: >-\n      WSUSutil.exe export\n      "{{ metadata_gzip }}" "{{ export_log }}"\n\n- name: Publish the static export\n  community.windows.win_iis_website:\n    name: WSUS Export\n    physical_path: "{{ export_root }}"\n    state: started',
+      example: '- name: Export compressed WSUS metadata\n  ansible.windows.win_command:\n    cmd: >-\n      WSUSutil.exe export\n      "{{ metadata_gzip }}" "{{ export_log }}"\n\n- name: Publish the static export\n  microsoft.iis.website:\n    name: WSUS Export\n    physical_path: "{{ export_root }}"\n    state: started',
       flow: 'IIS publishes .xml.gz metadata, a manifest and separate update files.'
     },
     {

@@ -1,3 +1,4 @@
+/* Browser UI requires JavaScript; [rationale](../../docs/supporting-code.md#browser-walkthroughs). */
 /* Illustrative scheduling only. No platform or infrastructure requests. */
 (() => {
   'use strict';

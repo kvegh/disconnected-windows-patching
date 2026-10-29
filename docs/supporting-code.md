@@ -141,6 +141,11 @@ complete object-access matrix using each synthetic identity and waits for jobs
 it launches, including failure cleanup. A single injected request interface lets
 offline tests exercise the same verifier. Its direct HTTP client must retain
 CA/hostname validation, reject redirects and avoid leaking credential material.
+The verifier now requires an HTTPS platform root and rejects every redirect,
+including redirects on the same origin. This keeps Basic credentials on the
+explicitly selected target. Its regression exercises urllib's real redirect
+handler chain with synthetic responses and verifies that only one request is
+issued. This is transport-policy evidence, not a live certificate or LDAP test.
 Native AAP modules continue to create and update the declared platform objects.
 
 The gateway trust checks run Python's normal SSL context inside the actual
@@ -173,3 +178,14 @@ same included task sequence. Deferring that connection control to play-end
 handlers could run dependent work against the old environment. The reset remains
 conditional and does not reinstall Chocolatey. Host CA trust and Windows Update
 service changes use notified handlers flushed before dependent verification.
+
+
+## Browser walkthroughs
+
+The JavaScript in `demo/src/` and `demo-with-aap/src/` renders browser controls,
+step state, accessible popovers and illustrative execution timing for GitHub
+Pages. Ansible modules do not execute this browser UI. The pages make no AAP or
+infrastructure requests, receive no credentials and do not prove deployment
+success. Their YAML snippets are shortened examples; the linked playbooks are
+the execution source. Node's built-in test runner checks the state and scheduling
+model without adding a frontend framework. See the [test guide](../tests/README.md).

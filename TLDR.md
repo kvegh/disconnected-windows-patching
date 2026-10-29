@@ -62,10 +62,17 @@ old unbound artifacts cannot be used for verification.
 
 ## Review and evidence
 
-Review is in progress. The version file identifies cleanup patches; it does not
-certify completed acceptance. See the [test guide](tests/README.md) for Python,
+Review acceptance is incomplete. Both recorded core runs passed all 21 core
+stages on the 1.0.7 revision. The combined run's AD creation did not start because
+its project sync failed during the platform outage. The 1.0.8 client fix is
+offline-tested; a complete combined AAP run remains required for acceptance.
+The version file identifies cleanup patches; it does not certify acceptance. See the [test guide](tests/README.md) for Python,
 PowerShell and JavaScript checks and the
 [supporting-code rationale](docs/supporting-code.md) for every retained language.
+The [quality assessment](docs/review-quality-assessment.md) records agent
+judgments on readability and simplicity; the
+[requirements/deviation record](docs/review-requirements-and-deviations.md)
+separates accepted minor deviations from unresolved acceptance requirements.
 
 `verify_windows_regressions.yml` provides native Ansible orchestration for the
 six mocked PowerShell suites on the two endnodes. These regressions complement

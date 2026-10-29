@@ -2,9 +2,14 @@
 """Offline acceptance checks for the AD/AAP verifier, including failed-run cleanup."""
 
 import importlib.util
+import io
+import json
+from email.message import Message
 from pathlib import Path
 import unittest
 from unittest import mock
+import urllib.request
+import urllib.response
 from urllib.parse import parse_qs, urlsplit
 
 SPEC = importlib.util.spec_from_file_location(
@@ -289,6 +294,53 @@ class ActiveDirectoryVerifierTests(unittest.TestCase):
         self.assertEqual(len(self.api.jobs), 36)
         self.assertEqual(self.api.drained, set(self.api.jobs))
         self.assertEqual(len(self.api.stats_read), 35)
+
+
+class VerifierTransportTests(unittest.TestCase):
+    def test_invalid_platform_roots_are_rejected_before_transport_setup(self):
+        for url in ('http://controller.example', 'https://user@controller.example',
+                    'https://controller.example/other', 'https://controller.example?query=1',
+                    'https://controller.example#fragment', ''):
+            with self.subTest(url=url), mock.patch.object(VERIFIER.ssl, 'create_default_context') as tls:
+                with self.assertRaisesRegex(AssertionError, 'HTTPS platform root'):
+                    VERIFIER.verify({'url': url})
+                tls.assert_not_called()
+
+    def test_real_client_rejects_redirects_before_sending_another_request(self):
+        # Exercise urllib's actual handler chain; the transport returns fixtures without network I/O.
+        real_build_opener = urllib.request.build_opener
+
+        class RedirectTransport(urllib.request.HTTPSHandler):
+            handler_order = 100
+
+            def https_open(self, request):
+                self.requests.append(request)
+                headers = Message()
+                if len(self.requests) == 1:
+                    headers['Location'] = self.destination
+                    response = urllib.response.addinfourl(io.BytesIO(b''), headers, request.full_url, self.status)
+                    response.msg = 'Redirect'
+                else:
+                    response = urllib.response.addinfourl(
+                        io.BytesIO(json.dumps({'results': []}).encode()), headers, request.full_url, 200)
+                    response.msg = 'OK'
+                return response
+
+        profile = dict(FakeAAP().profile, url='https://controller.example', ca='synthetic CA fixture',
+                       admin_username='fixture-admin', admin_password='test-only-placeholder')
+        for status in (301, 302, 303, 307, 308):
+            for destination in ('https://controller.example/moved', 'https://other.example/moved'):
+                with self.subTest(status=status, destination=destination):
+                    transport = RedirectTransport()
+                    transport.requests, transport.status, transport.destination = [], status, destination
+                    context = VERIFIER.ssl.SSLContext(VERIFIER.ssl.PROTOCOL_TLS_CLIENT)
+                    with mock.patch.object(VERIFIER.ssl, 'create_default_context', return_value=context), \
+                            mock.patch.object(VERIFIER.urllib.request, 'build_opener',
+                                              side_effect=lambda *handlers: real_build_opener(*handlers, transport)):
+                        with self.assertRaisesRegex(AssertionError, 'redirects are not permitted'):
+                            VERIFIER.verify(profile)
+                    self.assertEqual(len(transport.requests), 1)
+                    self.assertIsNotNone(transport.requests[0].get_header('Authorization'))
 
 
 if __name__ == '__main__':

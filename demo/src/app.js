@@ -1,3 +1,4 @@
+/* Browser UI requires JavaScript; [rationale](../../docs/supporting-code.md#browser-walkthroughs). */
 (() => {
   'use strict';
   const { steps, stateAt, sourceUrl } = WindowsDemo;

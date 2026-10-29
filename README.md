@@ -12,7 +12,7 @@ offline suites prove and what still needs live AAP validation.
 
 The first tracked major version is **1.0.0**, representing the review and cleanup
 baseline under the [agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
-The current cleanup version is **1.0.7**. Work proceeds directly on `main`, as
+The current cleanup version is **1.0.8**. Work proceeds directly on `main`, as
 requested by the owner; `VERSION` identifies this project independently of the
 other umbrella projects. Implementation changes and their reasons are recorded
 in [the decision history](design_decisions_history.md).
@@ -31,10 +31,27 @@ actually used, including included task files, so configuring them does not load
 the collection's unused deprecated role plugin. Review validation keeps warnings
 enabled and checks the actual workflow launch configuration before recreation.
 
-Strict production lint passes 116 processed files, all 107 Python tests pass,
-and the six PowerShell suites pass on both managed Windows servers, including
-normal protected-output execution. The live IIS/WSUS export test also passed.
-The full review and fresh 29-stage AAP end-to-end test remain in progress.
+Strict production lint passes 116 processed files and all 109 Python tests pass
+on the 1.0.8 source. The six PowerShell suites passed on both managed
+Windows servers before teardown, including normal protected-output execution;
+the live IIS/WSUS export test also passed on its recorded earlier revision.
+Both the separate core run and all 21 core stages within the complete workflow
+passed on the 1.0.7 functional revision. The complete 29-stage run failed because
+an AD prerequisite project sync could not download collection metadata during
+the platform outage; that sync subsequently passed on retry. AD creation did
+not execute. No complete Windows-and-AD end-to-end pass or final review
+acceptance is claimed.
+
+The 1.0.8 source assessment also found that the AD verifier used urllib's default
+redirect handling and did not require an HTTPS platform root. Its client now
+rejects both unsafe target roots and all redirects, matching the existing
+migration inspector. Focused offline tests exercise the real urllib handler
+chain with synthetic responses; this does not replace a live AD/AAP rerun.
+
+See the [quality assessment](docs/review-quality-assessment.md) and
+[requirements/deviation record](docs/review-requirements-and-deviations.md) for
+explicit verdicts and evidence. These records distinguish source assessment,
+prior functional results and remaining acceptance gates.
 
 A successful review still requires resolved findings or documented accepted
 deviations, explicit functionality confirmation, and the final complete test
@@ -61,11 +78,28 @@ the reporter and retain machine-bound receipts only after live package-version
 verification; existing nodes are queried from their actual retained history.
 Live validation passed on both managed servers, including eleven native evidence
 checks per server and normal PowerShell file execution. Both desktop launchers
-were verified to use `-NoExit`. The actual servers currently have September OS
-builds, so the report correctly warns that they are newer than April; successful
+were verified to use `-NoExit`. During that validation, the servers had September
+OS builds, so the report correctly warned that they were newer than April; successful
 local Chocolatey logs prove both baseline-to-upgrade application sequences.
 See the [report guide](docs/managed-windows-proof-report.md) for the demonstration
 and the limits of each piece of evidence.
+
+## Naming conventions
+
+Use descriptive `snake_case` variables and action-and-purpose `.yml` names for
+new playbooks and task files, such as `configure_windows_server_basics.yml`.
+Keep domain prefixes consistent: `vm_`, `windows_`, `wsus_`, `chocolatey_`,
+`nexus_` and `ad_`/`active_directory`. Name plays, blocks and tasks with concise
+imperative actions; put any dynamic task-name suffix at the end. Supporting
+assets retain their existing hyphenated names and normal language conventions.
+
+Existing entry points such as `01-win-vm-setup.yml`, `destroy-win-vms.yml`,
+human-readable AAP names and published AD resource keys are compatibility
+exceptions. Avoid cosmetic renames that break templates, links or consumers.
+The CoP naming chapter recommends hyphenated filenames while its coding-style
+chapter recommends snake_case; this project follows the latter for new YAML
+files and preserves existing interfaces. New names should make purpose clear
+without introducing a separate naming framework.
 
 ## Active Directory extension
 
@@ -119,16 +153,17 @@ EU-only accounts are absent from both services. The detailed guide contains the
 complete AD-group → AAP-team → resource-set → permission table and exact object
 role names. The presenter matrices use private-prefix username patterns and four short
 country tables with full permission labels.
-The complete fresh combined Windows/AD infrastructure workflow has not been
-run over this existing deployment.
-The test guest has the current Server cumulative update, build 26100.33650,
+These AD results are historical targeted evidence, preceding the present review
+iteration. The attempted combined run did not reach AD creation. They do not
+prove a fresh combined workflow.
+At that earlier validation, the test guest had Server build 26100.33650,
 with no pending reboot. Windows Update still reoffers KB5007651 after successful
 installer runs. Microsoft's [applicability documentation](https://support.microsoft.com/en-us/servicing/os/windows/2021/10/windows-security-app-update)
 lists that Security app package for Windows 11 only. The Server-2025-guarded
 preparation now reports this exact unsupported UI offer separately and requires
 zero remaining applicable Server updates. It does not hide the offer in Windows
 Update or exclude Defender antivirus/platform/security-intelligence packages.
-Live preparation passed with zero applicable Server updates remaining, no
+That live preparation passed with zero applicable Server updates remaining, no
 required reboot and one Windows 11-only offer reported separately. AD identity,
 LDAPS and forest-root clock verification also passed. These infrastructure
 results precede the revised regional access model and do not establish its
@@ -937,7 +972,12 @@ ansible-playbook -i inventory.ini destroy-win-vms.yml --syntax-check
 Optional deployment variables `vm_mac` and `vm_management_mac` assign explicit
 primary/secondary NIC MACs. Supply actual assignments from the vaulted mapping
 through AAP workflow variables. The secondary MAC requires a secondary network.
-If omitted, libvirt generates the MAC.
+If omitted, libvirt generates the MAC. Omit `vm_mac` to request automatic
+assignment; do not send an explicit empty `vm_mac` extra variable. Ansible extra
+variables take precedence over the discovered value, so that input fails the
+post-creation MAC assertion. The supplied workflow uses explicit valid MACs.
+Separating the observed MAC into its own variable is a possible later cleanup;
+the unsupported empty-extra-variable case is a bounded review limitation.
 
 ### Networking modules and remaining PowerShell
 
