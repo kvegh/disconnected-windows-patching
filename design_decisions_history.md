@@ -1,5 +1,33 @@
 # Design decisions history
 
+## 2026-10-29 — Reject verifier redirects and record source-quality decisions
+
+Implementation commit: `399ad929fe3eda9cb75e60583f5160fe81ef7b98`
+(version 1.0.8).
+
+The AD verifier used urllib's default redirect behavior and did not restrict
+its input to an HTTPS platform root. Synthetic offline responses demonstrated
+that redirect handling could carry the authentication header to another target.
+Require the intended HTTPS root and reject redirects, matching the existing
+migration inspector. The production handler chain is exercised without network
+access; invalid roots are rejected before transport setup. All 109 Python
+regressions pass; strict production lint passes 116 files. Fourteen browser
+tests pass after correcting obsolete IIS snippets and linking JavaScript's
+supporting-code rationale.
+
+Readability, simplicity and unnecessary complexity now have explicit source
+judgments with file-group evidence. The requirements matrix and CoP directive
+trace distinguish passes, proportionate deviations and incomplete evidence;
+test counts do not substitute for those judgments. The latest APME scan retains
+855 observations and the dependency-backend limitation rather than reporting a
+clean audit. No independent Claude/Gemini review is claimed.
+
+The owner accepted the documented lab WinRM certificate-validation exception
+and WSUS HTTP transport and closed the historical-username concern. These are
+scoped decisions, not a waiver for other secrets. The combined functional test
+belongs to the owner. The dated incomplete record preserves that evidence
+boundary and does not certify final acceptance.
+
 ## Scope controller defaults and preserve the required workflow survey answer
 
 Implementation commit: `386026c` (version 1.0.7).

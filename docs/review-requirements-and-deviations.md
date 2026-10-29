@@ -52,7 +52,7 @@ does not automatically mean an observed playbook failure.
 | 4. Readability, simplicity, naming, comments | Explicit source assessment completed in the linked quality document. Naming documented in README; compatibility deviations retained. Comments explain unusual operations and link to supporting-code reasons. No human readability sign-off is required. |
 | 5. Native and certified content | Native IIS, AD forest, Windows package/service/file and AAP modules used where suitable. Foreign code reasons and remaining alternatives are documented. Exact hub releases were checked: Windows/controller/platform pins in the certified channel; the four other pins in the community channel. A namespace alone does not establish certification. |
 | 6. Idempotency and recovery | Deterministic artifacts, bounded update/network/async recovery and cleanup are assessed. Native configurator repeat applies reported zero changes. Provisioning, synchronization and guarded deletion have operational semantics; no universal zero-change or first-run check-mode claim. Full fresh-environment repeat/convergence evidence remains incomplete. |
-| 7. Sensitive configuration and security | Current protected inputs use Vault/AAP/private inventory and protected temporary files/output. Gitleaks is used, but cannot prove absence of arbitrary environment identifiers. Historical identifiers, WinRM trust, lab HTTP, rotation and full access review remain limitations/gaps below. No security waiver is silently accepted. |
+| 7. Sensitive configuration and security | Current protected inputs use Vault/AAP/private inventory and protected temporary files/output. Gitleaks is used, but cannot prove absence of arbitrary environment identifiers. The owner accepted the existing WinRM certificate-validation and WSUS HTTP lab deviations and closed the historical-username concern on 2026-10-29 (D10–D12). Rotation and full access review remain unverified; these are distinct from observed code defects. |
 | 8. Private hub and collection source | Exact published releases consumed from private hub; no runtime collection source vendored. Requirements files declare dependencies. Custom collection build/publication rules are not applicable because none is authored. |
 | 9. AAP and EEs | Normal job templates/workflows exercised the deployed vendor EE. No custom EE build is needed. Shared mutable image reference and complete vendor image/SBOM assessment remain gaps; changing a shared EE would affect other projects and was not done. |
 | 10. CaCable | Declarative native configurators exist and repeat-apply checks passed for exercised objects. Full reconstruction of all current projects, templates, surveys, workflow and credential references on a fresh AAP has not been demonstrated. An older core export does not close this requirement. |
@@ -84,13 +84,14 @@ inferred from having indexed the guide.
 | Git workflow | Main and versioning follow owner instructions. No feature branch is needed. Owner-directed direct main supersedes the PR recommendation. Mutable deployment references and lack of a final immutable accepted release remain recorded gaps. D8/U3. |
 | Testing | Offline Python/JS, native PowerShell orchestration and real AAP runs provide different evidence. No custom role/container matrix is claimed. Full combined E2E and some convergence/check-mode evidence remain incomplete. U1/U2. |
 | CI/CD and promotion | Pages CI runs browser checks. Equivalent automated Ansible/secret gates, release manifests and a tested full rollback/promotion procedure are not implemented. No enterprise dev/QA/prod process or CAB is invented for this demo. U3/U6. |
-| Security | Vault/credential handling, platform transport validation, ownership safeguards and tested regional RBAC provide scoped evidence. History privacy, certificate verification/HTTP exceptions, secret rotation, image/SBOM coverage and complete access auditing remain unresolved or limited. U4/U5/U6. |
+| Security | Vault/credential handling, platform transport validation, ownership safeguards and tested regional RBAC provide scoped evidence. The owner accepted the WinRM/WSUS lab exceptions and historical-username disposition (D10–D12). Secret rotation, image/SBOM coverage and complete access auditing remain unverified. U4/U5/U6. |
 
 ## Accepted low-impact deviations
 
-Accepted here means an agent disposition under the owner's proportionality
-policy. It does not mean full conformance. Effort estimates are qualitative;
-material security decisions remain unresolved below.
+Acceptance identifies either an agent disposition under the owner's
+proportionality policy or an explicit owner decision, as stated in the row.
+It does not mean full conformance. Effort estimates are qualitative; unresolved
+material security decisions remain separate below.
 
 | ID | Deviation, impact and benefit of correction | Cost, decision and revisit condition |
 | --- | --- | --- |
@@ -103,17 +104,20 @@ material security decisions remain unresolved below.
 | D7 | Keep unambiguous existing dot access, legitimate JSON serialization and established quoting where production lint accepts them. Independent verifier expectations intentionally duplicate the producer's contract. | Mechanical rewrites/custom filters create regression risk and can hide shared-oracle bugs. Revisit actual key collisions, confusing expressions or reusable transformations. |
 | D8 | Work directly on main as the owner explicitly requested. | Branch/PR enforcement contradicts the current instruction. Retain exact commits and test records; revisit when the owner adopts a shared contribution workflow. |
 | D9 | Retain the AD identity PowerShell batch although native user/group/OU modules exist. | Conversion must preserve ownership, safe retirement, administrator-added members and password policy behavior and needs live tests. Retain documented source choice; fresh runtime verification remains U1, not waived. Revisit when native reconciliation can demonstrate a simpler equivalent. |
+| D10 | Existing lab inventory ignores WinRM server-certificate validation. The connection does not authenticate the server certificate. Trusted certificate deployment would strengthen endpoint identity. | Explicitly accepted by the owner on 2026-10-29 with documentation. Retain for this lab; revisit before production reuse or a change in network trust assumptions. No trust configuration was weakened by this review. |
+| D11 | Existing WSUS content paths use HTTP rather than TLS. TLS would protect that transport. | Explicitly accepted by the owner on 2026-10-29 with documentation. Retain the lab design rather than adding a certificate/endpoint migration. Revisit before production reuse or changed network exposure. This exception is for WSUS HTTP, not a blanket waiver for other services. |
+| D12 | Historical public documentation contains deployment usernames, removed from the current guides. History rewriting could remove those references. | The owner explicitly closed this concern on 2026-10-29. Do not rewrite history or change identities for this review. This decision concerns those usernames; passwords, tokens and other secrets remain protected under the policy. |
 
 ## Unresolved requirements and security decisions
 
 | ID | Gap and practical implication | Required next evidence or decision |
 | --- | --- | --- |
-| U1 | No complete combined 29-stage pass; current 1.0.8 verifier fix only offline-tested. | Functionality checks, restarted full review and one complete normal AAP workflow including fresh AD. Record the exact tested source. |
+| U1 | No complete combined 29-stage pass; current 1.0.8 verifier fix only offline-tested. | The owner is responsible for the combined functional test. The agent must not launch it. Record the exact tested source and result when supplied; source-review checks remain separately accountable. |
 | U2 | Full current CaC restore/check/repeat evidence absent; old core export is insufficient. | Reconcile current declarative objects and protected counterparts, recreate them on an authorized test AAP, then verify repeat application. |
 | U3 | Mutable main/latest, incomplete promotion manifest, and Ansible CI parity. | Record actual source/image provenance per run; choose and verify an immutable accepted release and proportionate automated gates before claiming those CoP directives pass. Do not alter unrelated shared EEs. |
-| U4 | Existing lab WinRM disables server certificate verification; some WSUS/Nexus feeds use HTTP. Current fix secures the verifier's selected HTTPS target but does not repair these separate boundaries. | Assess actual protected inventory, endpoint capabilities and lab threat model; implement trust/TLS or obtain an explicit scoped security exception. No production-grade TLS or CIS compliance claim. |
-| U5 | Dependency backend incomplete; Python crypt deprecation; full vendor EE image/SBOM and advisory applicability not established. | Resolve the dependency preparation failures and vendor warning disposition against supported AAP. Obtain appropriate image/advisory evidence. Upstream pip-audit findings are leads, not proven Red Hat image vulnerabilities. |
-| U6 | Historical documentation contained environment identifiers; rewriting history was not authorized. Gitleaks cannot establish identifier privacy. Secret rotation cadence, full service-account access audit and rollback/promotion rehearsal are unverified. | Assess scope with protected evidence and owner decisions where needed. No unsupported assertion of secret exposure, rotation, complete audit or reliable whole-system rollback. |
+| U4 | WinRM certificate validation and WSUS HTTP are resolved as owner-accepted lab deviations D10/D11. No blanket exception for other service transports is inferred. | Record these exceptions without further WinRM/WSUS changes. Any additional transport concern needs its own evidence and disposition. No production-grade TLS or CIS compliance claim. |
+| U5 | Dependency backend incomplete; Python crypt deprecation; full vendor EE image/SBOM and advisory applicability not established. | Account for APME's failure on synthetic collection records and the vendor warning against supported AAP. Obtain appropriate image/advisory evidence. Upstream pip-audit findings are leads, not proven Red Hat image vulnerabilities. |
+| U6 | Historical usernames are closed by owner decision D12. Gitleaks does not establish arbitrary identifier privacy. Secret rotation cadence, full service-account access audit and rollback/promotion rehearsal are unverified. | Do not rewrite history for those usernames. Record the other evidence gaps separately; no unsupported assertion of secret exposure, rotation, complete audit or reliable whole-system rollback. |
 | U7 | CIS benchmark, version/profile and individual Windows/DC controls not selected and assessed. | Select applicable benchmarks/controls before runtime assessment. Generic scanner checks and this review do not certify host compliance. No additional hardening imposed speculatively. |
 
 ## Conflicting guidance and chosen approaches
@@ -143,12 +147,23 @@ APME source: pre-release `9c4372f79a8b537865040cea17cf9db7659614ad`.
 | Ansible | 1 | Proposed equivalence between `ansible.platform.user` and OS `ansible.builtin.user` is inapplicable; these manage different objects. |
 | Collection health | 11 | Findings in upstream integration/examples, not authored runtime content. Not an attestation of all upstream content. |
 | Gitleaks | 0 | Pattern scan result only; separate Git history scan also found no pattern matches. |
-| Dependency audit | 0 reported | **Incomplete:** dependency preparation failed on seven synthetic Galaxy/PyPI records. Zero does not mean a clean audit. |
+| Dependency audit | 0 reported | **Incomplete:** pip-audit stopped on a synthetic collection record; seven such records exist in the session. Zero does not mean a clean audit. |
 
 Total 855 observations. Suggested automatic edits were not blindly applied.
 Supplemental pip-audit covered 25 real PyPI distributions in an isolated target
 session; that session differs from the vendor EE. Vendor package versions and
 backported fixes require separate applicability assessment.
+
+APME installs bookkeeping distribution records for Ansible collections in its
+isolated Python session, for example `ansible-collection-microsoft-iis`. Its
+dependency backend then asks pip-audit to look these names up on PyPI. Collections
+are distributed through Galaxy/private automation hub, so these synthetic names
+are not actual PyPI packages. The audit stops at the first lookup failure. APME
+logs that failure but returns an empty observation list, which cannot establish
+a clean dependency scan. The supplemental audit excludes those seven synthetic
+records and checks the 25 real Python distributions; collection compatibility,
+provenance and content are assessed separately. This is an APME integration
+limitation, not evidence that a collection or playbook is defective.
 
 Offline regression and production-lint commands, results, live job references,
 fix commits and optional recommendations are in the dated incomplete report.

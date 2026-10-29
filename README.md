@@ -33,7 +33,7 @@ enabled and checks the actual workflow launch configuration before recreation.
 
 Strict production lint passes 116 processed files and all 109 Python tests pass
 on the 1.0.8 source. The six PowerShell suites passed on both managed
-Windows servers before teardown, including normal protected-output execution;
+Windows servers on their recorded revision, including normal protected-output execution;
 the live IIS/WSUS export test also passed on its recorded earlier revision.
 Both the separate core run and all 21 core stages within the complete workflow
 passed on the 1.0.7 functional revision. The complete 29-stage run failed because
@@ -52,6 +52,15 @@ See the [quality assessment](docs/review-quality-assessment.md) and
 [requirements/deviation record](docs/review-requirements-and-deviations.md) for
 explicit verdicts and evidence. These records distinguish source assessment,
 prior functional results and remaining acceptance gates.
+
+The owner accepted the existing lab's WinRM certificate-validation exception
+and WSUS HTTP transport, and closed the historical-username concern. These
+scoped decisions are recorded in the requirements/deviation record; no
+production security compliance is claimed. The combined functional test is
+owned by the user and remains separate from the agent's source-review work.
+The [dated incomplete review record](Code_Review_2026-10-29_INCOMPLETE.md)
+identifies exact revisions, available results, accepted deviations and missing
+evidence. It is not a successful completion certificate.
 
 A successful review still requires resolved findings or documented accepted
 deviations, explicit functionality confirmation, and the final complete test
