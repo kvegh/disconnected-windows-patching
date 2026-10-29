@@ -91,7 +91,7 @@ from the target AAP runtime.
 
 ## Deviations, conflicts and remaining gaps
 
-Accepted dispositions D1–D16 in the requirements record include compatible
+Accepted dispositions D1–D17 in the requirements record include compatible
 legacy names, coherent task includes, documented supporting code, useful existing
 tests and owner-directed main-only work. Each identifies the reason and revisit
 condition. On 2026-10-29 the owner explicitly accepted:
@@ -107,6 +107,9 @@ condition. On 2026-10-29 the owner explicitly accepted:
   existing recorded source/image identifiers remain scoped evidence.
 - Retaining existing review checks, Pages CI and GitHub protection without
   introducing additional automated Ansible/pre-commit/CI gates.
+- Skipping further complete rollback verification for this demo environment;
+  existing retry/recreation instructions remain, without claiming full prior-state
+  restoration.
 
 Conflicting naming, comments, historical Jinja, native-module preference and Git
 workflow guidance are resolved explicitly in the
@@ -115,10 +118,11 @@ These choices preserve existing interfaces and the supported AAP runtime instead
 of introducing cosmetic breakage or unsupported upgrades.
 
 Owner-skipped gaps include additional idempotency and complete CaC reconstruction
-verification, release-reference locking and additional CI gates. Remaining open
+verification, release-reference locking, additional CI gates and further complete
+rollback verification for this demo. Remaining open
 questions include APME dependency-backend coverage/vendor warning
 disposition; full image/SBOM and advisory applicability assessment; CIS control
-assessment; and unverified rotation/access-audit/rollback practices. These are
+assessment; and unverified rotation/access-audit practices. These are
 not automatically confirmed playbook defects. Full functional evidence remains
 the owner's responsibility. Nothing here reports an unperformed check as pass.
 

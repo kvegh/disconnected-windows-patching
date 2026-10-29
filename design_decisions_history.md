@@ -27,6 +27,9 @@ do not change deployed project revisions, EEs or release tags. The owner also
 chose to move on without additional automated quality gates (D16). Retain the
 existing recorded checks, Pages workflow and GitHub protection; do not introduce
 a PR workflow or claim automated Ansible CI enforcement.
+The owner then skipped further complete rollback verification specifically for
+the demo environment (D17). Keep the existing retry/recreation guidance without
+adding rollback machinery or claiming a verified full prior-state restore.
 
 ## 2026-10-29 — Reject verifier redirects and record source-quality decisions
 

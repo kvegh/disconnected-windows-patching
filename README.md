@@ -64,7 +64,8 @@ evidence. It is not a successful completion certificate.
 The [review TODO checklist](TODO.md#code-review-checklist) tracks all 15 policy
 areas and groups the CoP questions into nine topics with their current decisions.
 The owner skipped further idempotency/CaC reconstruction verification and
-declined release-reference locking and additional CI gates in this review.
+declined release-reference locking and additional CI gates, and skipped further
+complete rollback verification for this demo environment.
 Existing checks and GitHub protection remain in place. Unperformed checks are not
 represented as passed tests. The list distinguishes
 missing evidence and process decisions from code defects.

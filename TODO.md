@@ -25,9 +25,10 @@ accepted deviation. Discuss the open CoP topics below individually.
 - [x] **R05 — Native Ansible and content selection:** suitable native modules,
   certified/community provenance and retained alternatives assessed;
   [foreign-code reasons](docs/supporting-code.md) and linked comments documented.
-- [ ] **R06 — Idempotency, failure handling and recovery:** source safeguards,
-  focused negative tests and selected repeat applies assessed. The owner skipped
-  additional idempotency verification in CP01; recovery remains CP05.
+- [x] **R06 — Idempotency, failure handling and recovery disposition:** source
+  safeguards, focused negative tests and selected repeat applies assessed. The
+  owner skipped additional idempotency verification (CP01) and further complete
+  rollback verification for this demo (CP05). Unperformed checks are not passes.
 - [ ] **R07 — Credentials and security:** protected inputs and secret scanning
   assessed. WinRM certificate checking and WSUS HTTP are owner-accepted lab
   deviations; historical usernames are closed. CP06/CP07/CP09 cover distinct
@@ -86,11 +87,11 @@ to the same topic. PR-only checks do not apply to owner-directed main-only work.
   does not claim automatic Ansible enforcement or waive the owner's functional
   test. Accepted deviation D16. Trace: COP-240, COP-253–254, COP-266–267,
   COP-270–271, COP-287.
-- [ ] **CP05 — Recovery and rollback boundary.** Compare the documented
-  recovery/recreation paths with the supported demo lifecycle. State what can be
-  retried, restored or recreated, and what has actually been verified. A partial
-  recovery guide is not evidence of restoring every prior machine/data state.
-  Trace: COP-281.
+- [x] **CP05 — Recovery and rollback boundary: owner skipped for this demo.**
+  On 2026-10-29 the owner skipped further complete rollback verification for
+  this demo environment. Retain the existing retry/recreation instructions;
+  do not claim restoration of every prior machine/data state or add rollback
+  machinery for this review. Accepted deviation D17. Trace: COP-281.
 - [ ] **CP06 — Least privilege and periodic access review.** Regional RBAC
   tests cover the demo matrix. Verify or explicitly scope remaining AAP service
   account, credential and automation-pipeline permissions and the access-review
