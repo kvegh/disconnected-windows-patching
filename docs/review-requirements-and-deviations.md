@@ -71,9 +71,9 @@ retained for its examples where the same evidence is missing; no blanket pass is
 inferred from having indexed the guide.
 
 The [review worklist](../TODO.md#open-cop-topics-to-review-individually) groups
-29 unresolved trace entries into seven open evidence/process topics; two further
-topics (idempotency and CaC reconstruction verification) were skipped by the
-owner for this review as D13/D14.
+15 unresolved trace entries into five open evidence/process topics; the owner
+skipped further idempotency/CaC reconstruction verification and declined
+release-reference locking and additional CI gates for this review (D13–D16).
 Repeated bullets and examples are not separate demonstrated defects. PR-only
 checks are inapplicable to the owner's main-only workflow; potential automated
 checks on main remain a separate question. Kubernetes/VPC examples do not create
@@ -119,6 +119,8 @@ material security decisions remain separate below.
 | D12 | Historical public documentation contains deployment usernames, removed from the current guides. History rewriting could remove those references. | The owner explicitly closed this concern on 2026-10-29. Do not rewrite history or change identities for this review. This decision concerns those usernames; passwords, tokens and other secrets remain protected under the policy. |
 | D13 | Additional scoped idempotency verification is not performed; existing targeted repeat evidence does not cover every applicable playbook. More tests would increase repeat-run confidence. | The owner explicitly skipped this check for the current review on 2026-10-29. Retain existing evidence and code safeguards without claiming the unperformed checks passed. Revisit if additional convergence verification is requested. |
 | D14 | Complete current CaC reconstruction verification is not performed. A fresh restore/check/repeat would provide stronger restoration evidence. | The owner explicitly skipped this assessment for the current review on 2026-10-29. Existing configurators remain; no complete restore is claimed. Revisit when restoration must be demonstrated separately. This does not waive release-provenance or CI questions. |
+| D15 | Retain mutable main/latest references rather than introducing release-reference locking and a complete immutable release manifest. Recorded source SHAs and observed EE digests provide scoped traceability, but do not force future runs to use identical content. | After the locking approach was explained on 2026-10-29, the owner declined it and chose to move on. No AAP revision, shared EE, release-tag or manifest change is required for this review. Revisit if strict replay or release promotion becomes a requirement. |
+| D16 | Retain the recorded review checks and current Pages CI without adding automated Ansible/pre-commit/CI gates or new branch restrictions. Automatic enforcement could improve consistency across future changes. | After automated checks were explained on 2026-10-29, the owner chose to move on. No new pipeline is required for this review. Existing GitHub protection and recorded checks remain; automatic Ansible enforcement is not claimed. Revisit when contribution or release requirements change. This does not waive the owner's functional test. |
 
 ## Unresolved requirements and security decisions
 
@@ -126,7 +128,7 @@ material security decisions remain separate below.
 | --- | --- | --- |
 | U1 | No complete combined 29-stage pass; current 1.0.8 verifier fix only offline-tested. | The owner is responsible for the combined functional test. The agent must not launch it. Record the exact tested source and result when supplied; source-review checks remain separately accountable. |
 | U2 | Full current CaC restore/check/repeat evidence absent; old core export is insufficient. | Owner skipped further assessment for this review (D14); closed as an accepted deviation, not verified reconstruction. Additional idempotency verification is separately owner-skipped (D13). |
-| U3 | Mutable main/latest, incomplete promotion manifest, and Ansible CI parity. | Record actual source/image provenance per run; choose and verify an immutable accepted release and proportionate automated gates before claiming those CoP directives pass. Do not alter unrelated shared EEs. |
+| U3 | Mutable main/latest and immutable-manifest requirements are owner-accepted as D15; additional automated quality gates are owner-skipped as D16. | Retain recorded source/image evidence, existing checks and current GitHub protection. No locking, shared EE change or additional pipeline required for this review. |
 | U4 | WinRM certificate validation and WSUS HTTP are resolved as owner-accepted lab deviations D10/D11. No blanket exception for other service transports is inferred. | Record these exceptions without further WinRM/WSUS changes. Any additional transport concern needs its own evidence and disposition. No production-grade TLS or CIS compliance claim. |
 | U5 | Dependency backend incomplete; Python crypt deprecation; full vendor EE image/SBOM and advisory applicability not established. | Account for APME's failure on synthetic collection records and the vendor warning against supported AAP. Obtain appropriate image/advisory evidence. Upstream pip-audit findings are leads, not proven Red Hat image vulnerabilities. |
 | U6 | Historical usernames are closed by owner decision D12. Gitleaks does not establish arbitrary identifier privacy. Secret rotation cadence, full service-account access audit and rollback/promotion rehearsal are unverified. | Do not rewrite history for those usernames. Record the other evidence gaps separately; no unsupported assertion of secret exposure, rotation, complete audit or reliable whole-system rollback. |

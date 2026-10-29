@@ -21,7 +21,12 @@ separate open questions. No runtime configuration, credentials or executable cod
 is changed by this documentation update. The owner subsequently skipped further
 idempotency and CaC reconstruction verification for this review. Record those
 as accepted deviations D13/D14 without claiming unperformed checks passed;
-release references remain a separate topic under discussion.
+the owner then declined release-reference locking and chose to move on. Retain
+main/latest with the already recorded source/image identifiers as deviation D15;
+do not change deployed project revisions, EEs or release tags. The owner also
+chose to move on without additional automated quality gates (D16). Retain the
+existing recorded checks, Pages workflow and GitHub protection; do not introduce
+a PR workflow or claim automated Ansible CI enforcement.
 
 ## 2026-10-29 — Reject verifier redirects and record source-quality decisions
 

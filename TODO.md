@@ -73,16 +73,18 @@ to the same topic. PR-only checks do not apply to owner-directed main-only work.
   This does not remove existing configurators or establish a verified complete
   current restore. Accepted deviation D14. Release provenance and CI questions
   remain separate. Trace: COP-223, COP-233–239, COP-249, COP-280, COP-300.
-- [ ] **CP03 — Release references and provenance.** Decide how this demo
-  identifies an accepted source, CaC/protected configuration and EE release
-  consistently. Current main/latest references are mutable despite recorded
-  SHAs/digests. Preserve main-only development; do not alter shared EEs merely
-  to satisfy a naming preference. Trace: COP-246–249, COP-280, COP-300.
-- [ ] **CP04 — Proportionate automated checks.** Decide which existing lint,
-  regression and secret checks should run automatically on main, and document
-  retained manual gates or justified exceptions. Pages CI currently covers the
-  browser walkthrough. PR size/title/merge checks are inapplicable; they are not
-  tasks to introduce a PR workflow. Trace: COP-240, COP-253–254, COP-266–267,
+- [x] **CP03 — Release references and provenance: owner skipped.** On
+  2026-10-29 the owner declined locking and chose to move on. Keep the current
+  main/latest references and existing recorded SHAs/digests. No AAP revision,
+  EE, release-tag or manifest change is required for this review. This does not
+  guarantee that future runs resolve to identical content. Accepted deviation
+  D15. Trace: COP-246–249, COP-280, COP-300.
+- [x] **CP04 — Proportionate automated checks: owner skipped.** On 2026-10-29
+  the owner chose to move on without adding automated Ansible/pre-commit/CI
+  gates. Retain the recorded review checks, existing Pages CI and GitHub secret
+  protection. No PR workflow or new branch restrictions are introduced. This
+  does not claim automatic Ansible enforcement or waive the owner's functional
+  test. Accepted deviation D16. Trace: COP-240, COP-253–254, COP-266–267,
   COP-270–271, COP-287.
 - [ ] **CP05 — Recovery and rollback boundary.** Compare the documented
   recovery/recreation paths with the supported demo lifecycle. State what can be

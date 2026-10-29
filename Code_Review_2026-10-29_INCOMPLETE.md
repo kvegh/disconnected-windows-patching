@@ -91,7 +91,7 @@ from the target AAP runtime.
 
 ## Deviations, conflicts and remaining gaps
 
-Accepted dispositions D1–D14 in the requirements record include compatible
+Accepted dispositions D1–D16 in the requirements record include compatible
 legacy names, coherent task includes, documented supporting code, useful existing
 tests and owner-directed main-only work. Each identifies the reason and revisit
 condition. On 2026-10-29 the owner explicitly accepted:
@@ -103,6 +103,10 @@ condition. On 2026-10-29 the owner explicitly accepted:
 - Skipping additional idempotency and CaC reconstruction verification for this
   review. Existing evidence is retained; no unperformed verification is reported
   as passed.
+- Retaining current mutable release references instead of introducing locking;
+  existing recorded source/image identifiers remain scoped evidence.
+- Retaining existing review checks, Pages CI and GitHub protection without
+  introducing additional automated Ansible/pre-commit/CI gates.
 
 Conflicting naming, comments, historical Jinja, native-module preference and Git
 workflow guidance are resolved explicitly in the
@@ -111,8 +115,8 @@ These choices preserve existing interfaces and the supported AAP runtime instead
 of introducing cosmetic breakage or unsupported upgrades.
 
 Owner-skipped gaps include additional idempotency and complete CaC reconstruction
-verification. Remaining open questions include immutable release
-provenance and Ansible CI parity; APME dependency-backend coverage/vendor warning
+verification, release-reference locking and additional CI gates. Remaining open
+questions include APME dependency-backend coverage/vendor warning
 disposition; full image/SBOM and advisory applicability assessment; CIS control
 assessment; and unverified rotation/access-audit/rollback practices. These are
 not automatically confirmed playbook defects. Full functional evidence remains
