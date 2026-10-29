@@ -1,5 +1,123 @@
 # Demo TODO
 
+## Code review checklist
+
+This is the complete review worklist, organized by the 15 sections of the
+[review policy](https://github.com/kvegh/Agent_generated_code_review/blob/e45b49b/README.md).
+A checked item means the stated assessment is completed, including documented
+deviations. An unchecked item identifies remaining evidence or a decision; it
+does not automatically identify a code defect. Each open item can close through
+verification, a focused correction, justified non-applicability or a documented
+accepted deviation. Discuss the open CoP topics below individually.
+
+- [ ] **R01 — Whole CoP guide:** close CP01–CP09 below. All 13 areas and 310
+  trace entries are already accounted for; mapping alone is not full acceptance.
+- [ ] **R02 — Red Hat and CIS guidance:** Red Hat development guidance has been
+  consulted. Select the applicable CIS benchmark/profile/controls and record the
+  assessment or a proportionate scoped disposition. No host compliance claimed.
+- [ ] **R03 — Actual AAP core and deprecations:** core 2.16.19/Python 3.12.14
+  and compatible collection pins are verified; deprecated authored module usage
+  was replaced. Record a final disposition for the vendor-owned Python `crypt`
+  warning without independently upgrading the supported Ansible runtime.
+- [x] **R04 — Readability, simplicity, naming and comments:** explicit
+  [source assessment](docs/review-quality-assessment.md) and naming/style
+  deviations documented; no human readability sign-off required.
+- [x] **R05 — Native Ansible and content selection:** suitable native modules,
+  certified/community provenance and retained alternatives assessed;
+  [foreign-code reasons](docs/supporting-code.md) and linked comments documented.
+- [ ] **R06 — Idempotency, failure handling and recovery:** source safeguards,
+  focused negative tests and selected repeat applies assessed. The owner skipped
+  additional idempotency verification in CP01; recovery remains CP05.
+- [ ] **R07 — Credentials and security:** protected inputs and secret scanning
+  assessed. WinRM certificate checking and WSUS HTTP are owner-accepted lab
+  deviations; historical usernames are closed. CP06/CP07/CP09 cover distinct
+  remaining platform practices and boundary evidence.
+- [x] **R08 — Private automation hub:** exact release pins/source availability
+  checked; no vendored runtime collections or newly authored collection.
+- [ ] **R09 — AAP execution and EEs:** actual normal-template/workflow runtime
+  verified. Finish the image/release evidence or disposition in CP03/CP08.
+- [x] **R10 — CaCable assessment disposition:** the owner skipped additional
+  CaC reconstruction verification for this review (CP02). Existing configurators
+  remain; a complete current restore is not claimed as verified.
+- [x] **R11 — Speed:** job timings, workflow concurrency and bounded waits
+  assessed. No unsupported performance improvement claimed.
+- [ ] **R12 — Strict lint and APME:** production lint passed; APME scan and
+  triage recorded. Its dependency backend fails on synthetic collection package
+  records. Document reliable supplemental coverage and the tooling limitation;
+  do not interpret zero returned observations as a clean dependency audit.
+- [ ] **R13 — Smoke and functionality tests:** 109 Python tests, 14 browser
+  tests, six PowerShell suites and scoped AAP core evidence recorded on their
+  respective revisions. The combined functional test belongs to the owner;
+  record its exact tested revision/result when supplied.
+- [ ] **R14 — Review procedure and dated report:** fix batches, conflicts and
+  evidence recorded in the [incomplete dated report](Code_Review_2026-10-29_INCOMPLETE.md).
+  Complete the remaining dispositions and evidence before issuing a successful
+  review report. Do not invent findings to generate more changes.
+- [x] **R15 — Documentation:** README, TLDR, source-quality assessment,
+  requirements/deviations, CoP trace, decision history and visual walkthrough
+  maintained. Keep this worklist current as decisions are made.
+
+## Open CoP topics to review individually
+
+These are grouped evidence/process questions, not a list of demonstrated
+playbook defects. The [directive trace](docs/review-cop-directives.csv) gives
+the exact source locations; repeated sections, bullets and examples can point
+to the same topic. PR-only checks do not apply to owner-directed main-only work.
+
+- [x] **CP01 — Scoped idempotency evidence: owner skipped.** On 2026-10-29
+  the owner chose to skip further idempotency verification in this review.
+  Existing repeat-test evidence remains valid within its scope; unperformed
+  checks are not passes. Accepted deviation D13. Trace: COP-184, COP-264, COP-239.
+- [x] **CP02 — Complete CaC reconstruction: owner skipped.** On 2026-10-29
+  the owner chose to skip further CaC reconstruction assessment in this review.
+  This does not remove existing configurators or establish a verified complete
+  current restore. Accepted deviation D14. Release provenance and CI questions
+  remain separate. Trace: COP-223, COP-233–239, COP-249, COP-280, COP-300.
+- [ ] **CP03 — Release references and provenance.** Decide how this demo
+  identifies an accepted source, CaC/protected configuration and EE release
+  consistently. Current main/latest references are mutable despite recorded
+  SHAs/digests. Preserve main-only development; do not alter shared EEs merely
+  to satisfy a naming preference. Trace: COP-246–249, COP-280, COP-300.
+- [ ] **CP04 — Proportionate automated checks.** Decide which existing lint,
+  regression and secret checks should run automatically on main, and document
+  retained manual gates or justified exceptions. Pages CI currently covers the
+  browser walkthrough. PR size/title/merge checks are inapplicable; they are not
+  tasks to introduce a PR workflow. Trace: COP-240, COP-253–254, COP-266–267,
+  COP-270–271, COP-287.
+- [ ] **CP05 — Recovery and rollback boundary.** Compare the documented
+  recovery/recreation paths with the supported demo lifecycle. State what can be
+  retried, restored or recreated, and what has actually been verified. A partial
+  recovery guide is not evidence of restoring every prior machine/data state.
+  Trace: COP-281.
+- [ ] **CP06 — Least privilege and periodic access review.** Regional RBAC
+  tests cover the demo matrix. Verify or explicitly scope remaining AAP service
+  account, credential and automation-pipeline permissions and the access-review
+  practice. Do not claim an organization-wide audit from regional tests.
+  Trace: COP-293–296, COP-306–310.
+- [ ] **CP07 — Credential rotation practice.** Check the actual supported
+  rotation/revocation process or document the lab's accepted limitation. No
+  credential exposure was established, and this item does not authorize changing
+  credentials just to demonstrate activity. Trace: COP-298.
+- [ ] **CP08 — Vendor EE security evidence.** Record applicable image
+  vulnerability and software-component inventory/SBOM evidence, advisory
+  applicability, or an explicit scoped disposition. Upstream Python tooling
+  findings do not establish that the vendor EE is affected. Trace: COP-299.
+- [ ] **CP09 — Intended network boundaries.** Assess the lab's actual
+  separation and permitted management traffic against the CoP environment
+  segmentation guidance. Document the supported boundary and evidence; do not
+  require a new Kubernetes/VPC or enterprise dev/QA/prod architecture. Accepted
+  WinRM/WSUS exceptions remain closed. Trace: COP-301, COP-303, COP-305.
+
+APME's dependency-backend failure, the vendor `crypt` warning and CIS selection
+also remain in the full checklist above; they are not additional confirmed CoP
+playbook bugs. The [requirements record](docs/review-requirements-and-deviations.md)
+contains current dispositions and conflicts.
+
+## Existing demo backlog
+
+The entries below retain earlier implementation/follow-up work. Historical
+checked items do not replace current revision evidence in the review checklist.
+
 ## Review Ansible use and external dependencies
 
 - Review every automation stage to identify whether it uses native Ansible
@@ -65,7 +183,7 @@
 - Validate Task Scheduler network configuration on all four freshly cloned VMs.
 - Exercise the five application stages: sync, export, import, baseline deployment and upgrade.
 - Add metadata snapshot/import-log retention without deleting active transfer files.
-- Migrate pinned community IIS modules to microsoft.iis before their upstream removal.
+- [x] Migrate pinned community IIS modules to microsoft.iis before their upstream removal.
 
 ## Active Directory and AAP permissions from nested groups
 
@@ -106,7 +224,7 @@
   objects, an unchanged second run, preserved nested permissions and cleanup.
   The following complete AAP access regression passed again.
 - [x] Document readable hyphenated resource labels, the deployed-key lookup,
-  actual demo usernames, new-user Windows steps and multiple permissions per
+  protected-prefix username patterns, new-user Windows steps and multiple permissions per
   mapped AD group.
 
 An access-removal demonstration is outside the requested scope. The presenter

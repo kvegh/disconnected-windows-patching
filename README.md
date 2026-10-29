@@ -61,6 +61,11 @@ owned by the user and remains separate from the agent's source-review work.
 The [dated incomplete review record](Code_Review_2026-10-29_INCOMPLETE.md)
 identifies exact revisions, available results, accepted deviations and missing
 evidence. It is not a successful completion certificate.
+The [review TODO checklist](TODO.md#code-review-checklist) tracks all 15 policy
+areas and groups the CoP questions into nine topics with their current decisions.
+The owner skipped further idempotency and CaC reconstruction verification in
+this review; neither is represented as a passed test. The list distinguishes
+missing evidence and process decisions from code defects.
 
 A successful review still requires resolved findings or documented accepted
 deviations, explicit functionality confirmation, and the final complete test

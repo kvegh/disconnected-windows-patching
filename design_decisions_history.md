@@ -1,5 +1,28 @@
 # Design decisions history
 
+## 2026-10-29 — Track the full review checklist and scope the open CoP topics
+
+Executable source remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`.
+Documentation baseline: `adcf3bc57b6231d1eba3566aaa6310de3f329d1c`.
+
+The owner requested the whole requirements list in TODO and a discussion of the
+remaining CoP items. Add all 15 policy sections to the checklist, distinguishing
+completed assessments, accepted exceptions and missing evidence. Group the
+remaining CoP entries into nine underlying questions rather than treating every
+repeated bullet/example as another code defect. Preserve the earlier demo backlog
+and distinguish historical completion from current review evidence.
+
+Correct PR-only checks that had remained unresolved despite the owner's existing
+main-only instruction. Mark Kubernetes/VPC examples outside the declared lab as
+inapplicable. Narrow idempotency and network evidence wording to the supported
+scope instead of implying universal coverage or an independent penetration test.
+Checks on main, scoped repeat behavior and actual network boundaries remain
+separate open questions. No runtime configuration, credentials or executable code
+is changed by this documentation update. The owner subsequently skipped further
+idempotency and CaC reconstruction verification for this review. Record those
+as accepted deviations D13/D14 without claiming unperformed checks passed;
+release references remain a separate topic under discussion.
+
 ## 2026-10-29 — Reject verifier redirects and record source-quality decisions
 
 Implementation commit: `399ad929fe3eda9cb75e60583f5160fe81ef7b98`
