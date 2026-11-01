@@ -1,5 +1,32 @@
 # Design decisions history
 
+## 2026-11-01 — Close the agreed code-only review with recorded limits
+
+Executable source remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`
+(version 1.0.8); the preceding documentation baseline is
+`30369faf195d6d14d349211ada77fb5ec3dd382a`.
+
+The owner requested the final report update and closure of the agent's review
+work. Add the dated code-only closeout, preserve the earlier incomplete record,
+and align README/TLDR and the requirements record. Account for all 855 saved
+APME observations: 101 individually assessed security cases, 321 owner-deferred
+variable warnings, and 433 observations with grouped target/semantic/style and
+proportionality dispositions. Grouped advice is not presented as individually
+reproduced defects or fixes.
+
+Record the failed APME dependency integration and vendor-owned `crypt` warning
+as reviewer limitations D24/D25 under the proportionality requirement. Retain
+usable backend evidence and the supported runtime without hiding warnings,
+claiming a clean audit or making unnecessary project/vendor changes. No explicit
+owner approval of individual dependencies is inferred. Revisit when complete
+dependency coverage or a supported runtime update is required.
+
+This closes source-review work, not full functional acceptance. The combined
+Windows/AD test remains the owner's responsibility and its absent result stays
+explicit. No new executable change, version bump, audit, installation or live
+operation is introduced. Current review closeout is tracked in Beads
+`bead-wd-jgw`; umbrella rotation remains `bead-wd-8ee`.
+
 ## 2026-11-01 — Defer further variable and Vault-definition review
 
 Executable source remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`;

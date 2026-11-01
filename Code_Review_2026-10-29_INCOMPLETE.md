@@ -1,5 +1,9 @@
 # Code review record — 2026-10-29
 
+Historical interim record. The [2026-11-01 code-only closeout](Code_Review_2026-11-01.md)
+supersedes the open review status below and preserves the missing combined
+functional evidence. It does not turn this earlier incomplete run into a pass.
+
 **Incomplete review record; no claim of full policy compliance or final functional
 acceptance.** The owner is responsible for the combined functional test. This
 document records the source assessment, available evidence and remaining gaps.

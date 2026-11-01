@@ -62,26 +62,29 @@ old unbound artifacts cannot be used for verification.
 
 ## Review and evidence
 
-Review acceptance is incomplete. Both recorded core runs passed all 21 core
-stages on the 1.0.7 revision. The combined run's AD creation did not start because
-its project sync failed during the platform outage. The 1.0.8 client fix is
-offline-tested; a complete combined AAP run remains required for acceptance.
+The [code-only review is closed](Code_Review_2026-11-01.md), with documented
+deviations and deferred checks. Full functional acceptance is not confirmed:
+both recorded core runs passed all 21 core stages on 1.0.7, but the combined
+run's AD creation did not start after its project sync failed. The 1.0.8 client
+fix is offline-tested; the owner handles the complete combined AAP test.
 The version file identifies cleanup patches; it does not certify acceptance. See the [test guide](tests/README.md) for Python,
 PowerShell and JavaScript checks and the
 [supporting-code rationale](docs/supporting-code.md) for every retained language.
 The [quality assessment](docs/review-quality-assessment.md) records agent
 judgments on readability and simplicity; the
 [requirements/deviation record](docs/review-requirements-and-deviations.md)
-separates accepted minor deviations from unresolved acceptance requirements.
+separates completed checks, accepted limits, deferred variable verification and
+missing functional evidence. APME's failed dependency audit and the vendor
+`crypt` warning remain explicitly recorded limitations.
 
 `verify_windows_regressions.yml` provides native Ansible orchestration for the
 six mocked PowerShell suites on the two endnodes. These regressions complement
 live service validation and the complete scoped AAP end-to-end workflow.
 
-After findings are fixed in a batch, run functionality tests, restart the full
-review, and finish with the end-to-end test. Only then create the dated
-`Code_Review_YYYY-MM-DD.md` report with actual functionality confirmation,
-conflicting guidance and choices, accepted deviations and untested scope.
+For future functional changes, fix findings in a batch, run functionality tests,
+restart the full review, and finish with the scoped end-to-end test. The current
+dated report closes the agent's source work and records the missing combined
+confirmation; it does not certify that unperformed test.
 
 Use the [README](README.md) for setup and template details, the
 [WSUS data flow](docs/wsus-data-flow.md), the

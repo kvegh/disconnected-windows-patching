@@ -39,7 +39,7 @@ Both the separate core run and all 21 core stages within the complete workflow
 passed on the 1.0.7 functional revision. The complete 29-stage run failed because
 an AD prerequisite project sync could not download collection metadata during
 the platform outage; that sync subsequently passed on retry. AD creation did
-not execute. No complete Windows-and-AD end-to-end pass or final review
+not execute. No complete Windows-and-AD end-to-end pass or full functional
 acceptance is claimed.
 
 The 1.0.8 source assessment also found that the AD verifier used urllib's default
@@ -51,17 +51,19 @@ chain with synthetic responses; this does not replace a live AD/AAP rerun.
 See the [quality assessment](docs/review-quality-assessment.md) and
 [requirements/deviation record](docs/review-requirements-and-deviations.md) for
 explicit verdicts and evidence. These records distinguish source assessment,
-prior functional results and remaining acceptance gates.
+prior functional results, accepted limitations and owner-owned functional acceptance.
 
 The owner accepted the existing lab's WinRM certificate-validation exception
 and WSUS HTTP transport, and closed the historical-username concern. These
 scoped decisions are recorded in the requirements/deviation record; no
 production security compliance is claimed. The combined functional test is
 owned by the user and remains separate from the agent's source-review work.
-The [dated incomplete review record](Code_Review_2026-10-29_INCOMPLETE.md)
-identifies exact revisions, available results, accepted deviations and missing
-evidence. It is not a successful completion certificate.
-Current review decisions are tracked in workspace Beads issue `bead-wd-jgw`
+The [2026-11-01 review report](Code_Review_2026-11-01.md) closes the agreed
+**code-only review with documented deviations and deferred checks**. It records
+exact revisions, available results and missing functional evidence; it is not a
+full end-to-end acceptance certificate. The earlier incomplete report is
+retained as history.
+Review closeout is tracked in workspace Beads issue `bead-wd-jgw`
 (`bd show bead-wd-jgw`). The [earlier review checklist](TODO.md#code-review-checklist)
 is a historical snapshot; current task state belongs in Beads.
 The owner skipped further idempotency/CaC reconstruction verification and
@@ -93,11 +95,13 @@ belong to upstream collection test fixtures. No additional executable correction
 was justified within this review's scope. This does not clear the other APME
 observations or establish a clean dependency audit; version remains 1.0.8.
 
-A successful review still requires resolved findings or documented accepted
-deviations, explicit functionality confirmation, and the final complete test
-within the declared environment. The version alone does not establish review
-acceptance. The dated completion report will identify the exact functional
-revision and evidence after those requirements pass.
+The final report accounts for all 855 APME observations, separating individual
+security assessment, grouped advisory dispositions and owner-deferred variables.
+The failed dependency backend and vendor `crypt` warning are recorded limitations
+(D24/D25), not clean scan results. No further confirmed source defect remains on
+the current review list. Full functional acceptance still requires the owner's
+combined test and its exact tested revision/result; the version alone does not
+certify it.
 
 The managed-node proof reporter uses the same live PowerShell query from a
 **Windows Demo Proof** desktop shortcut and the **Show Managed Windows Demo
@@ -938,7 +942,7 @@ for the earlier SYSTEM process-token launch failure. See
 
 AAP execution-node access to the isolated endnodes is required. Installer downloads
 and vaulted application credentials are configured for deployment. See the detailed
-[implementation status and remaining work](docs/application-deployment.md#implementation-status-and-remaining-work).
+[remaining application work](docs/application-deployment.md#remaining-work).
 
 ### Permanent Windows NIC configuration
 

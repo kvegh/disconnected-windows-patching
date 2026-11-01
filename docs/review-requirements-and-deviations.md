@@ -1,6 +1,8 @@
-# Review requirements, deviations and remaining evidence
+# Review requirements, deviations and evidence
 
-Status date: 2026-11-01. **Review incomplete; no final acceptance.** This record
+Status date: 2026-11-01. **Agreed code-only review closed with documented
+deviations and deferred checks; full functional acceptance not confirmed.** See
+the [closeout report](../Code_Review_2026-11-01.md). This record
 applies the [review policy](https://github.com/kvegh/Agent_generated_code_review/blob/e45b49b/README.md)
 at `e45b49b` to this repository. It records source judgments separately from
 runtime evidence and identifies unverified requirements instead of treating them
@@ -18,14 +20,14 @@ portability are outside this implementation and test environment. An untested
 scenario is not reported as incompatible.
 
 The original combined AAP workflow has 29 stages: 21 core and eight AD. The
-owner requires one complete execution for acceptance. A successful core run and
-separate AD jobs do not replace that test. A complete combined pass remains
-required for acceptance.
+owner handles one complete execution for functional acceptance, separately from
+the agent's now-closed code review. A successful core run and separate AD jobs do
+not replace that test. No complete combined pass is claimed.
 
 | Reference | Recorded baseline |
 | --- | --- |
 | Source with current core functional evidence | Version 1.0.7, `da6086ecbeb3183b1bd31da32a2df6cbdfd19539` |
-| New source changes | Version 1.0.8; exact implementation commit in the dated record |
+| Assessed executable source | Version 1.0.8, `399ad929fe3eda9cb75e60583f5160fe81ef7b98`; later closeout changes are documentation only |
 | CoP guide | `fb5fcd6f03c544909dbad352a352b421c41d7203`; upstream HEAD rechecked unchanged on 2026-10-29 |
 | AAP reference | AAP 2.7 local Develop and Secure guides; local documentation edition and actual EE are different kinds of evidence |
 | Actual EE runtime | `ansible-core 2.16.19`, Python `3.12.14`; controller API reports `4.8.8` |
@@ -41,14 +43,15 @@ No new custom EE or collection was created.
 
 ## Policy coverage
 
-An unresolved outcome means a real evidence gap or an undecided exception. It
-does not automatically mean an observed playbook failure.
+Every section has a recorded disposition. Missing evidence, owner-deferred
+checks and accepted exceptions remain distinct from passes and observed
+playbook failures. Code-only closure does not certify full policy conformance.
 
 | Policy section | Outcome and evidence |
 | --- | --- |
-| 1. Whole CoP and evidence-based findings | All 13 areas are accounted for below and in the directive trace. Examples and historical qualifications are interpreted in context. No finding quota; automated observations are investigated before being called defects. Unresolved items remain explicit. |
+| 1. Whole CoP and evidence-based findings | All 13 areas are accounted for below and in the directive trace. Examples and historical qualifications are interpreted in context. No finding quota; automated observations are investigated before being called defects. Skipped/deferred checks and missing evidence remain explicit. |
 | 2. Red Hat and CIS guidance | Local AAP Develop guidance informed native content, dependency declaration and execution choices; Secure guidance informs protected credentials/trust. The owner explicitly limited this review to project code and excluded Windows/AD hardening and CIS host-compliance assessment (D22). No host compliance claim is made; code-level security review remains included. |
-| 3. Actual AAP core; no deprecations | Deprecated IIS usage replaced and compatible pins selected. Warnings remain enabled. Core 2.16.19 imports Python's deprecated `crypt` in offline tests; vendor dependency disposition remains unresolved. Newer tooling core is not the deployment baseline. |
+| 3. Actual AAP core; no deprecations | Deprecated IIS usage replaced and compatible pins selected. Warnings remain enabled. Core 2.16.19 imports Python's deprecated `crypt` in offline tests; this vendor-owned warning is retained as limitation D25, not a zero-warning pass. Newer tooling core is not the deployment baseline. |
 | 4. Readability, simplicity, naming, comments | Explicit source assessment completed in the linked quality document. Naming documented in README; compatibility deviations retained. Comments explain unusual operations and link to supporting-code reasons. No human readability sign-off is required. |
 | 5. Native and certified content | Native IIS, AD forest, Windows package/service/file and AAP modules used where suitable. Foreign code reasons and remaining alternatives are documented. Exact hub releases were checked: Windows/controller/platform pins in the certified channel; the four other pins in the community channel. A namespace alone does not establish certification. |
 | 6. Idempotency and recovery | Deterministic artifacts, bounded update/network/async recovery and cleanup are assessed. Native configurator repeat applies reported zero changes. The owner skipped further idempotency verification (D13) and complete rollback verification for this demo (D17). No universal zero-change, first-run check-mode or complete prior-state restoration claim. |
@@ -57,9 +60,9 @@ does not automatically mean an observed playbook failure.
 | 9. AAP and EEs | Normal job templates/workflows exercised the deployed vendor EE. No custom EE build is needed. Mutable references are owner-accepted (D15), and further vendor image/SBOM assessment is demo-excluded (D21). No shared EE is changed or full scan result claimed. |
 | 10. CaCable | Declarative native configurators exist and repeat-apply checks passed for exercised objects. The owner skipped further CaC reconstruction assessment for this review (D14). A complete current restore is not claimed as demonstrated. |
 | 11. Speed | Core run 2682 took 4h 8m 5s; combined run 2742 ended after 4h 18m 21s. Independent stages retain workflow concurrency; waits and safety checks serve specific dependencies. No unsupported speedup or RAM root-cause claim is made. |
-| 12. Strict lint and APME | Production lint and six backend attempts recorded. APME dependency audit is incomplete despite returning zero observations; other counts require triage, not automatic edits. See backend table. |
-| 13. Smoke and complete end-to-end | Provisioning/native connectivity, core patch/application stages and targeted regression jobs passed on recorded revisions. Combined workflow 2742 failed before AD creation; a complete combined pass is still missing. New 1.0.8 runtime validation is pending. |
-| 14. Review cycle and report | Findings fixed in batches with focused tests. This iteration is incomplete; the new transport fix requires the restarted review and full functional cycle. An explicitly incomplete dated record must not impersonate the successful report required by policy. |
+| 12. Strict lint and APME | Production lint passed; six backend attempts recorded. All 855 observations have individual, grouped or deferred dispositions below. Dependency audit remains incomplete despite zero returned observations (D24); no automatic edits or clean-audit claim. |
+| 13. Smoke and complete end-to-end | Provisioning/native connectivity, core patch/application stages and targeted regression jobs passed on recorded revisions. Combined workflow 2742 failed before AD creation. Full current 1.0.8 combined functionality is unconfirmed and owner-owned; source closure does not replace it. |
+| 14. Review cycle and report | Source findings were corrected in batches and reassessed with focused/offline checks. The owner requested code-only closeout after recording exceptions and deferrals. The dated closeout reports that scoped conclusion; the full restarted runtime/end-to-end acceptance cycle is not claimed complete. |
 | 15. Documentation | README, TLDR, decision history, guides and Pages walkthrough describe the implementation and scope. Version 1.0.8 corrects illustrative IIS snippets and historical/current evidence wording. Walkthrough state is illustrative, not live telemetry. |
 
 ## CoP coverage and interpretation
@@ -85,7 +88,8 @@ claims that those checks passed. Rotation is tracked as `bead-wd-8ee`.
 The owner also skipped further vendor EE image-security assessment for this
 demo (D21). CIS host/AD hardening assessment is outside the owner-confirmed
 code-only scope (D22). APME dependency-backend coverage and the vendor `crypt`
-warning remain separate policy questions in `bead-wd-jgw`.
+warning have recorded reviewer dispositions D24/D25 for this closeout; neither
+limitation is relabeled as a passed check. `bead-wd-jgw` records the closeout.
 The owner deferred further possible-undefined-variable and Vault-definition
 verification for now (D23). This disposition does not establish that every L039
 observation is a false positive or that all referenced inputs exist at runtime.
@@ -115,8 +119,8 @@ declared boundaries, not an invented requirement for an independent pentest.
 
 Acceptance identifies either an agent disposition under the owner's
 proportionality policy or an explicit owner decision, as stated in the row.
-It does not mean full conformance. Effort estimates are qualitative; unresolved
-material security decisions remain separate below.
+It does not mean full conformance. Effort estimates are qualitative; missing
+functional evidence and deferred verification remain separate below.
 
 | ID | Deviation, impact and benefit of correction | Cost, decision and revisit condition |
 | --- | --- | --- |
@@ -143,8 +147,10 @@ material security decisions remain separate below.
 | D21 | A complete vendor EE vulnerability scan and component inventory/SBOM assessment are not performed. Such evidence could improve visibility of image dependencies and advisories. | On 2026-11-01 the owner explicitly excluded CoP topic 8 for this demo environment. Retain the vendor EE without building or changing an image for this review. No complete image scan, clean vulnerability result or SBOM assessment is claimed. Revisit for production reuse or a separately requested image-security review. |
 | D22 | Windows/AD hardening and CIS host-compliance assessment are outside this review; benchmark/profile/control compliance is not assessed. | On 2026-11-01 the owner clarified that only the project's code is under review. Windows and AD deployment playbooks and supporting code remain included, with code-level security checks; deployed OS/directory hardening is excluded. No CIS compliance is claimed. Revisit only if a separate system-hardening assessment is requested. |
 | D23 | Further checking of 321 possible-undefined-variable observations, including verification of definitions inside Vault, is deferred. The installed native static checker does not decrypt Vault files, but this limitation does not explain every observation automatically. | On 2026-11-01 the owner requested skipping this work for now. Retain the warnings and existing runtime-input contracts without changing code or exposing/decrypting protected values for this deferred check. No per-observation clearance or runtime-input guarantee is claimed. Revisit when variable-definition review is explicitly resumed. |
+| D24 | APME's dependency backend failed on synthetic Galaxy bookkeeping distributions. Five other backends delivered usable results, and a separate audit covered 25 real PyPI distributions, but full dependency coverage is not established. | Reviewer disposition under the owner's proportionality requirement during the requested code-only closeout: retain the explicit tooling gap instead of repairing upstream integration or changing project dependencies solely for the scanner. Moderate tooling/revalidation effort has no demonstrated additional playbook fix here. This is not a clean audit or an explicit owner approval of each dependency. Revisit when complete dependency auditing is required; no further installation or vendor-image assessment is implied. |
+| D25 | Supported core 2.16.19 imports deprecated Python `crypt`; no authored direct API call was found. The offline warning remains visible. | Reviewer disposition for code-only closeout: retain the supported vendor runtime and documented warning. Independently upgrading/patching core would change the deployment baseline and require broad runtime validation without demonstrating a project-code improvement. No warning suppression or zero-deprecation claim. Revisit on a supported EE/core/Python update or demonstrated project-owned usage. |
 
-## Unresolved requirements and security decisions
+## Evidence gaps and their final dispositions
 
 | ID | Gap and practical implication | Required next evidence or decision |
 | --- | --- | --- |
@@ -152,9 +158,10 @@ material security decisions remain separate below.
 | U2 | Full current CaC restore/check/repeat evidence absent; old core export is insufficient. | Owner skipped further assessment for this review (D14); closed as an accepted deviation, not verified reconstruction. Additional idempotency verification is separately owner-skipped (D13). |
 | U3 | Mutable main/latest and immutable-manifest requirements are owner-accepted as D15; additional automated quality gates are owner-skipped as D16. | Retain recorded source/image evidence, existing checks and current GitHub protection. No locking, shared EE change or additional pipeline required for this review. |
 | U4 | WinRM certificate validation and WSUS HTTP are resolved as owner-accepted lab deviations D10/D11. No blanket exception for other service transports is inferred. | Record these exceptions without further WinRM/WSUS changes. Any additional transport concern needs its own evidence and disposition. No production-grade TLS or CIS compliance claim. |
-| U5 | APME dependency backend and vendor Python crypt warning remain separate policy questions. Full vendor EE image/SBOM assessment is owner-excluded for this demo (D21). | Discuss the APME limitation and supported-runtime warning separately. Do not reopen image scanning or claim that upstream tooling advisories prove a vendor EE vulnerability. |
+| U5 | APME dependency audit and vendor Python crypt warning are recorded limitations D24/D25 for this code-only closeout. Full vendor EE image/SBOM assessment is owner-excluded for this demo (D21). | No further current source fix is established by these limitations. Do not claim a clean backend, zero warnings or a vendor EE vulnerability from unrelated session advisories. Revisit according to D24/D25 rather than reopening excluded image assessment. |
 | U6 | Historical usernames are closed (D12), further rollback verification is demo-skipped (D17), service-account auditing is demo-excluded (D18), and rotation is umbrella-owned (D19). | These concerns are closed or handed off for this Windows review. No unsupported assertion of secret exposure, rotation, complete audit or reliable whole-system rollback. Existing network boundaries are separately owner-accepted (D20). |
 | U7 | Closed by owner-confirmed code-only scope (D22): Windows/AD hardening and CIS host-compliance checks are excluded. | Continue reviewing the project's Ansible/supporting code. Do not select or run host benchmarks or introduce OS/AD hardening for this review; no CIS compliance claim. |
+| U8 | The 321 L039 variable-definition observations remain unverified (D23). | Owner-deferred for now, not individually cleared. Do not resume Vault/variable checking unless requested; preserve the saved scan and declared input contracts. |
 
 ## Conflicting guidance and chosen approaches
 
@@ -166,20 +173,21 @@ material security decisions remain separate below.
 | Native Ansible preference vs platform-specific API/format gaps | Use native state modules first; retain documented server-side WSUS, deterministic artifact, ownership and independent verification code. Native AD identity alternatives are acknowledged explicitly. |
 | CoP role/dispatch/pytest guidance vs simplicity | Preserve coherent playbooks, native CaC modules and useful stdlib tests. Do not add a framework merely to resemble an example. Complete CaC restoration proof is unperformed and owner-skipped for this review (D14). |
 | PR/feature-branch process vs owner work-on-main instruction | Follow the owner; retain traceable commits and local verification. |
-| Fast completion/proportionality vs final E2E evidence | Minor deviations may be accepted, but a failed/missing combined functional test is never renamed a successful review. |
+| Code-only closeout/proportionality vs final E2E evidence | Close the agent's agreed source-review work with explicit dispositions; retain the owner's separate functional responsibility. A failed/missing combined test is never renamed a successful full acceptance. |
 
 ## Tool results and limits
 
 The latest APME snapshot targets the 1.0.8 source changes, scan
 `f3e526da-ed14-48b8-9eeb-023c4c764117` on 2026-10-29. All six backend calls
 returned; the dependency backend still failed internally. This scan does not
-replace the outstanding functional test and restarted complete review.
+replace the owner's outstanding functional test or establish a completed full
+runtime acceptance cycle.
 APME source: pre-release `9c4372f79a8b537865040cea17cf9db7659614ad`.
 
 | Backend | Observations | Disposition |
 | --- | ---: | --- |
-| Native | 785 | Style/complexity/structure observations triaged against source and supported scope; not 785 confirmed defects. |
-| OPA | 58 | Policy observations require actual data/context and documented triage. |
+| Native | 785 | Source/security/style/runtime observations, including 321 owner-deferred variable cases; individual security and grouped advisory dispositions below are not 785 confirmed defects or clearances. |
+| OPA | 58 | Community-module, handler, debug-summary and copy/template/backup advice has grouped proportionality dispositions below. |
 | Ansible | 1 | Proposed equivalence between `ansible.platform.user` and OS `ansible.builtin.user` is inapplicable; these manage different objects. |
 | Collection health | 11 | Findings in upstream integration/examples, not authored runtime content. Not an attestation of all upstream content. |
 | Gitleaks | 0 | Pattern scan result only; separate Git history scan also found no pattern matches. |
@@ -189,8 +197,9 @@ Total 855 observations. Suggested automatic edits were not blindly applied.
 The [focused security review](apme-security-triage.md) now accounts individually
 for the 101 R101/R104/R105/R106/R108/R114/R115 observations: 97 authored operations
 retain their current controls and four are upstream `microsoft.ad 1.12.1` test
-fixtures. No worthwhile new executable fix was demonstrated. This does not close
-the remaining 754 observations or the dependency-backend evidence gap.
+fixtures. No worthwhile new executable fix was demonstrated. That focused result
+does not by itself clear the other 754 observations or establish dependency
+coverage. The final grouped dispositions below account for the remainder.
 Supplemental pip-audit covered 25 real PyPI distributions in an isolated target
 session; that session differs from the vendor EE. Vendor package versions and
 backported fixes require separate applicability assessment.
@@ -206,7 +215,38 @@ records and checks the 25 real Python distributions; collection compatibility,
 provenance and content are assessed separately. This is an APME integration
 limitation, not evidence that a collection or playbook is defective.
 
+The final scan has 33 rule IDs. The following groups account for all **855**
+observations without treating grouped advice as individually reproduced bugs:
+
+| Rule group | Count | Disposition and practical reasoning |
+| --- | ---: | --- |
+| R101/R104/R105/R106/R108/R114/R115 | 101 | Individual security ledger: 97 authored guarded operations retained and four upstream fixtures excluded. No additional worthwhile executable fix demonstrated. |
+| L039 | 321 | Owner-deferred D23; the native parser does not decrypt Vault. No universal false-positive or input-definition guarantee. |
+| M005 | 52 | Trust-model migration advice targets newer core 2.19+, not the deployed 2.16.19; includes seven upstream cases. Revisit on supported runtime migration. |
+| L098 | 3 | Regex interpretation of literal script contents is not a demonstrated YAML duplicate-key defect; actual YAML parsing/production lint passed. |
+| M014/L076/M048 | 3 | `ansible_python_interpreter` is a supported connection option, not a removed fact; `ansible.platform.user` manages AAP users rather than OS users. The proposed substitutions have the wrong semantics. |
+| R401 | 4 | Informational inbound-source observations; not independently demonstrated defects. |
+| L005 | 10 | Required community modules lack suitable equivalents in the checked certified content; e.g. certified `win_firewall` profile management does not replace rule/scheduled-task/stat/unzip interfaces. Exact published releases/provenance were checked. |
+| L014 | 2 | Immediate connection reset or certificate reboot precedes dependent operations. Preserve meaningful ordering rather than introducing delayed handlers. D4. |
+| L032/L033/L101 | 21 | Intentional credential/connection/fact/loop-state changes, not evidence that all facts or updates should be removed. D5. |
+| L036/L086 | 6 | Protected profile/includes and scoped constants serve the AAP interface; a pure inventory-layout migration adds churn. D5. |
+| L042 | 9 | Task count alone does not justify replacing coherent stages with a role/framework. D1. |
+| L045 | 14 | Necessary locale/CA environment settings are scoped to their command; moving them solely to satisfy style adds indirection. |
+| L049/L078/L081/L091 | 242 | Loop naming, dot lookup, legacy filenames and typed-boolean advice: retain readable stable interfaces and valid expressions, including check-mode conditions. Mechanical changes add regression cost without a demonstrated behavior benefit. D2/D3/D7. |
+| L051/L060/L073 | 21 | Formatting/length/indentation advice includes folded/literal/Jinja/string context; strict production lint passes. No broad rewrite for scanner count alone. |
+| L067 | 38 | Purposeful visible operator/proof summaries; sensitive operations remain protected. D4. |
+| L071/L072 | 8 | Complete CA/JSON copies and avoiding redundant sensitive backups are simpler than an additional template/backup framework. |
+| **Total** | **855** | 101 individual security assessments + 321 deferred variables + 62 target/parser/semantic/informational + 371 proportionality advice. |
+
+The latter **433** observations have a **group-level** reviewer disposition
+under the existing source-quality and proportionality assessments, not 433
+individual reproduced failures or verified fixes. No blanket suppressions were
+introduced. APME's formatter-idempotence error is retained in private stderr;
+automatic formatter patches were not applied. Tool auto-remediation metadata is
+not the review's disposition ledger.
+
 Offline regression and production-lint commands, results, live job references,
-fix commits and optional recommendations are in the dated incomplete report.
+fix commits and optional recommendations are in the
+[closeout report](../Code_Review_2026-11-01.md) and historical evidence record.
 The raw private evidence includes the scan JSON/stderr, collection provenance,
 controller job records and preservation comparison. Keep this document sanitized.

@@ -5,6 +5,9 @@ deployment, included tasks, supporting assets, tests and browser walkthroughs.
 The source baseline is version 1.0.7 (`da6086e`) plus the version 1.0.8 changes
 identified in the dated review record. This is a source assessment, not final
 functional acceptance or an independent Claude/Gemini review.
+The [2026-11-01 report](../Code_Review_2026-11-01.md) closes the agreed source
+review with documented exceptions and deferred verification; it preserves the
+separate owner-owned functional test.
 
 ## Verdicts
 
@@ -55,5 +58,6 @@ conventions and compatibility exceptions are in the [README](../README.md#naming
   remains unsupported because it outranks a derived fact; omit it for automatic
   assignment. Normal workflow profiles supply explicit MACs. See deviation D3.
 - The latest transport fix has offline regression evidence. Fresh Windows/AD
-  runtime verification remains pending. This document does not waive the
-  required restarted review and complete combined AAP test.
+  runtime verification remains unconfirmed and belongs to the owner. Closing
+  the source review does not certify the complete combined AAP test or full
+  runtime acceptance cycle.
