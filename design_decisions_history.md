@@ -1,5 +1,26 @@
 # Design decisions history
 
+## 2026-11-01 — Record demo security scope and umbrella rotation ownership
+
+Executable source remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`;
+the preceding documentation baseline is `ae80c96c33764c26f875f8db082789482948178f`.
+
+The owner excluded further service-account access auditing for this demo,
+confirmed that credential rotation belongs to the umbrella demo backlog, and
+accepted the existing network boundaries. Record these scoped decisions as
+D18–D20. Preserve the distinction between accepted/skipped assessment and a
+verified pass; no permissions, credentials, networking or EE settings change.
+The owner also excluded further vendor EE image-security assessment for this
+demo (D21). Record all nine CoP discussion-topic dispositions without claiming
+unperformed checks passed. The separate APME, vendor-warning and CIS-scope
+questions remain open.
+
+Follow the updated workspace tracking instruction by using Beads issue
+`bead-wd-jgw` for current Windows review state. Import the existing umbrella
+rotation design backlog into `bead-wd-8ee`; do not duplicate that implementation
+inside the Windows review. Keep the earlier Markdown checklist as a historical
+snapshot rather than maintaining a second task source of truth.
+
 ## 2026-10-29 — Track the full review checklist and scope the open CoP topics
 
 Executable source remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`.

@@ -1,5 +1,11 @@
 # Demo TODO
 
+Historical snapshot of the earlier demo backlog and review discussion. Under
+the current workspace instructions, task tracking now uses Beads rather than
+this checklist. See `bd show bead-wd-jgw` for current Windows review decisions
+and `bd show bead-wd-8ee` for the umbrella credential-rotation work. Checkboxes
+below retain their earlier state and are not the current source of truth.
+
 ## Code review checklist
 
 This is the complete review worklist, organized by the 15 sections of the

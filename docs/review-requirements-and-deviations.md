@@ -1,6 +1,6 @@
 # Review requirements, deviations and remaining evidence
 
-Status date: 2026-10-29. **Review incomplete; no final acceptance.** This record
+Status date: 2026-11-01. **Review incomplete; no final acceptance.** This record
 applies the [review policy](https://github.com/kvegh/Agent_generated_code_review/blob/e45b49b/README.md)
 at `e45b49b` to this repository. It records source judgments separately from
 runtime evidence and identifies unverified requirements instead of treating them
@@ -52,9 +52,9 @@ does not automatically mean an observed playbook failure.
 | 4. Readability, simplicity, naming, comments | Explicit source assessment completed in the linked quality document. Naming documented in README; compatibility deviations retained. Comments explain unusual operations and link to supporting-code reasons. No human readability sign-off is required. |
 | 5. Native and certified content | Native IIS, AD forest, Windows package/service/file and AAP modules used where suitable. Foreign code reasons and remaining alternatives are documented. Exact hub releases were checked: Windows/controller/platform pins in the certified channel; the four other pins in the community channel. A namespace alone does not establish certification. |
 | 6. Idempotency and recovery | Deterministic artifacts, bounded update/network/async recovery and cleanup are assessed. Native configurator repeat applies reported zero changes. The owner skipped further idempotency verification (D13) and complete rollback verification for this demo (D17). No universal zero-change, first-run check-mode or complete prior-state restoration claim. |
-| 7. Sensitive configuration and security | Current protected inputs use Vault/AAP/private inventory and protected temporary files/output. Gitleaks is used, but cannot prove absence of arbitrary environment identifiers. The owner accepted the existing WinRM certificate-validation and WSUS HTTP lab deviations and closed the historical-username concern on 2026-10-29 (D10–D12). Rotation and full access review remain unverified; these are distinct from observed code defects. |
+| 7. Sensitive configuration and security | Current protected inputs use Vault/AAP/private inventory and protected temporary files/output. Gitleaks is used, but cannot prove absence of arbitrary environment identifiers. Owner decisions accept the WinRM/WSUS lab exceptions and historical usernames (D10–D12), exclude further service-account auditing for this demo (D18), hand rotation to umbrella work (D19), and accept existing network boundaries (D20). No unperformed security verification is claimed as passed. |
 | 8. Private hub and collection source | Exact published releases consumed from private hub; no runtime collection source vendored. Requirements files declare dependencies. Custom collection build/publication rules are not applicable because none is authored. |
-| 9. AAP and EEs | Normal job templates/workflows exercised the deployed vendor EE. No custom EE build is needed. Shared mutable image reference and complete vendor image/SBOM assessment remain gaps; changing a shared EE would affect other projects and was not done. |
+| 9. AAP and EEs | Normal job templates/workflows exercised the deployed vendor EE. No custom EE build is needed. Mutable references are owner-accepted (D15), and further vendor image/SBOM assessment is demo-excluded (D21). No shared EE is changed or full scan result claimed. |
 | 10. CaCable | Declarative native configurators exist and repeat-apply checks passed for exercised objects. The owner skipped further CaC reconstruction assessment for this review (D14). A complete current restore is not claimed as demonstrated. |
 | 11. Speed | Core run 2682 took 4h 8m 5s; combined run 2742 ended after 4h 18m 21s. Independent stages retain workflow concurrency; waits and safety checks serve specific dependencies. No unsupported speedup or RAM root-cause claim is made. |
 | 12. Strict lint and APME | Production lint and six backend attempts recorded. APME dependency audit is incomplete despite returning zero observations; other counts require triage, not automatic edits. See backend table. |
@@ -70,14 +70,24 @@ entries are not extra mandatory controls. A section's unresolved outcome is
 retained for its examples where the same evidence is missing; no blanket pass is
 inferred from having indexed the guide.
 
-The [review worklist](../TODO.md#open-cop-topics-to-review-individually) groups
-14 unresolved trace entries into four open evidence/process topics; the owner
+Workspace Beads issue `bead-wd-jgw` holds the current review task state. The
+[earlier worklist](../TODO.md#open-cop-topics-to-review-individually) is a historical
+snapshot. All nine CoP discussion topics now have recorded dispositions; there
+are no unresolved entries in this CoP trace. This does not mean every directive
+conforms or every check was performed. The owner
 skipped further idempotency/CaC reconstruction verification and declined
 release-reference locking, additional CI gates and further complete rollback
 verification for this demo (D13–D17).
+On 2026-11-01 the owner excluded further service-account access auditing (D18),
+assigned credential rotation to the umbrella backlog (D19), and accepted the
+existing network boundaries (D20). These are scoped dispositions rather than
+claims that those checks passed. Rotation is tracked as `bead-wd-8ee`.
+The owner also skipped further vendor EE image-security assessment for this
+demo (D21). APME dependency-backend coverage, the vendor `crypt` warning and CIS
+assessment scope remain separate policy questions in `bead-wd-jgw`.
 Repeated bullets and examples are not separate demonstrated defects. PR-only
-checks are inapplicable to the owner's main-only workflow; potential automated
-checks on main remain a separate question. Kubernetes/VPC examples do not create
+checks are inapplicable to the owner's main-only workflow; additional automated
+checks on main were owner-skipped (D16). Kubernetes/VPC examples do not create
 requirements for platforms outside this lab. Network assessment concerns the
 declared boundaries, not an invented requirement for an independent pentest.
 
@@ -91,11 +101,11 @@ declared boundaries, not an invented requirement for an independent pentest.
 | Inventories | AAP inventory and encrypted environment inputs provide the lab's desired state; runtime facts describe observed state. Managed plays target inventory groups. Flat exported inventory, Vault include_vars, scoped defaults and survey extra vars are retained for this bounded AAP interface. D3/D5; no claim that this exactly matches the CoP directory example. |
 | Plugins | No shipped custom Ansible plugin. Temporary mock plugins are offline test scaffolding. General clarity/documentation principles assessed; existing unittest, compact Python functions and partial type hints are retained rather than undertaking a new typing/test-runner migration. D6. |
 | Coding style | Strict production lint, named tasks, FQCNs, YAML arguments, explicit includes and casts are used. Linked comments override the CoP's avoid-comments preference. Jinja equality is supported by the actual runtime. Quote/dot-lookup/data-serialization preferences and meaningful immediate handlers are proportionate deviations, not automatic defects. D3/D4/D7. |
-| AAP configuration | Native declarative configurators satisfy parts of the intent without adopting a new infra dispatch framework. Further reconstruction/check/repeat assessment is owner-skipped (D13/D14); release-provenance and automated-check questions remain separate. |
-| Git workflow | Main and versioning follow owner instructions. No feature branch is needed. Owner-directed direct main supersedes the PR recommendation. Mutable deployment references and lack of a final immutable accepted release remain recorded gaps. D8/U3. |
+| AAP configuration | Native declarative configurators satisfy parts of the intent without adopting a new infra dispatch framework. Further reconstruction/check/repeat assessment is owner-skipped (D13/D14); release-reference and additional automated-check dispositions are D15/D16. |
+| Git workflow | Main and versioning follow owner instructions. Owner-directed direct main supersedes the PR recommendation (D8). Mutable deployment references and additional automated gates are accepted/skipped as D15/D16; no strict immutable-release guarantee is claimed. |
 | Testing | Offline Python/JS, native PowerShell orchestration and real AAP runs provide different evidence. No custom role/container matrix is claimed. The owner handles the combined functional test and skipped additional idempotency/CaC verification (D13/D14). Unperformed checks are not passes. |
-| CI/CD and promotion | Pages CI runs browser checks. Equivalent automated Ansible/secret gates, release manifests and a tested full rollback/promotion procedure are not implemented. No enterprise dev/QA/prod process or CAB is invented for this demo. U3/U6. |
-| Security | Vault/credential handling, platform transport validation, ownership safeguards and tested regional RBAC provide scoped evidence. The owner accepted the WinRM/WSUS lab exceptions and historical-username disposition (D10–D12). Secret rotation, image/SBOM coverage and complete access auditing remain unverified. U4/U5/U6. |
+| CI/CD and promotion | Pages CI runs browser checks. Additional Ansible/secret gates, immutable release-manifest work and further complete rollback verification are owner-skipped as D15–D17. No enterprise dev/QA/prod process or CAB is invented for this demo. |
+| Security | Vault/credential handling, platform transport validation, ownership safeguards and tested regional RBAC provide scoped evidence. WinRM/WSUS and usernames are settled as D10–D12; access review is demo-excluded (D18), rotation belongs to umbrella work (D19), current network boundaries are accepted (D20), and further vendor EE image-security assessment is demo-excluded (D21). No unperformed assessment is claimed as passed. |
 
 ## Accepted low-impact deviations
 
@@ -123,6 +133,10 @@ material security decisions remain separate below.
 | D15 | Retain mutable main/latest references rather than introducing release-reference locking and a complete immutable release manifest. Recorded source SHAs and observed EE digests provide scoped traceability, but do not force future runs to use identical content. | After the locking approach was explained on 2026-10-29, the owner declined it and chose to move on. No AAP revision, shared EE, release-tag or manifest change is required for this review. Revisit if strict replay or release promotion becomes a requirement. |
 | D16 | Retain the recorded review checks and current Pages CI without adding automated Ansible/pre-commit/CI gates or new branch restrictions. Automatic enforcement could improve consistency across future changes. | After automated checks were explained on 2026-10-29, the owner chose to move on. No new pipeline is required for this review. Existing GitHub protection and recorded checks remain; automatic Ansible enforcement is not claimed. Revisit when contribution or release requirements change. This does not waive the owner's functional test. |
 | D17 | A complete rollback to every prior machine/data state has not been verified. More rollback evidence could increase recovery confidence. | On 2026-10-29 the owner explicitly skipped this item for the demo environment. Retain existing retry/recreation instructions without adding rollback machinery or claiming complete prior-state restoration. Revisit if preservation/restoration requirements expand beyond this demo. |
+| D18 | Further service-account/automation-credential least-privilege and periodic access auditing is not performed. Existing regional-user tests do not establish a complete account audit. | On 2026-11-01 the owner explicitly excluded CoP topic 6 for this demo. No permissions or access controls are changed, and no complete audit is claimed. Revisit for production reuse or a separately requested access review. |
+| D19 | Credential-rotation design and verification are outside this Windows review; a verified rotation practice is not claimed. | On 2026-11-01 the owner confirmed that rotation belongs to the umbrella demo backlog. That existing work is tracked in Beads as `bead-wd-8ee`, rather than duplicated here. No credentials were rotated. Revisit with the umbrella implementation and its evidence. |
+| D20 | The existing demo network boundaries and management paths are retained without additional segmentation assessment or redesign. A comprehensive boundary verification is not claimed. | On 2026-11-01 the owner explicitly accepted CoP topic 9 as it stands. No network configuration or access control is changed. Revisit if exposure, environment separation or production requirements change. |
+| D21 | A complete vendor EE vulnerability scan and component inventory/SBOM assessment are not performed. Such evidence could improve visibility of image dependencies and advisories. | On 2026-11-01 the owner explicitly excluded CoP topic 8 for this demo environment. Retain the vendor EE without building or changing an image for this review. No complete image scan, clean vulnerability result or SBOM assessment is claimed. Revisit for production reuse or a separately requested image-security review. |
 
 ## Unresolved requirements and security decisions
 
@@ -132,8 +146,8 @@ material security decisions remain separate below.
 | U2 | Full current CaC restore/check/repeat evidence absent; old core export is insufficient. | Owner skipped further assessment for this review (D14); closed as an accepted deviation, not verified reconstruction. Additional idempotency verification is separately owner-skipped (D13). |
 | U3 | Mutable main/latest and immutable-manifest requirements are owner-accepted as D15; additional automated quality gates are owner-skipped as D16. | Retain recorded source/image evidence, existing checks and current GitHub protection. No locking, shared EE change or additional pipeline required for this review. |
 | U4 | WinRM certificate validation and WSUS HTTP are resolved as owner-accepted lab deviations D10/D11. No blanket exception for other service transports is inferred. | Record these exceptions without further WinRM/WSUS changes. Any additional transport concern needs its own evidence and disposition. No production-grade TLS or CIS compliance claim. |
-| U5 | Dependency backend incomplete; Python crypt deprecation; full vendor EE image/SBOM and advisory applicability not established. | Account for APME's failure on synthetic collection records and the vendor warning against supported AAP. Obtain appropriate image/advisory evidence. Upstream pip-audit findings are leads, not proven Red Hat image vulnerabilities. |
-| U6 | Historical usernames are closed by owner decision D12 and further complete rollback verification is owner-skipped for this demo (D17). Secret rotation cadence and full service-account access audit remain unverified. | Keep those remaining checks separate. No unsupported assertion of secret exposure, rotation, complete audit or reliable whole-system rollback. |
+| U5 | APME dependency backend and vendor Python crypt warning remain separate policy questions. Full vendor EE image/SBOM assessment is owner-excluded for this demo (D21). | Discuss the APME limitation and supported-runtime warning separately. Do not reopen image scanning or claim that upstream tooling advisories prove a vendor EE vulnerability. |
+| U6 | Historical usernames are closed (D12), further rollback verification is demo-skipped (D17), service-account auditing is demo-excluded (D18), and rotation is umbrella-owned (D19). | These concerns are closed or handed off for this Windows review. No unsupported assertion of secret exposure, rotation, complete audit or reliable whole-system rollback. Existing network boundaries are separately owner-accepted (D20). |
 | U7 | CIS benchmark, version/profile and individual Windows/DC controls not selected and assessed. | Select applicable benchmarks/controls before runtime assessment. Generic scanner checks and this review do not certify host compliance. No additional hardening imposed speculatively. |
 
 ## Conflicting guidance and chosen approaches
@@ -144,7 +158,7 @@ material security decisions remain separate below.
 | CoP avoid-comments vs owner explain reason/goal/solution | Keep short linked rationale comments for non-obvious and foreign code. Routine actions remain in task names. |
 | Historical EL7/Jinja restrictions vs actual supported EE | Use syntax supported by core 2.16.19 and its Jinja; do not emulate an unsupported old control node or upgrade the vendor runtime independently. |
 | Native Ansible preference vs platform-specific API/format gaps | Use native state modules first; retain documented server-side WSUS, deterministic artifact, ownership and independent verification code. Native AD identity alternatives are acknowledged explicitly. |
-| CoP role/dispatch/pytest guidance vs simplicity | Preserve coherent playbooks, native CaC modules and useful stdlib tests. Do not add a framework merely to resemble an example. Missing CaC restoration proof still remains a requirement. |
+| CoP role/dispatch/pytest guidance vs simplicity | Preserve coherent playbooks, native CaC modules and useful stdlib tests. Do not add a framework merely to resemble an example. Complete CaC restoration proof is unperformed and owner-skipped for this review (D14). |
 | PR/feature-branch process vs owner work-on-main instruction | Follow the owner; retain traceable commits and local verification. |
 | Fast completion/proportionality vs final E2E evidence | Minor deviations may be accepted, but a failed/missing combined functional test is never renamed a successful review. |
 

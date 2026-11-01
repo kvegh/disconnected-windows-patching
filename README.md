@@ -61,14 +61,22 @@ owned by the user and remains separate from the agent's source-review work.
 The [dated incomplete review record](Code_Review_2026-10-29_INCOMPLETE.md)
 identifies exact revisions, available results, accepted deviations and missing
 evidence. It is not a successful completion certificate.
-The [review TODO checklist](TODO.md#code-review-checklist) tracks all 15 policy
-areas and groups the CoP questions into nine topics with their current decisions.
+Current review decisions are tracked in workspace Beads issue `bead-wd-jgw`
+(`bd show bead-wd-jgw`). The [earlier review checklist](TODO.md#code-review-checklist)
+is a historical snapshot; current task state belongs in Beads.
 The owner skipped further idempotency/CaC reconstruction verification and
 declined release-reference locking and additional CI gates, and skipped further
 complete rollback verification for this demo environment.
 Existing checks and GitHub protection remain in place. Unperformed checks are not
 represented as passed tests. The list distinguishes
 missing evidence and process decisions from code defects.
+
+On 2026-11-01 the owner excluded further service-account access auditing for
+this demo, assigned credential rotation to umbrella task `bead-wd-8ee`, and
+accepted the existing network boundaries. These decisions are recorded as
+D18–D20. The owner also skipped further EE image-security assessment for this
+demo (D21). All nine CoP discussion topics now have recorded dispositions;
+unperformed image scans and other skipped checks are not reported as passed.
 
 A successful review still requires resolved findings or documented accepted
 deviations, explicit functionality confirmation, and the final complete test
