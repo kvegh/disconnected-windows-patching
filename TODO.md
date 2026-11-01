@@ -173,6 +173,21 @@ checked items do not replace current revision evidence in the review checklist.
 - Fixed MAC deployment inputs are implemented. Automate DHCP reservations to
   match those inputs; libvirt generates MACs when explicit inputs are omitted.
 
+### Open verification and follow-up
+
+- [ ] Verify guest hostnames and interface names on remaining existing VMs.
+- [ ] Determine the purposes and address origins of testserver1 additional addresses;
+      do not remove them automatically.
+- [ ] Verify DHCP offers do not advertise gateway or DNS on the isolated network.
+- [ ] Verify AAP execution environment can reach isolated WinRM endpoints.
+- [ ] Verify host and dual-NIC guest forwarding/firewall rules preserve client isolation.
+- [ ] Verify proposed WSUS management addresses are unused before applying.
+- [ ] Implement fixed Windows MAC deployment inputs and initial DHCP lease discovery,
+      then apply OS static networking.
+- [ ] Confirm external WSUS DNS servers for Microsoft update synchronization.
+- [ ] Update AAP workflow node VM-name inputs and Windows hostname variables from the
+      renamed planned repository-server entries before launch.
+
 ## WSUS population follow-up
 
 - Run and validate the new sync, export and import stages with current Microsoft updates.
