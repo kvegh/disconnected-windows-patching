@@ -180,6 +180,11 @@ APME source: pre-release `9c4372f79a8b537865040cea17cf9db7659614ad`.
 | Dependency audit | 0 reported | **Incomplete:** pip-audit stopped on a synthetic collection record; seven such records exist in the session. Zero does not mean a clean audit. |
 
 Total 855 observations. Suggested automatic edits were not blindly applied.
+The [focused security review](apme-security-triage.md) now accounts individually
+for the 101 R101/R104/R105/R106/R108/R114/R115 observations: 97 authored operations
+retain their current controls and four are upstream `microsoft.ad 1.12.1` test
+fixtures. No worthwhile new executable fix was demonstrated. This does not close
+the remaining 754 observations or the dependency-backend evidence gap.
 Supplemental pip-audit covered 25 real PyPI distributions in an isolated target
 session; that session differs from the vendor EE. Vendor package versions and
 backported fixes require separate applicability assessment.

@@ -78,6 +78,13 @@ D18–D20. The owner also skipped further EE image-security assessment for this
 demo (D21). All nine CoP discussion topics now have recorded dispositions;
 unperformed image scans and other skipped checks are not reported as passed.
 
+A [focused review of 101 APME security observations](docs/apme-security-triage.md)
+records an individual disposition for each command, transfer, privilege and path
+warning: 97 authored operations retain their existing controls, and four cases
+belong to upstream collection test fixtures. No additional executable correction
+was justified within this review's scope. This does not clear the other APME
+observations or establish a clean dependency audit; version remains 1.0.8.
+
 A successful review still requires resolved findings or documented accepted
 deviations, explicit functionality confirmation, and the final complete test
 within the declared environment. The version alone does not establish review

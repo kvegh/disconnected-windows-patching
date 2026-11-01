@@ -1,5 +1,29 @@
 # Design decisions history
 
+## 2026-11-01 — Assess APME security observations by practical impact
+
+Executable implementation remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`
+(version 1.0.8); documentation baseline is
+`69f116628afa6f8f386e8717a74f81e14e6b63e8`.
+
+The owner requested a delegated review of all 101 command, transfer, privilege
+and path observations, with fixes only when they have practical benefit. Record
+every saved scan location and its current task, controls, change benefit and
+regression/maintenance cost. The 97 authored cases already have bounded argv,
+resource/ownership, temporary-file or source/hash controls; no additional
+executable defect with a worthwhile correction was demonstrated. Four cases are
+upstream microsoft.ad integration fixtures, not this project's runtime content.
+Retain the code instead of adding suppressions, wrappers, vendor patches or
+unverified privilege changes merely to reduce the observation count.
+
+Keep source authorization and integrity separate from confidentiality: the
+existing Nexus HTTP transport is not made confidential by checksums and is not
+silently covered by the separate explicit WSUS exception. Further transport
+migration is a separate scope/design decision. Existing focused guard/artifact/API
+tests pass (64, no skips), and production lint passes 116 files. No live job or
+combined functional test was launched. The other APME observations, dependency
+backend and final review acceptance are separate from this focused result.
+
 ## 2026-11-01 — Record demo security scope and umbrella rotation ownership
 
 Executable source remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`;
