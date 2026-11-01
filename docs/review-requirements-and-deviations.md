@@ -86,6 +86,9 @@ The owner also skipped further vendor EE image-security assessment for this
 demo (D21). CIS host/AD hardening assessment is outside the owner-confirmed
 code-only scope (D22). APME dependency-backend coverage and the vendor `crypt`
 warning remain separate policy questions in `bead-wd-jgw`.
+The owner deferred further possible-undefined-variable and Vault-definition
+verification for now (D23). This disposition does not establish that every L039
+observation is a false positive or that all referenced inputs exist at runtime.
 Repeated bullets and examples are not separate demonstrated defects. PR-only
 checks are inapplicable to the owner's main-only workflow; additional automated
 checks on main were owner-skipped (D16). Kubernetes/VPC examples do not create
@@ -139,6 +142,7 @@ material security decisions remain separate below.
 | D20 | The existing demo network boundaries and management paths are retained without additional segmentation assessment or redesign. A comprehensive boundary verification is not claimed. | On 2026-11-01 the owner explicitly accepted CoP topic 9 as it stands. No network configuration or access control is changed. Revisit if exposure, environment separation or production requirements change. |
 | D21 | A complete vendor EE vulnerability scan and component inventory/SBOM assessment are not performed. Such evidence could improve visibility of image dependencies and advisories. | On 2026-11-01 the owner explicitly excluded CoP topic 8 for this demo environment. Retain the vendor EE without building or changing an image for this review. No complete image scan, clean vulnerability result or SBOM assessment is claimed. Revisit for production reuse or a separately requested image-security review. |
 | D22 | Windows/AD hardening and CIS host-compliance assessment are outside this review; benchmark/profile/control compliance is not assessed. | On 2026-11-01 the owner clarified that only the project's code is under review. Windows and AD deployment playbooks and supporting code remain included, with code-level security checks; deployed OS/directory hardening is excluded. No CIS compliance is claimed. Revisit only if a separate system-hardening assessment is requested. |
+| D23 | Further checking of 321 possible-undefined-variable observations, including verification of definitions inside Vault, is deferred. The installed native static checker does not decrypt Vault files, but this limitation does not explain every observation automatically. | On 2026-11-01 the owner requested skipping this work for now. Retain the warnings and existing runtime-input contracts without changing code or exposing/decrypting protected values for this deferred check. No per-observation clearance or runtime-input guarantee is claimed. Revisit when variable-definition review is explicitly resumed. |
 
 ## Unresolved requirements and security decisions
 

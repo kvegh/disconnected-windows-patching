@@ -92,7 +92,7 @@ from the target AAP runtime.
 
 ## Deviations, conflicts and remaining gaps
 
-Accepted dispositions D1–D22 in the requirements record include compatible
+Accepted dispositions D1–D23 in the requirements record include compatible
 legacy names, coherent task includes, documented supporting code, useful existing
 tests and owner-directed main-only work. Each identifies the reason and revisit
 condition. On 2026-10-29 the owner explicitly accepted:
@@ -120,6 +120,9 @@ assessment for this demo (D21). Current review task state is in
 The owner also clarified the code-only scope (D22): Windows/AD hardening and
 CIS host-compliance assessment are excluded. Windows/AD deployment code and its
 credential, command, path and failure-handling behavior remain in the review.
+Further possible-undefined-variable and Vault-definition checking is
+owner-deferred for now (D23). The 321 observations are retained as unverified;
+the static checker's Vault limitation is not blanket proof of false positives.
 
 Conflicting naming, comments, historical Jinja, native-module preference and Git
 workflow guidance are resolved explicitly in the

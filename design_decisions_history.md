@@ -1,5 +1,18 @@
 # Design decisions history
 
+## 2026-11-01 — Defer further variable and Vault-definition review
+
+Executable source remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`;
+the preceding documentation baseline is
+`f87a33fa355ecfc6c999c0d009caf0ece13bc6b8`.
+
+After the installed APME native parser's Vault limitation was explained, the
+owner deferred further possible-undefined-variable and Vault-definition checking
+for now. Record this as D23, retaining the 321 warnings without calling them
+fixed or proven false positives. No protected values are exposed and no source,
+tooling, credential or runtime change is introduced. This does not reopen the
+completed 101-observation security review or other accepted demo decisions.
+
 ## 2026-11-01 — Keep CIS host hardening outside the code review
 
 Executable source remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`;

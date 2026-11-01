@@ -82,6 +82,9 @@ The owner clarified that this is a review of the project's Ansible and
 supporting code. Windows/AD hardening and CIS host-compliance assessments are
 outside this review (D22). Windows and AD deployment code remains included;
 code-level credential, command, path and failure-handling checks still apply.
+Further triage of the 321 possible-undefined-variable observations, including
+Vault-definition verification, is owner-deferred for now (D23). Those warnings
+are retained as unverified rather than reported as fixed or false positives.
 
 A [focused review of 101 APME security observations](docs/apme-security-triage.md)
 records an individual disposition for each command, transfer, privilege and path
