@@ -78,6 +78,11 @@ D18–D20. The owner also skipped further EE image-security assessment for this
 demo (D21). All nine CoP discussion topics now have recorded dispositions;
 unperformed image scans and other skipped checks are not reported as passed.
 
+The owner clarified that this is a review of the project's Ansible and
+supporting code. Windows/AD hardening and CIS host-compliance assessments are
+outside this review (D22). Windows and AD deployment code remains included;
+code-level credential, command, path and failure-handling checks still apply.
+
 A [focused review of 101 APME security observations](docs/apme-security-triage.md)
 records an individual disposition for each command, transfer, privilege and path
 warning: 97 authored operations retain their existing controls, and four cases

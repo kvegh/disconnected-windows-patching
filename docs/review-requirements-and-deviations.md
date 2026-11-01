@@ -47,7 +47,7 @@ does not automatically mean an observed playbook failure.
 | Policy section | Outcome and evidence |
 | --- | --- |
 | 1. Whole CoP and evidence-based findings | All 13 areas are accounted for below and in the directive trace. Examples and historical qualifications are interpreted in context. No finding quota; automated observations are investigated before being called defects. Unresolved items remain explicit. |
-| 2. Red Hat and CIS guidance | Local AAP Develop guidance informed native content, dependency declaration and execution choices; Secure guidance informs protected credentials/trust. No CIS host compliance claim: benchmark/profile/control assessment has not been completed. This remains a security-assessment gap. |
+| 2. Red Hat and CIS guidance | Local AAP Develop guidance informed native content, dependency declaration and execution choices; Secure guidance informs protected credentials/trust. The owner explicitly limited this review to project code and excluded Windows/AD hardening and CIS host-compliance assessment (D22). No host compliance claim is made; code-level security review remains included. |
 | 3. Actual AAP core; no deprecations | Deprecated IIS usage replaced and compatible pins selected. Warnings remain enabled. Core 2.16.19 imports Python's deprecated `crypt` in offline tests; vendor dependency disposition remains unresolved. Newer tooling core is not the deployment baseline. |
 | 4. Readability, simplicity, naming, comments | Explicit source assessment completed in the linked quality document. Naming documented in README; compatibility deviations retained. Comments explain unusual operations and link to supporting-code reasons. No human readability sign-off is required. |
 | 5. Native and certified content | Native IIS, AD forest, Windows package/service/file and AAP modules used where suitable. Foreign code reasons and remaining alternatives are documented. Exact hub releases were checked: Windows/controller/platform pins in the certified channel; the four other pins in the community channel. A namespace alone does not establish certification. |
@@ -83,8 +83,9 @@ assigned credential rotation to the umbrella backlog (D19), and accepted the
 existing network boundaries (D20). These are scoped dispositions rather than
 claims that those checks passed. Rotation is tracked as `bead-wd-8ee`.
 The owner also skipped further vendor EE image-security assessment for this
-demo (D21). APME dependency-backend coverage, the vendor `crypt` warning and CIS
-assessment scope remain separate policy questions in `bead-wd-jgw`.
+demo (D21). CIS host/AD hardening assessment is outside the owner-confirmed
+code-only scope (D22). APME dependency-backend coverage and the vendor `crypt`
+warning remain separate policy questions in `bead-wd-jgw`.
 Repeated bullets and examples are not separate demonstrated defects. PR-only
 checks are inapplicable to the owner's main-only workflow; additional automated
 checks on main were owner-skipped (D16). Kubernetes/VPC examples do not create
@@ -137,6 +138,7 @@ material security decisions remain separate below.
 | D19 | Credential-rotation design and verification are outside this Windows review; a verified rotation practice is not claimed. | On 2026-11-01 the owner confirmed that rotation belongs to the umbrella demo backlog. That existing work is tracked in Beads as `bead-wd-8ee`, rather than duplicated here. No credentials were rotated. Revisit with the umbrella implementation and its evidence. |
 | D20 | The existing demo network boundaries and management paths are retained without additional segmentation assessment or redesign. A comprehensive boundary verification is not claimed. | On 2026-11-01 the owner explicitly accepted CoP topic 9 as it stands. No network configuration or access control is changed. Revisit if exposure, environment separation or production requirements change. |
 | D21 | A complete vendor EE vulnerability scan and component inventory/SBOM assessment are not performed. Such evidence could improve visibility of image dependencies and advisories. | On 2026-11-01 the owner explicitly excluded CoP topic 8 for this demo environment. Retain the vendor EE without building or changing an image for this review. No complete image scan, clean vulnerability result or SBOM assessment is claimed. Revisit for production reuse or a separately requested image-security review. |
+| D22 | Windows/AD hardening and CIS host-compliance assessment are outside this review; benchmark/profile/control compliance is not assessed. | On 2026-11-01 the owner clarified that only the project's code is under review. Windows and AD deployment playbooks and supporting code remain included, with code-level security checks; deployed OS/directory hardening is excluded. No CIS compliance is claimed. Revisit only if a separate system-hardening assessment is requested. |
 
 ## Unresolved requirements and security decisions
 
@@ -148,7 +150,7 @@ material security decisions remain separate below.
 | U4 | WinRM certificate validation and WSUS HTTP are resolved as owner-accepted lab deviations D10/D11. No blanket exception for other service transports is inferred. | Record these exceptions without further WinRM/WSUS changes. Any additional transport concern needs its own evidence and disposition. No production-grade TLS or CIS compliance claim. |
 | U5 | APME dependency backend and vendor Python crypt warning remain separate policy questions. Full vendor EE image/SBOM assessment is owner-excluded for this demo (D21). | Discuss the APME limitation and supported-runtime warning separately. Do not reopen image scanning or claim that upstream tooling advisories prove a vendor EE vulnerability. |
 | U6 | Historical usernames are closed (D12), further rollback verification is demo-skipped (D17), service-account auditing is demo-excluded (D18), and rotation is umbrella-owned (D19). | These concerns are closed or handed off for this Windows review. No unsupported assertion of secret exposure, rotation, complete audit or reliable whole-system rollback. Existing network boundaries are separately owner-accepted (D20). |
-| U7 | CIS benchmark, version/profile and individual Windows/DC controls not selected and assessed. | Select applicable benchmarks/controls before runtime assessment. Generic scanner checks and this review do not certify host compliance. No additional hardening imposed speculatively. |
+| U7 | Closed by owner-confirmed code-only scope (D22): Windows/AD hardening and CIS host-compliance checks are excluded. | Continue reviewing the project's Ansible/supporting code. Do not select or run host benchmarks or introduce OS/AD hardening for this review; no CIS compliance claim. |
 
 ## Conflicting guidance and chosen approaches
 

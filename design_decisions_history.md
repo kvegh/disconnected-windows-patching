@@ -1,5 +1,19 @@
 # Design decisions history
 
+## 2026-11-01 — Keep CIS host hardening outside the code review
+
+Executable source remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`;
+the preceding documentation baseline is
+`57a1e7f54acbb8bee85c1deb68e36ea7b25d9417`.
+
+The owner clarified that the review concerns the project's code, not Windows
+or AD hardening. Record CIS host-compliance assessment as outside scope (D22),
+rather than an unresolved benchmark exercise. Continue assessing the Ansible
+and supporting code, including Windows/AD deployment logic and code-level
+security. No benchmark, configuration change or live operation is introduced,
+and no CIS compliance result is claimed. Current task state remains in Beads
+`bead-wd-jgw`.
+
 ## 2026-11-01 — Assess APME security observations by practical impact
 
 Executable implementation remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`

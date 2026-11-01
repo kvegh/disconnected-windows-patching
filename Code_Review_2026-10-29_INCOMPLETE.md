@@ -92,7 +92,7 @@ from the target AAP runtime.
 
 ## Deviations, conflicts and remaining gaps
 
-Accepted dispositions D1–D21 in the requirements record include compatible
+Accepted dispositions D1–D22 in the requirements record include compatible
 legacy names, coherent task includes, documented supporting code, useful existing
 tests and owner-directed main-only work. Each identifies the reason and revisit
 condition. On 2026-10-29 the owner explicitly accepted:
@@ -117,6 +117,9 @@ for this demo (D18), assign rotation to umbrella Beads task `bead-wd-8ee` (D19),
 accept existing network boundaries (D20), and exclude further EE image-security
 assessment for this demo (D21). Current review task state is in
 `bead-wd-jgw`; the earlier Markdown checklist is a historical snapshot.
+The owner also clarified the code-only scope (D22): Windows/AD hardening and
+CIS host-compliance assessment are excluded. Windows/AD deployment code and its
+credential, command, path and failure-handling behavior remain in the review.
 
 Conflicting naming, comments, historical Jinja, native-module preference and Git
 workflow guidance are resolved explicitly in the
@@ -127,9 +130,9 @@ of introducing cosmetic breakage or unsupported upgrades.
 Owner-skipped gaps include additional idempotency and complete CaC reconstruction
 verification, release-reference locking, additional CI gates and further complete
 rollback verification for this demo. Remaining open
-questions include APME dependency-backend coverage/vendor warning
-disposition and CIS control
-assessment. Access auditing is demo-excluded, rotation is umbrella-owned, and
+questions include APME dependency-backend coverage and the vendor-warning
+disposition. CIS host/AD hardening assessment is outside this code review.
+Access auditing is demo-excluded, rotation is umbrella-owned, and
 existing network boundaries are owner-accepted, and further vendor image/SBOM
 assessment is demo-excluded. These dispositions are
 not automatically confirmed playbook defects. Full functional evidence remains
