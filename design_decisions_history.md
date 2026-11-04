@@ -1,5 +1,34 @@
 # Design decisions history
 
+## Prepare explicitly selected isolated Windows instances — 2026-11-04
+
+Implementation `a7fb932` adds an optional native Vault runtime loader shared by
+the existing Windows playbooks. The owner approved keeping new runtime settings
+in the existing private companion, using its existing credentials, an independent
+versioned test forest and fresh certificates. The loader validates one selected
+instance and a fixed set of settings before binding them; it pins the actual
+hypervisor's SSH keys, route and machine identity. Creation checks the declared
+guest/NIC mapping and rejects conflicting or shared DHCP/DNS resources. Existing
+jobs without the transport retain their encrypted profiles and behavior.
+
+The selected AAP's API and SSH routes can differ because HTTPS uses a reverse
+proxy. Trust setup now uses the private guest address and verifies its libvirt
+product UUID before changing host/gateway CA trust. No API credential discovery,
+installer-password retrieval, custom credential type or external secret service
+was introduced.
+
+Fresh LDAPS certificates do not solve the golden images' initial WinRM trust.
+The prepared profile remains explicitly unready for guest jobs, which require
+normal HTTPS hostname and issuer validation. A read-only ownership preview adds
+namespaced clone metadata, UUID, sole-disk and exact-NIC evidence to the existing
+teardown baseline. Full network/inventory/LDAP/shared-lifecycle cleanup and live
+acceptance remain unfinished; this change does not claim functional deployment.
+
+Validation: all 121 Python tests, all 35 saved runtime playbook syntax checks,
+native encrypted-loader local execution, selected-instance/verified-inventory
+alias rendering, unprepared-target refusal and production lint (122 files,
+zero failures/warnings). No Windows VM job or live configuration write ran.
+
 ## 2026-11-04 — Link the published browser visualizations
 
 The user requested the same documentation-link improvement as the AIOps demo.
