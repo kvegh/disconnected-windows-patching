@@ -1,5 +1,27 @@
 # Design decisions history
 
+## Prepare scoped test LDAP and CA retirement — 2026-11-04
+
+Implementation `5ddbf35` adds a guarded removal mode to the existing AD trust
+playbook as a component of the owner-approved post-test decommission scope.
+The default installation path is unchanged. Removal requires the selected private
+profile, pinned AAP guest identity, exact five-clone ownership preview and a
+Boolean apply flag. The default preview mode reads and records ownership without
+removal. Approved apply uses native platform collection modules for the exact
+test authenticator/maps, then verifies built-in and unrelated authentication
+objects remain. CA retirement requires the exact owned anchor and marked gateway
+bundle content, preserving other trust material.
+
+No new Job Template, credential, publisher, service or orchestration layer was
+added. The full VM/network/inventory/shared-lifecycle decommission sequence is
+not yet connected; live cleanup remains subject to the serialized test and
+reviewed retirement window. No authentication or certificate was changed live.
+
+Validation: nineteen focused profile/network/clone/LDAP/CA safety tests, sixty-two
+AD regressions, playbook syntax and focused production lint (five files, zero
+failures/warnings). Tests use synthetic objects and evaluate the actual Ansible
+guards; they do not establish successful live LDAP retirement.
+
 ## Prepare explicitly selected isolated Windows instances — 2026-11-04
 
 Implementation `a7fb932` adds an optional native Vault runtime loader shared by
