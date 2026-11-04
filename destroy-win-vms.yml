@@ -7,6 +7,12 @@
     - vars/main.yml
   vars:
     vm_disk_path: "{{ vm_dir }}/win-{{ vm_name }}-clone.disk.qcow2"
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require exact VM allowlist and cloned disk naming
       ansible.builtin.assert:

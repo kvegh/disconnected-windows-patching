@@ -6,6 +6,12 @@
   vars_files:
     - vars/wsus_pipeline.yml
     - vars/wsus_patch_month.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require one external and one distinct internal WSUS with an available 2026 month
       ansible.builtin.assert:
@@ -52,6 +58,12 @@
   vars_files:
     - vars/wsus_pipeline.yml
     - vars/wsus_patch_month.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Prepare the selected baseline without running a new metadata synchronization
       when:
@@ -130,6 +142,12 @@
   vars_files:
     - vars/wsus_pipeline.yml
     - vars/wsus_patch_month.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Apply and persist the requested internal patch ceiling
       ansible.builtin.include_tasks: tasks/apply_wsus_patch_month.yml

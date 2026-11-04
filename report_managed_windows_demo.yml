@@ -7,6 +7,12 @@
     - vars/windows_patch_builds.yml
     - vars/windows_demo_proof.yml
     - vars/wsus_environment_vault.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require the two managed servers selected for this demo
       ansible.builtin.assert:
@@ -40,6 +46,12 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Display the combined live proof from both managed servers
       ansible.builtin.debug:

@@ -12,6 +12,11 @@ The [supporting-code guide](docs/supporting-code.md) explains the retained Pytho
 PowerShell and command usage; the [test guide](tests/README.md) states what the
 offline suites prove and what still needs live AAP validation.
 
+For prepared versioned environments, read the
+[selected-instance runtime contract](docs/selected-instance-runtime.md). Its
+private encrypted profiles pin the hypervisor, guest names and network mapping;
+normal WinRM trust remains a required prerequisite before guest jobs can run.
+
 ## Review release
 
 The first tracked major version is **1.0.0**, representing the review and cleanup

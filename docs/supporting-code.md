@@ -163,6 +163,22 @@ does not provide the combined marker, exact disk, sharing, backing-file and
 unrelated-resource preservation checks. Ansible controls the sequence and
 validated `virsh`/disk operations. Their safety still requires live verification.
 
+`windows-network-reservations.py` validates exact DHCP/DNS tuples against both
+live and persistent network XML, current leases and domain NIC references before
+performing bounded `virsh net-update` operations. Shared or conflicting records
+are rejected. `windows-environment-ownership.py` produces a read-only preview of
+the selected instance's five namespaced clones, UUIDs, sole writable disks and
+exact NIC topology; it refuses shared storage and snapshots. These combined
+checks are required before the existing teardown chain can be used for a
+versioned environment. Their tests exercise the actual parsers with synthetic
+XML; they do not substitute for live preservation checks.
+
+The `windows_runtime.py` filter validates the selected private profile's fixed
+schema before the native Vault loader binds any settings. Python keeps the
+structural checks directly testable and avoids embedding a large unsafe variable
+merge in Jinja. Ansible still loads the Vault, authenticates to managed hosts and
+controls execution.
+
 `hypervisor-memory-report.py` samples Linux memory, swap, pressure and KSM counters
 with a monotonic interval. Ansible's ordinary memory facts do not provide this
 combined rate/KSM snapshot. It is diagnostic and changes no host tuning.

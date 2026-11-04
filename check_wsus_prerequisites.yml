@@ -2,6 +2,12 @@
 - name: Check external WSUS readiness without downloading updates
   hosts: wsus_external
   gather_facts: false
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require exactly one external WSUS server
       ansible.builtin.assert:

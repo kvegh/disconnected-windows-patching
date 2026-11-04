@@ -8,6 +8,12 @@
   vars:
     ansible_user: "{{ active_directory.domain_admin_username if ad_inspect_domain_auth | default(false) | bool else active_directory.bootstrap_username }}"
     ansible_password: "{{ active_directory.domain_admin_password if ad_inspect_domain_auth | default(false) | bool else active_directory.bootstrap_password }}"
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Verify the selected management identity before protected inspection
       ansible.builtin.wait_for_connection:

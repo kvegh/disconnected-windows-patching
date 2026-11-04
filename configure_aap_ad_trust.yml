@@ -6,6 +6,12 @@
   vars_files:
     - vars/active_directory_vault.yml
     - vars/active_directory_target.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Check the selected target credential before using platform trust
       ansible.builtin.include_tasks: tasks/require_active_directory_target.yml
@@ -28,7 +34,7 @@
       ansible.builtin.add_host:
         name: ad_trust_target
         groups: ad_trust_targets
-        ansible_host: "{{ (ad_target_api_url) | ansible.builtin.urlsplit('hostname') }}"
+        ansible_host: "{{ ad_target_ssh_address }}"
         ansible_connection: ssh
         ansible_user: "{{ ad_target_ssh_username }}"
         ansible_password: "{{ ad_target_ssh_password }}"
@@ -43,7 +49,28 @@
   vars_files:
     - vars/active_directory_vault.yml
     - vars/active_directory_target.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
+    - name: Inspect the selected AAP guest's independent libvirt identity
+      ansible.builtin.slurp:
+        src: /sys/class/dmi/id/product_uuid
+      register: ad_target_machine_uuid
+      when: windows_runtime_settings_vault is defined
+      no_log: true
+
+    - name: Refuse trust changes on an unexpected AAP guest
+      ansible.builtin.assert:
+        that:
+          - ad_target_machine_uuid.content | b64decode | trim | lower == active_directory.test_vm_uuid
+        quiet: true
+      when: windows_runtime_settings_vault is defined
+      no_log: true
+
     - name: Resolve the existing AAP service account
       ansible.builtin.getent:
         database: passwd
@@ -211,6 +238,12 @@
   hosts: localhost
   connection: local
   gather_facts: false
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Remove the protected temporary connection workspace
       ansible.builtin.file:

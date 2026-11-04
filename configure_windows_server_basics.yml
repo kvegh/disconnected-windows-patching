@@ -2,6 +2,12 @@
 - name: Validate Windows basics inventory
   hosts: localhost
   gather_facts: false
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require repository servers and managed clients
       ansible.builtin.assert:
@@ -20,6 +26,12 @@
   vars:
     windows_network_task_name: AAP-ConfigurePermanentNetwork
     windows_network_task_directory: 'C:\ProgramData\AAP\NetworkConfiguration'
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Wait for WinRM
       ansible.builtin.wait_for_connection:

@@ -20,7 +20,8 @@ class NexusPathValidationTests(unittest.TestCase):
         )[1]
         checks = [
             expression
-            for expression in play["pre_tasks"][0]["ansible.builtin.assert"]["that"]
+            for task in play["pre_tasks"]
+            for expression in task.get("ansible.builtin.assert", {}).get("that", [])
             if "is regex" in expression
         ]
         import_play = yaml.safe_load(

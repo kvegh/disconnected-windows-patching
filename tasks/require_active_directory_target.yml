@@ -11,5 +11,16 @@
     - AD_AAP_TARGET_SSH_PASSWORD
     - AD_AAP_TARGET_SSH_KNOWN_HOSTS
     - AD_AAP_TARGET_INSTALL_USERNAME
-  when: ad_require_target_credential | default(false) | bool
+  when: ad_require_target_credential | default(false) | bool or windows_runtime_settings_vault is defined
+  no_log: true
+
+- name: Bind managed instance operations to the selected platform's API
+  ansible.builtin.assert:
+    that:
+      - ad_target_api_url | regex_replace('/+$', '') == active_directory.test_aap_url | regex_replace('/+$', '')
+      - active_directory.test_vm_uuid is match('^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$')
+      - ad_target_ssh_address == active_directory.test_ssh_address
+    quiet: true
+    fail_msg: The target API or SSH guest identity differs from the selected Windows runtime instance.
+  when: windows_runtime_settings_vault is defined
   no_log: true

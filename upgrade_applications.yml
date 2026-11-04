@@ -5,6 +5,12 @@
   vars_files:
     - vars/chocolatey_packages.yml
     - vars/wsus_environment_vault.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require existing baseline or current versions before upgrading
       chocolatey.chocolatey.win_chocolatey_facts:

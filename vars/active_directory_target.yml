@@ -20,3 +20,7 @@ ad_target_ssh_known_hosts: >-
 ad_target_install_username: >-
   {{ ad_aap_target_install_username | default(lookup('ansible.builtin.env', 'AD_AAP_TARGET_INSTALL_USERNAME'), true) |
   default(active_directory.test_install_username, true) }}
+# The selected AAP API may use a public reverse proxy while SSH uses the
+# independently recorded guest address on the same private hypervisor network.
+ad_target_ssh_address: >-
+  {{ active_directory.test_ssh_address | default(ad_target_api_url | ansible.builtin.urlsplit('hostname'), true) }}

@@ -4,6 +4,12 @@
   gather_facts: false
   vars_files:
     - vars/wsus_environment_vault.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require both WSUS servers and managed clients
       ansible.builtin.assert:
@@ -27,6 +33,12 @@
   vars:
     wsus_content_path: 'C:\WSUS'
     wsus_content_path_pattern: '^[A-Za-z]:\\[^\r\n"]+$'
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Wait for Windows management
       ansible.builtin.wait_for_connection:
@@ -189,6 +201,12 @@
   gather_facts: false
   vars_files:
     - vars/wsus_environment_vault.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Wait for Windows management
       ansible.builtin.wait_for_connection:

@@ -1,6 +1,7 @@
 ---
 - name: Create a Windows VM from a sparse base image
   hosts: hypervisor
+  gather_facts: false
   become: true
   vars_files:
     - vars/main.yml
@@ -10,7 +11,29 @@
     vm_boot_mode: "{{ windows_boot_modes[windows_version | string] }}"
     vm_disk_path: "{{ vm_dir }}/win-{{ vm_name }}-clone.disk.qcow2"
 
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
+    - name: Require the selected instance's exact owned clone and interfaces
+      ansible.builtin.assert:
+        that:
+          - vm_name in windows_runtime_guests
+          - windows_runtime_guests[vm_name].role == vm_role or (windows_runtime_guests[vm_name].role == 'ad' and vm_role == 'managed')
+          - windows_runtime_guests[vm_name].version | string == windows_version | string
+          - windows_runtime_guests[vm_name].interfaces[0].network == vm_network
+          - windows_runtime_guests[vm_name].interfaces[0].mac == vm_mac | lower
+          - windows_runtime_guests[vm_name].interfaces | length == (2 if vm_management_network | length > 0 else 1)
+          - vm_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].network == vm_management_network
+          - vm_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].mac == vm_management_mac | lower
+        quiet: true
+        fail_msg: The requested clone does not match the selected private instance's owned guest mapping.
+      when: windows_runtime_settings_vault is defined
+      no_log: true
+
     - name: Validate survey or extra variable inputs
       ansible.builtin.assert:
         that:
@@ -87,6 +110,15 @@
         that: not destination_disk.stat.exists
         fail_msg: "Disk {{ vm_disk_path }} already exists. Inspect it before retrying with this name."
 
+    - name: Reserve only the selected instance guest's exact fresh network resources
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-network-reservations.py') }}", reserve]
+        stdin: "{{ {'name': vm_name, 'interfaces': windows_runtime_guests[vm_name].interfaces} | to_json }}"
+      register: windows_runtime_reservations
+      changed_when: (windows_runtime_reservations.stdout | from_json).changed
+      when: windows_runtime_settings_vault is defined and not ansible_check_mode
+      no_log: true
+
     - name: Create independent sparse qcow2 clone without resizing
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
@@ -122,7 +154,8 @@
         vm_install_argv: >-
           {{ ['virt-install', '--name', vm_name, '--vcpus', '2',
               '--memory', selected_memory_mb | string, '--import',
-              '--metadata', 'description=aap-disconnected-windows-clone',
+              '--metadata', 'description=aap-disconnected-windows-clone'
+              ~ (',title=' ~ windows_runtime_expected_instance ~ ':' ~ vm_name if windows_runtime_settings_vault is defined else ''),
               '--machine', 'q35', '--boot',
               ('uefi' if vm_boot_mode == 'uefi' else 'hd'),
               '--graphics', 'vnc,listen=127.0.0.1', '--osinfo',

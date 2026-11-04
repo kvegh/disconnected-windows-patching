@@ -7,6 +7,12 @@
     - vars/main.yml
   vars:
     windows_demo_expected_count: "{{ 5 if windows_demo_include_ad | default(false) | bool else 4 }}"
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require a pre-teardown baseline and exact target list
       ansible.builtin.assert:

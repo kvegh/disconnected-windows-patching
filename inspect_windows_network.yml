@@ -2,6 +2,12 @@
 - name: Inspect Windows network bootstrap without changing configuration
   hosts: wsus_external:wsus_internal:windows_managed
   gather_facts: false
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Wait for existing WinRM connectivity
       ansible.builtin.wait_for_connection:

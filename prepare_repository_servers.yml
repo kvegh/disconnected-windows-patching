@@ -4,6 +4,12 @@
   gather_facts: false
   vars_files:
     - vars/application_installers.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require repository servers, clients and a pinned offline MSI
       ansible.builtin.assert:
@@ -41,6 +47,12 @@
 - name: Prepare repository Windows features before concurrent WSUS and Nexus setup
   hosts: wsus_external:wsus_internal
   gather_facts: false
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Wait for Windows management
       ansible.builtin.wait_for_connection:
@@ -56,6 +68,12 @@
     - vars/application_installers.yml
   vars:
     chocolatey_staging_directory: 'C:\ProgramData\AAP\Installers'
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Wait for Windows management
       ansible.builtin.wait_for_connection:

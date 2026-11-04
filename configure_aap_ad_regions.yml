@@ -35,6 +35,12 @@
     ansible.controller.host: *regional_controller_connection
     ansible.controller.credential: *regional_controller_connection
     ansible.controller.job_template: *regional_controller_connection
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Check the selected target credential before any platform changes
       ansible.builtin.include_tasks: tasks/require_active_directory_target.yml

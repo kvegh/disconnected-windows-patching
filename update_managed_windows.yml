@@ -9,6 +9,12 @@
     - vars/windows_patching.yml
     - vars/windows_patch_builds.yml
     - vars/wsus_environment_vault.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require distinct managed endnodes and one protected internal WSUS
       ansible.builtin.assert:
@@ -39,6 +45,12 @@
     - vars/windows_patching.yml
     - vars/windows_patch_builds.yml
     - vars/wsus_environment_vault.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
 
     - name: Retain the verified month and exact allowed identities for every client
@@ -118,6 +130,12 @@
     - vars/windows_patching.yml
     - vars/windows_patch_builds.yml
     - vars/wsus_environment_vault.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Apply and verify the current managed Windows update set
       ansible.builtin.include_tasks: tasks/update_managed_windows_host.yml

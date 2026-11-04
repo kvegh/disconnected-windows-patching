@@ -2,9 +2,16 @@
 - name: Load the protected definition for the dedicated AD VM
   hosts: hypervisor
   gather_facts: false
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Load the existing encrypted AD profile
       ansible.builtin.include_vars: vars/active_directory_vault.yml
+      when: windows_runtime_settings_vault is not defined
       no_log: true
 
 - name: Create the dedicated Server 2025 clone with the existing guarded provisioner

@@ -1,0 +1,158 @@
+---
+- name: Load the selected Windows instance's encrypted runtime settings
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_connection: local
+  no_log: true
+  block:
+    - name: Require whole-file Vault ciphertext and an explicit selected instance
+      ansible.builtin.assert:
+        that:
+          - windows_runtime_settings_vault is string
+          - windows_runtime_settings_vault is match('^\$ANSIBLE_VAULT;1\.[12];AES256(?:;[^\n]+)?\n')
+          - windows_runtime_expected_instance is defined
+          - windows_runtime_expected_instance is string
+        quiet: true
+        fail_msg: Import the selected instance's encrypted Windows settings and attach its existing Vault credential.
+
+    - name: Allocate a private ciphertext file in the execution environment
+      ansible.builtin.tempfile:
+        state: file
+        prefix: windows-runtime-vault-
+      register: windows_runtime_temporary_file
+      check_mode: false
+
+    - name: Preserve ciphertext without copy-module decryption
+      ansible.builtin.copy:
+        content: "{{ windows_runtime_settings_vault }}"
+        dest: "{{ windows_runtime_temporary_file.path }}"
+        mode: '0600'
+        decrypt: false
+      diff: false
+      check_mode: false
+
+    - name: Decrypt using the native variable loader and existing Vault credential
+      ansible.builtin.include_vars:
+        file: "{{ windows_runtime_temporary_file.path }}"
+        name: windows_runtime_file
+
+    - name: Validate the selected instance and reviewed runtime setting names
+      ansible.builtin.set_fact:
+        windows_runtime_selected: "{{ windows_runtime_file | windows_runtime_selected_settings(windows_runtime_expected_instance) }}"
+
+    - name: Bind only the selected instance's validated runtime settings
+      ansible.builtin.set_fact:
+        "{{ item.key }}": "{{ item.value }}"
+      loop: "{{ windows_runtime_selected | dict2items }}"
+
+  always:
+    - name: Always remove the private execution-environment ciphertext file
+      ansible.builtin.file:
+        path: "{{ windows_runtime_temporary_file.path }}"
+        state: absent
+      when: windows_runtime_temporary_file.path is defined
+      check_mode: false
+
+- name: Pin the selected hypervisor before its first managed connection
+  when: inventory_hostname == windows_runtime_hypervisor.inventory_host
+  no_log: true
+  block:
+    - name: Require exactly the selected hypervisor inventory entry
+      ansible.builtin.assert:
+        that:
+          - groups.get('hypervisor', [windows_runtime_hypervisor.inventory_host]) == [windows_runtime_hypervisor.inventory_host]
+          - inventory_hostname == windows_runtime_hypervisor.inventory_host
+        quiet: true
+
+    - name: Allocate private SSH host-key material in the execution environment
+      ansible.builtin.tempfile:
+        state: file
+        prefix: windows-hypervisor-host-keys-
+      register: windows_runtime_host_keys
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+      check_mode: false
+
+    - name: Install only independently verified hypervisor host keys
+      ansible.builtin.copy:
+        content: "{{ windows_runtime_hypervisor.known_hosts }}"
+        dest: "{{ windows_runtime_host_keys.path }}"
+        mode: '0600'
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+      diff: false
+      check_mode: false
+
+    - name: Bind the exact hypervisor route without trust-on-first-use
+      ansible.builtin.set_fact:
+        ansible_host: "{{ windows_runtime_hypervisor.address }}"
+        ansible_port: "{{ windows_runtime_hypervisor.port }}"
+        ansible_ssh_common_args: >-
+          -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null
+          -o UserKnownHostsFile={{ windows_runtime_host_keys.path | quote }}
+
+    - name: Read the selected hypervisor's independent operating-system identity
+      ansible.builtin.slurp:
+        src: /etc/machine-id
+      register: windows_runtime_machine_identity
+      become: true
+      check_mode: false
+
+    - name: Refuse all operations on an unexpected hypervisor
+      ansible.builtin.assert:
+        that:
+          - windows_runtime_machine_identity.content | b64decode | trim == windows_runtime_hypervisor.machine_id
+        quiet: true
+        fail_msg: The connected hypervisor does not match the independently pinned replacement identity.
+
+- name: Refuse inherited Windows connections before verified instance trust is available
+  ansible.builtin.assert:
+    that:
+      - inventory_hostname in windows_runtime_guests
+      - windows_runtime_winrm_ready | bool
+      - ansible_connection == 'winrm'
+      - ansible_winrm_scheme == 'https'
+      - ansible_winrm_server_cert_validation == 'validate'
+    quiet: true
+    fail_msg: Complete the reviewed instance-specific WinRM certificate bootstrap before running Windows guest jobs.
+  when:
+    - inventory_hostname != 'localhost'
+    - inventory_hostname != windows_runtime_hypervisor.inventory_host
+    - inventory_hostname not in groups.get('ad_trust_targets', [])
+  no_log: true
+
+- name: Install the selected WinRM public CA in the execution environment
+  when: inventory_hostname in windows_runtime_guests and windows_runtime_winrm_ready | bool
+  no_log: true
+  block:
+    - name: Allocate private WinRM CA file
+      ansible.builtin.tempfile:
+        state: file
+        prefix: windows-winrm-ca-
+      register: windows_runtime_ca_file
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+      check_mode: false
+
+    - name: Write the selected public WinRM issuer
+      ansible.builtin.copy:
+        content: "{{ windows_runtime_winrm_ca }}"
+        dest: "{{ windows_runtime_ca_file.path }}"
+        mode: '0600'
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+      diff: false
+      check_mode: false
+
+    - name: Use normal WinRM hostname and certificate validation
+      ansible.builtin.set_fact:
+        ansible_winrm_ca_trust_path: "{{ windows_runtime_ca_file.path }}"

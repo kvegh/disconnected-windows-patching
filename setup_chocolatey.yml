@@ -7,6 +7,12 @@
     - vars/application_installers.yml
     - vars/chocolatey_packages.yml
     - vars/wsus_environment_vault.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require repository servers and managed clients
       ansible.builtin.assert:
@@ -80,6 +86,11 @@
       {{ [chocolatey_external_feed_name] if inventory_hostname in groups['wsus_external'] else [chocolatey_baseline_feed_name,
       chocolatey_current_feed_name] }}
   pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
     - name: Require credentials and scoped repository access
       ansible.builtin.assert:
         that:
@@ -259,6 +270,11 @@
   vars:
     chocolatey_staging_directory: 'C:\ProgramData\AAP\Installers'
   pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
     - name: Require internal repository credentials
       ansible.builtin.assert:
         that:

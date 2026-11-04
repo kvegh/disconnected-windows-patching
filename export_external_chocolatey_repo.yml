@@ -9,6 +9,12 @@
     nexus_admin_username: "{{ nexus_server_settings[inventory_hostname].admin_username }}"
     nexus_admin_password: "{{ nexus_server_settings[inventory_hostname].admin_password }}"
     nexus_api_url: http://localhost:8081/service/rest
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require the raw export repository name
       ansible.builtin.assert:
@@ -74,6 +80,12 @@
     nexus_external_url: "http://{{ hostvars[nexus_external_host].ansible_host }}:8081"
     nexus_external_admin_username: "{{ nexus_server_settings[nexus_external_host].admin_username }}"
     nexus_external_admin_password: "{{ nexus_server_settings[nexus_external_host].admin_password }}"
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require synchronization hashes from the preceding AAP job
       ansible.builtin.assert:

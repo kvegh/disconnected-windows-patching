@@ -9,6 +9,12 @@
     ansible_user: "{{ active_directory.domain_admin_username }}"
     ansible_password: "{{ active_directory.domain_admin_password }}"
     ad_tls_directory: 'C:\ProgramData\AAP\ActiveDirectoryTLS'
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require the intended domain controller before importing certificates
       # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).

@@ -13,6 +13,12 @@
     expected_export_base_url: "http://{{ hostvars[nexus_external_host].ansible_host }}:8081/repository/{{ chocolatey_export_feed_name }}/"
     archive_path: "{{ chocolatey_transfer_directory }}\\{{ chocolatey_export_descriptor.sha256 }}.zip"
     extraction_directory: "{{ chocolatey_transfer_directory }}\\{{ chocolatey_export_descriptor.sha256 }}"
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require a trusted descriptor from the external export job
       ansible.builtin.assert:

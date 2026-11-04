@@ -6,6 +6,12 @@
   vars_files:
     - vars/main.yml
     - vars/active_directory_vault.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require an absent VM and clone disk before a fresh reservation
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).

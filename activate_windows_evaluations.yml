@@ -5,6 +5,12 @@
   any_errors_fatal: true
   vars_files:
     - vars/windows_activation_vault.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Require an explicitly approved activation configuration
       ansible.builtin.assert:
@@ -66,6 +72,12 @@
   any_errors_fatal: true
   vars_files:
     - vars/wsus_environment_vault.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
   tasks:
     - name: Wait for the existing permanent Windows management connection
       ansible.builtin.wait_for_connection:
