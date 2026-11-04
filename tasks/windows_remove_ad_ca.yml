@@ -1,0 +1,119 @@
+---
+- name: Remove only the selected test forest's exact owned trust material
+  no_log: true
+  block:
+    - name: Inspect the exact selected public CA anchor
+      ansible.builtin.stat:
+        path: "/etc/pki/ca-trust/source/anchors/{{ active_directory.prefix }}-ad-demo.crt"
+        follow: false
+        get_checksum: false
+      register: windows_ad_anchor
+
+    - name: Require a regular root-owned CA anchor when present
+      ansible.builtin.assert:
+        that:
+          - not windows_ad_anchor.stat.exists or windows_ad_anchor.stat.isreg | default(false)
+          - not windows_ad_anchor.stat.islnk | default(false)
+          - not windows_ad_anchor.stat.exists or windows_ad_anchor.stat.uid == 0
+        quiet: true
+
+    - name: Read the existing public CA anchor without following a changed ownership path
+      ansible.builtin.slurp:
+        src: "/etc/pki/ca-trust/source/anchors/{{ active_directory.prefix }}-ad-demo.crt"
+      register: windows_ad_anchor_content
+      when: windows_ad_anchor.stat.exists
+
+    - name: Refuse removal of an anchor belonging to another certificate
+      ansible.builtin.assert:
+        that:
+          - windows_ad_anchor_content.content | b64decode | trim == active_directory.ca_certificate | trim
+        quiet: true
+      when: windows_ad_anchor.stat.exists
+
+    - name: Inspect the gateway's existing shared trust bundle
+      ansible.builtin.stat:
+        path: "{{ ad_gateway_ca_mounts[0].Source }}/pem/tls-ca-bundle.pem"
+        follow: false
+        get_checksum: false
+      register: windows_ad_gateway_bundle_file
+
+    - name: Require a regular existing gateway bundle with its expected owner
+      ansible.builtin.assert:
+        that:
+          - windows_ad_gateway_bundle_file.stat.isreg | default(false)
+          - not windows_ad_gateway_bundle_file.stat.islnk | default(false)
+          - windows_ad_gateway_bundle_file.stat.uid in [0, getent_passwd[ad_target_install_username][1] | int]
+        quiet: true
+
+    - name: Read the gateway's existing shared trust bundle
+      ansible.builtin.slurp:
+        src: "{{ ad_gateway_ca_mounts[0].Source }}/pem/tls-ca-bundle.pem"
+      register: windows_ad_gateway_bundle
+
+    - name: Require the exact owned block or a previously completed removal
+      ansible.builtin.assert:
+        that:
+          - >-
+            owned_block in existing_bundle or
+            (active_directory.ca_certificate | trim not in existing_bundle and
+             begin_marker not in existing_bundle and end_marker not in existing_bundle)
+        quiet: true
+      vars:
+        begin_marker: "# BEGIN ANSIBLE MANAGED {{ active_directory.prefix }} AD DEMO CA"
+        end_marker: "# END ANSIBLE MANAGED {{ active_directory.prefix }} AD DEMO CA"
+        owned_block: "{{ begin_marker }}\n{{ active_directory.ca_certificate | trim }}\n{{ end_marker }}"
+        existing_bundle: "{{ windows_ad_gateway_bundle.content | b64decode }}"
+
+    - name: Remove only the matching dedicated public anchor
+      ansible.builtin.file:
+        path: "/etc/pki/ca-trust/source/anchors/{{ active_directory.prefix }}-ad-demo.crt"
+        state: absent
+      notify: Refresh the Active Directory host trust
+      when: windows_decommission_apply | default(false) | bool
+
+    - name: Apply the exact host trust removal before verification
+      ansible.builtin.meta: flush_handlers
+      when: windows_decommission_apply | default(false) | bool
+
+    - name: Remove only the validated marked CA block from shared gateway trust
+      ansible.builtin.blockinfile:
+        path: "{{ ad_gateway_ca_mounts[0].Source }}/pem/tls-ca-bundle.pem"
+        marker: "# {mark} ANSIBLE MANAGED {{ active_directory.prefix }} AD DEMO CA"
+        state: absent
+        create: false
+        unsafe_writes: false
+      when: windows_decommission_apply | default(false) | bool
+
+    - name: Verify the retired CA is absent inside the actual gateway container
+      ansible.builtin.command:
+        chdir: /
+        argv:
+          - runuser
+          - -u
+          - "{{ ad_target_install_username }}"
+          - --
+          - podman
+          - exec
+          - "{{ ad_gateway_container_name }}"
+          - python3
+          - -c
+          - |
+            import ssl,sys
+            if any(sys.argv[1] in str(cert.get('subject',())) for cert in ssl.create_default_context().get_ca_certs()):
+                raise RuntimeError('The selected test CA is still trusted; inspect before continuing decommission.')
+            print('Selected test CA removal verified')
+          - "{{ active_directory.prefix }} Demo CA"
+      environment:
+        XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[ad_target_install_username][1] }}"
+      changed_when: false
+      when: windows_decommission_apply | default(false) | bool and not ansible_check_mode
+
+    - name: Retain the protected CA ownership preview without private certificate material
+      ansible.builtin.set_stats:
+        data:
+          windows_ca_cleanup_preview:
+            instance: "{{ windows_runtime_expected_instance }}"
+            aap_guest_uuid: "{{ active_directory.test_vm_uuid }}"
+            anchor_exists: "{{ windows_ad_anchor.stat.exists }}"
+            apply: "{{ windows_decommission_apply | default(false) | bool }}"
+        per_host: false

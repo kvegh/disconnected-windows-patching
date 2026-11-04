@@ -105,6 +105,44 @@ def selected_settings(document, instance):
     return values
 
 
+def ldap_cleanup(authenticators, maps, directory):
+    """Select only the exact test LDAP authenticator and its reviewed maps."""
+    require(isinstance(authenticators, list) and isinstance(maps, list)
+            and isinstance(directory, dict), 'Read complete authenticator and map ownership first.')
+    require(all(isinstance(row, dict) and isinstance(row.get('id'), int)
+                and isinstance(row.get('name'), str) and isinstance(row.get('configuration'), dict)
+                for row in authenticators)
+            and all(isinstance(row, dict) and isinstance(row.get('id'), int)
+                    and isinstance(row.get('name'), str) and isinstance(row.get('authenticator'), int)
+                    for row in maps), 'Unexpected authentication API shapes require review before removal.')
+    prefix, fqdn = directory.get('prefix', ''), directory.get('fqdn', '')
+    require(isinstance(prefix, str) and re.fullmatch(r'[A-Za-z][A-Za-z0-9-]{0,19}', prefix)
+            and isinstance(fqdn, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9.-]{0,252}', fqdn),
+            'Use the selected private test directory identity.')
+    name = prefix + ' Active Directory'
+    endpoint = 'ldaps://' + fqdn + ':636'
+    related = [row for row in authenticators if row.get('name') == name
+               or endpoint in row.get('configuration', {}).get('SERVER_URI', [])]
+    require(len(related) <= 1, 'Ambiguous or shared LDAP authentication requires review.')
+    own = related[0] if related else None
+    if own is not None:
+        require(own.get('name') == name
+                and own.get('type') == 'ansible_base.authentication.authenticator_plugins.ldap'
+                and own.get('configuration', {}).get('SERVER_URI') == [endpoint]
+                and isinstance(own.get('id'), int), 'The selected LDAP name or endpoint belongs to another authenticator.')
+    own_maps = [row for row in maps if own is not None and row.get('authenticator') == own['id']]
+    allowed_names = {'Regional demo login', 'Regional demo organization'} | {
+        group['region'] + ' ' + group['role'] + ' membership'
+        for group in directory.get('groups', []) if group.get('scope') == 'DomainLocal'}
+    require(len({row['name'] for row in own_maps}) == len(own_maps)
+            and all(row.get('name') in allowed_names and isinstance(row.get('id'), int) for row in own_maps),
+            'Unrecognized or duplicate LDAP maps require explicit ownership review.')
+    return {'authenticator': own, 'map_names': [row['name'] for row in own_maps],
+            'preserved_authenticator_ids': sorted(row['id'] for row in authenticators if row != own),
+            'preserved_map_ids': sorted(row['id'] for row in maps if row not in own_maps)}
+
+
 class FilterModule:
     def filters(self):
-        return {'windows_runtime_selected_settings': selected_settings}
+        return {'windows_runtime_selected_settings': selected_settings,
+                'windows_runtime_ldap_cleanup': ldap_cleanup}

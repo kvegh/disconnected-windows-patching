@@ -13,6 +13,13 @@
       tags: always
 
   tasks:
+    - name: Require a supported trust operation and an isolated profile for removal
+      ansible.builtin.assert:
+        that:
+          - ad_trust_state | default('present') in ['present', 'absent']
+          - ad_trust_state | default('present') != 'absent' or windows_runtime_settings_vault is defined
+        quiet: true
+
     - name: Check the selected target credential before using platform trust
       ansible.builtin.include_tasks: tasks/require_active_directory_target.yml
 
@@ -138,6 +145,14 @@
         fail_msg: Inspect the target's gateway trust layout before changing an unexpected mount.
       no_log: true
 
+    - name: Remove only proven selected-instance LDAP authentication before its CA
+      ansible.builtin.include_tasks: tasks/windows_remove_ldap.yml
+      when: ad_trust_state | default('present') == 'absent'
+
+    - name: Remove only the selected test forest's verified CA
+      ansible.builtin.include_tasks: tasks/windows_remove_ad_ca.yml
+      when: ad_trust_state | default('present') == 'absent'
+
     - name: Add the dedicated public CA to the host's trust anchors
       ansible.builtin.copy:
         dest: "/etc/pki/ca-trust/source/anchors/{{ active_directory.prefix }}-ad-demo.crt"
@@ -147,9 +162,11 @@
         mode: '0644'
       notify: Refresh the Active Directory host trust
       no_log: true
+      when: ad_trust_state | default('present') == 'present'
 
     - name: Apply notified trust changes before gateway verification
       ansible.builtin.meta: flush_handlers
+      when: ad_trust_state | default('present') == 'present'
 
     - name: Preserve existing gateway trust and add the dedicated public CA
       ansible.builtin.blockinfile:
@@ -159,6 +176,7 @@
         create: false
         unsafe_writes: false
       no_log: true
+      when: ad_trust_state | default('present') == 'present'
 
     - name: Verify the CA is readable inside the actual gateway container
       # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
@@ -187,6 +205,7 @@
         XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[ad_target_install_username][1] }}"
       changed_when: false
       no_log: true
+      when: ad_trust_state | default('present') == 'present'
 
     - name: Verify named LDAPS with the gateway's normal certificate validation
       # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
@@ -213,19 +232,20 @@
       environment:
         XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[ad_target_install_username][1] }}"
       changed_when: false
-      when: ad_trust_verify_ldaps | default(false) | bool
+      when: ad_trust_verify_ldaps | default(false) | bool and ad_trust_state | default('present') == 'present'
       no_log: true
 
     - name: Report verified gateway CA trust
       ansible.builtin.debug:
         msg: Gateway trust was verified inside the existing container with certificate validation enabled.
+      when: ad_trust_state | default('present') == 'present'
 
     - name: Publish readiness only after gateway LDAPS verification
       ansible.builtin.set_stats:
         data:
           ad_gateway_trust_ready: true
         aggregate: false
-      when: ad_trust_verify_ldaps | default(false) | bool
+      when: ad_trust_verify_ldaps | default(false) | bool and ad_trust_state | default('present') == 'present'
 
   handlers:
     - name: Refresh the Active Directory host trust

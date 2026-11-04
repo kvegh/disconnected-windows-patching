@@ -1,11 +1,16 @@
 """Exercise selected-instance and exact network-resource safety offline."""
 
 import copy
+import base64
 import importlib.util
 from pathlib import Path
 import unittest
 
 from ansible.errors import AnsibleFilterError
+from ansible.parsing.dataloader import DataLoader
+from ansible.playbook.conditional import Conditional
+from ansible.template import Templar
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -119,6 +124,98 @@ class WindowsReservationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             network.inspect(self.nic, self.xml.format(dns='', dhcp=''),
                             [{'mac': '52:54:00:00:00:02', 'ipaddr': '192.0.2.11'}])
+
+
+class WindowsLDAPCleanupTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = {'prefix': 'example', 'fqdn': 'example-ad.example.test',
+                          'groups': [{'scope': 'DomainLocal', 'region': 'DK', 'role': 'reader'}]}
+        self.local = {'id': 1, 'name': 'Built-in password authentication', 'configuration': {},
+                      'type': 'ansible_base.authentication.authenticator_plugins.local'}
+        self.owned = {'id': 2, 'name': 'example Active Directory',
+                      'type': 'ansible_base.authentication.authenticator_plugins.ldap',
+                      'configuration': {'SERVER_URI': ['ldaps://example-ad.example.test:636']}}
+        self.maps = [{'id': 10, 'name': 'Shared local mapping', 'authenticator': 1},
+                     {'id': 20, 'name': 'Regional demo login', 'authenticator': 2}]
+
+    def test_only_exact_test_authentication_is_selected_and_builtin_is_preserved(self):
+        plan = runtime.ldap_cleanup([self.local, self.owned], self.maps, self.directory)
+        self.assertEqual(plan['authenticator']['id'], 2)
+        self.assertEqual(plan['map_names'], ['Regional demo login'])
+        self.assertEqual(plan['preserved_authenticator_ids'], [1])
+        self.assertEqual(plan['preserved_map_ids'], [10])
+
+    def test_absent_test_authentication_preserves_every_existing_object(self):
+        plan = runtime.ldap_cleanup([self.local], self.maps[:1], self.directory)
+        self.assertIsNone(plan['authenticator'])
+        self.assertEqual(plan['preserved_authenticator_ids'], [1])
+        self.assertEqual(plan['preserved_map_ids'], [10])
+
+    def test_shared_endpoint_or_foreign_name_is_rejected(self):
+        for key, value in [('name', 'Another LDAP'), ('configuration', {'SERVER_URI': ['ldaps://another.example.test:636']})]:
+            changed = copy.deepcopy(self.owned)
+            changed[key] = value
+            with self.subTest(key=key), self.assertRaises(AnsibleFilterError):
+                runtime.ldap_cleanup([self.local, changed], self.maps, self.directory)
+        with self.assertRaises(AnsibleFilterError):
+            runtime.ldap_cleanup([self.local, self.owned, dict(self.owned, id=3)], self.maps, self.directory)
+
+    def test_unreviewed_map_on_the_test_authenticator_is_rejected(self):
+        with self.assertRaises(AnsibleFilterError):
+            runtime.ldap_cleanup([self.local, self.owned], self.maps +
+                                 [{'id': 21, 'name': 'Unexpected external mapping', 'authenticator': 2}], self.directory)
+
+
+class WindowsCleanupConditionTests(unittest.TestCase):
+    def evaluate(self, file, task_name, variables):
+        block = yaml.safe_load((ROOT / 'tasks' / file).read_text())[0]['block']
+        task = next(row for row in block if row['name'] == task_name)
+        values = dict(task.get('vars', {}), **variables)
+        loader = DataLoader()
+        condition = Conditional(loader=loader)
+        condition.when = task['ansible.builtin.assert']['that']
+        return condition.evaluate_conditional(Templar(loader=loader, variables=values), values)
+
+    def test_ldap_preview_requires_a_boolean_mode_and_exact_selected_ownership(self):
+        names = list(profile()['windows_runtime']['settings']['windows_runtime_guests'])
+        values = {'windows_runtime_settings_vault': 'example ciphertext',
+                  'windows_decommission_apply': True, 'windows_runtime_expected_instance': 'example-instance',
+                  'windows_demo_vm_names': names,
+                  'windows_decommission_preview': {'read_only': True, 'instance': 'example-instance',
+                                                   'domains': dict.fromkeys(names, {})},
+                  'ad_target_api_url': 'https://example-aap.example.test',
+                  'active_directory': {'test_aap_url': 'https://example-aap.example.test'}}
+        task = 'Require an explicit cleanup mode and the reviewed five-guest ownership preview'
+        self.assertTrue(self.evaluate('windows_remove_ldap.yml', task, values))
+        self.assertTrue(self.evaluate('windows_remove_ldap.yml', task, dict(values, windows_decommission_apply=False)))
+        for change in [
+            {'windows_decommission_apply': 'yes'},
+            {'ad_target_api_url': 'https://different-aap.example.test'},
+            {'windows_decommission_preview': dict(values['windows_decommission_preview'], instance='another-instance')},
+            {'windows_decommission_preview': dict(values['windows_decommission_preview'], domains={'unrelated': {}})},
+        ]:
+            with self.subTest(change=list(change)):
+                self.assertFalse(self.evaluate('windows_remove_ldap.yml', task, dict(values, **change)))
+
+    def test_ca_anchor_must_contain_exactly_the_selected_certificate(self):
+        task = 'Refuse removal of an anchor belonging to another certificate'
+        for content, expected in [('example public CA', True), ('another public CA', False)]:
+            values = {'active_directory': {'ca_certificate': 'example public CA'},
+                      'windows_ad_anchor_content': {'content': base64.b64encode(content.encode()).decode()}}
+            self.assertEqual(self.evaluate('windows_remove_ad_ca.yml', task, values), expected)
+
+    def test_shared_gateway_bundle_requires_the_exact_owned_block(self):
+        begin = '# BEGIN ANSIBLE MANAGED example AD DEMO CA'
+        end = '# END ANSIBLE MANAGED example AD DEMO CA'
+        owned = begin + '\nexample public CA\n' + end
+        for content, expected in [(owned, True), ('unrelated CA', True),
+                                  (begin + '\nanother public CA\n' + end, False),
+                                  ('example public CA', False), (begin, False)]:
+            with self.subTest(content=content):
+                values = {'active_directory': {'prefix': 'example', 'ca_certificate': 'example public CA'},
+                          'windows_ad_gateway_bundle': {'content': base64.b64encode(content.encode()).decode()}}
+                self.assertEqual(self.evaluate('windows_remove_ad_ca.yml',
+                    'Require the exact owned block or a previously completed removal', values), expected)
 
 
 class WindowsOwnershipTests(unittest.TestCase):

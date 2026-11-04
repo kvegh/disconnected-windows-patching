@@ -40,6 +40,23 @@ jobs that do not select the new runtime transport. Their encrypted copies are
 retained in the private companion. Prepared versioned CaC imports use only their
 explicit private instance profile; they never fall back to inherited targets.
 
+## Scoped authentication cleanup component
+
+The existing `configure_aap_ad_trust.yml` playbook supports `ad_trust_state:
+absent` for a selected private instance. It requires the exact five-clone
+`windows_decommission_preview` and a Boolean `windows_decommission_apply` flag.
+The default `false` collects protected LDAP/CA ownership evidence without
+removing anything. An approved `true` run uses native platform collection modules
+to remove only the exact test authenticator and its recognized maps, verifies
+built-in and unrelated authentication IDs remain, then removes only the matching
+CA anchor and exact marked block from the gateway bundle. The AAP guest's SSH
+keys and libvirt product UUID are verified first. Changed, shared or ambiguous
+ownership fails closed.
+
+This component is prepared for the full decommission sequence. Its live use and
+the connection to VM, network, inventory and shared lifecycle retirement remain
+unfinished. It does not add another Job Template or automatically enable cleanup.
+
 ## Verification and remaining acceptance
 
 Offline checks cover wrong-instance documents, unreviewed variable injection,

@@ -16,6 +16,8 @@ For prepared versioned environments, read the
 [selected-instance runtime contract](docs/selected-instance-runtime.md). Its
 private encrypted profiles pin the hypervisor, guest names and network mapping;
 normal WinRM trust remains a required prerequisite before guest jobs can run.
+The same guide describes the guarded LDAP/CA cleanup component; full Windows
+decommission and live functional acceptance remain separate required checks.
 
 ## Review release
 

@@ -1,0 +1,110 @@
+---
+- name: Remove only the selected instance's proven test LDAP authentication
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_connection: local
+  no_log: true
+  block:
+    - name: Require an explicit cleanup mode and the reviewed five-guest ownership preview
+      ansible.builtin.assert:
+        that:
+          - windows_runtime_settings_vault is defined
+          - windows_decommission_apply | default(false) is boolean
+          - windows_decommission_preview is mapping
+          - windows_decommission_preview.read_only | bool
+          - windows_decommission_preview.instance == windows_runtime_expected_instance
+          - windows_decommission_preview.domains.keys() | list | sort == windows_demo_vm_names | sort
+          - ad_target_api_url | regex_replace('/+$', '') == active_directory.test_aap_url | regex_replace('/+$', '')
+        quiet: true
+        fail_msg: Review exact selected-instance decommission ownership before removing test authentication.
+
+    - name: Read all existing authenticators and mappings using the selected target credential
+      ansible.builtin.uri:
+        url: "{{ ad_target_api_url | regex_replace('/+$', '') }}/api/gateway/v1/{{ item }}/?page_size=200"
+        method: GET
+        url_username: admin
+        url_password: "{{ ad_target_admin_password }}"
+        force_basic_auth: true
+        validate_certs: true
+        ca_path: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_CA_FILE') }}"
+        follow_redirects: none
+        status_code: 200
+      loop: [authenticators, authenticator_maps]
+      register: windows_ldap_before
+      check_mode: false
+
+    - name: Require complete unpaginated authentication ownership
+      ansible.builtin.assert:
+        that:
+          - windows_ldap_before.results[0].json.next is none
+          - windows_ldap_before.results[1].json.next is none
+        quiet: true
+
+    - name: Select only the exact test authenticator and its reviewed maps
+      ansible.builtin.set_fact:
+        windows_ldap_cleanup: >-
+          {{ windows_ldap_before.results[0].json.results | windows_runtime_ldap_cleanup(
+               windows_ldap_before.results[1].json.results, active_directory) }}
+
+    - name: Remove only the selected test authenticator's exact existing maps
+      ansible.platform.authenticator_map:
+        name: "{{ item }}"
+        authenticator: "{{ windows_ldap_cleanup.authenticator.name }}"
+        state: absent
+        aap_hostname: "{{ ad_target_api_url }}"
+        aap_username: admin
+        aap_password: "{{ ad_target_admin_password }}"
+        aap_validate_certs: true
+        aap_ca_bundle: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_CA_FILE') }}"
+      loop: "{{ windows_ldap_cleanup.map_names }}"
+      when: windows_decommission_apply | default(false) | bool
+
+    - name: Remove the exact selected test LDAP authenticator
+      ansible.platform.authenticator:
+        name: "{{ windows_ldap_cleanup.authenticator.name }}"
+        state: absent
+        aap_hostname: "{{ ad_target_api_url }}"
+        aap_username: admin
+        aap_password: "{{ ad_target_admin_password }}"
+        aap_validate_certs: true
+        aap_ca_bundle: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_CA_FILE') }}"
+      when: windows_decommission_apply | default(false) | bool and windows_ldap_cleanup.authenticator is not none
+
+    - name: Read authentication again after scoped removal
+      ansible.builtin.uri:
+        url: "{{ ad_target_api_url | regex_replace('/+$', '') }}/api/gateway/v1/{{ item }}/?page_size=200"
+        method: GET
+        url_username: admin
+        url_password: "{{ ad_target_admin_password }}"
+        force_basic_auth: true
+        validate_certs: true
+        ca_path: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_CA_FILE') }}"
+        follow_redirects: none
+        status_code: 200
+      loop: [authenticators, authenticator_maps]
+      register: windows_ldap_after
+      check_mode: false
+      when: windows_decommission_apply | default(false) | bool and not ansible_check_mode
+
+    - name: Verify all built-in and unrelated authentication objects were preserved
+      ansible.builtin.assert:
+        that:
+          - windows_ldap_after.results[0].json.next is none
+          - windows_ldap_after.results[1].json.next is none
+          - windows_ldap_after.results[0].json.results | map(attribute='id') | sort == windows_ldap_cleanup.preserved_authenticator_ids
+          - windows_ldap_after.results[1].json.results | map(attribute='id') | sort == windows_ldap_cleanup.preserved_map_ids
+        quiet: true
+      when: windows_decommission_apply | default(false) | bool and not ansible_check_mode
+
+    - name: Retain the protected LDAP ownership preview without credentials
+      ansible.builtin.set_stats:
+        data:
+          windows_ldap_cleanup_preview:
+            instance: "{{ windows_runtime_expected_instance }}"
+            authenticator_id: "{{ windows_ldap_cleanup.authenticator.id | default(none) }}"
+            map_names: "{{ windows_ldap_cleanup.map_names }}"
+            preserved_authenticator_ids: "{{ windows_ldap_cleanup.preserved_authenticator_ids }}"
+            preserved_map_ids: "{{ windows_ldap_cleanup.preserved_map_ids }}"
+            apply: "{{ windows_decommission_apply | default(false) | bool }}"
+        per_host: false
