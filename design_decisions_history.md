@@ -1,5 +1,22 @@
 # Design decisions history
 
+## 2026-11-04 — Link the published browser visualizations
+
+The user requested the same documentation-link improvement as the AIOps demo.
+Add prominent GitHub Pages links for both the standard Windows walkthrough
+and the Windows + AAP architecture edition below the titles of README, TLDR,
+the Windows presenter guide, and both visualization READMEs. Each visualization
+guide points directly to its own published edition and cross-links the other.
+This makes the illustrations easy to open without finding a relative Pages
+path or confusing a browser walkthrough with live execution evidence.
+
+Both destinations returned HTTP 200, every entry point was checked for both
+links, and diff checks passed. Only documentation changed; VERSION remains
+1.0.8 and all frontend, automation and runtime configuration files are
+unchanged. No new dependency, browser, or test was needed for link additions.
+
+Implementation commit: `868aa5e`.
+
 ## 2026-11-01 — Close the agreed code-only review with recorded limits
 
 Executable source remains `399ad929fe3eda9cb75e60583f5160fe81ef7b98`
