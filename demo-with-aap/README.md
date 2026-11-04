@@ -1,5 +1,7 @@
 # Windows demo with AAP orchestration
 
+**[Open this visualization](https://kvegh.github.io/disconnected-windows-patching/demo-with-aap/)** · [Standard Windows edition](https://kvegh.github.io/disconnected-windows-patching/)
+
 A separate browser walkthrough that adds connected AAP and a proposed Linux
 execution node inside the secure network. It retains the original palette,
 larger typography, growing workflow, server details and in-page code previews.

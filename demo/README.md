@@ -1,5 +1,7 @@
 # Interactive Windows demo
 
+**[Open this visualization](https://kvegh.github.io/disconnected-windows-patching/)** · [Windows + AAP edition](https://kvegh.github.io/disconnected-windows-patching/demo-with-aap/)
+
 A browser-based, presenter-paced walkthrough of the disconnected Windows demo.
 The page has three main sections: Next/Previous controls, an accumulating workflow,
 and an architecture diagram that gains servers, services, content and connections.

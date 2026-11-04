@@ -1,5 +1,9 @@
 # Disconnected Windows demo: TLDR
 
+**[Open the Windows + AAP visualization](https://kvegh.github.io/disconnected-windows-patching/demo-with-aap/)**
+
+[Open the standard Windows visualization](https://kvegh.github.io/disconnected-windows-patching/)
+
 AAP provisions a small Windows lab, acquires WSUS updates and pinned application
 installers on the connected repository, transfers verified content to the
 internal repository, and patches/upgrades the managed Windows servers from

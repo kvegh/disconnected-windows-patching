@@ -1,5 +1,9 @@
 # Disconnected Windows Patching
 
+**[Open the Windows + AAP visualization](https://kvegh.github.io/disconnected-windows-patching/demo-with-aap/)**
+
+[Open the standard Windows visualization](https://kvegh.github.io/disconnected-windows-patching/)
+
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
 in a simulated disconnected environment.
 

@@ -1,5 +1,9 @@
 # Windows upgrade demo: presenter guide with VNC
 
+**[Open the Windows + AAP visualization](https://kvegh.github.io/disconnected-windows-patching/demo-with-aap/)**
+
+[Open the standard Windows visualization](https://kvegh.github.io/disconnected-windows-patching/)
+
 For a one-click current-state view, use the
 [live desktop and AAP proof report](managed-windows-proof-report.md). It queries
 both managed nodes and displays internal WSUS, April OS level and application
