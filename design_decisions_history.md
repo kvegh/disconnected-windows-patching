@@ -1,5 +1,23 @@
 # Design decisions history
 
+## Require a registered SSH pin rather than every host-key algorithm — 2026-11-05
+
+Implementation: `0108c05abd41b1ef672721fcbe0b7bdf02bd3073` (version 1.0.25).
+
+The normal creation retry established incomplete host-key coverage inside the
+execution environment although Controller metadata retained all registered keys.
+The owner-approved fix requires at least one registered host key at the selected
+private address. Every unregistered selected-alias key is still rejected, and
+StrictHostKeyChecking plus native UUID/machine identity checks remain unchanged.
+Empty, hostname-only and other-address trust remain invalid. The existing
+credential/type and full saved trust value are preserved. No trust discovery,
+new injection mechanism or authentication fallback was introduced.
+
+Native Ansible tests accept one of three registered pins and reject empty trust,
+hostname-only trust, a different address and mixed registered/unknown keys,
+without displaying key material. The normal workflow must still verify actual
+SSH connectivity and deployment; prior failures left all selected clones absent.
+
 ## Report actual SSH key coverage without trust material — 2026-11-05
 
 Implementation: `1eb1f0de898028b765cf43a133c6a911f0b025aa` (version 1.0.23).
