@@ -1,5 +1,23 @@
 # Design decisions history
 
+## Require a valid existing Windows license before AD updates — 2026-11-05
+
+Implementation: `9bcf20234486ce285047bccbd7857e36e0fa4564` (version 1.0.41).
+
+The actual shutdown event identified Windows Licensing Monitoring Service and
+an expired license period. After one verified recovery start, the normal
+inspection reported a licensed evaluation with 180 days remaining and a correct
+clock. That discrepancy remains unexplained; no activation, rearm, product key,
+edition or time configuration was changed.
+
+Extend the existing native Server/disk prerequisite with the installed Windows
+OS license selection already used by activation inspection. Refuse an unlicensed
+OS or an evaluation with no grace before updates. Fully licensed non-evaluation
+editions remain valid with zero evaluation grace. The separate assertion emits
+only a fixed instruction to run the existing inspection job. Four actual native
+Ansible guard cases, the existing applicability test and four-file production
+lint pass. The next normal update retry remains a required live check.
+
 ## Read actual shutdown events before repairing an interrupted update — 2026-11-05
 
 Implementation: `e22e5c74946a52385a6eb040ad65ba6328870a37` (version 1.0.39).
