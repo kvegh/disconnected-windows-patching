@@ -1,5 +1,20 @@
 # Design decisions history
 
+## Serialize each Windows baseline and isolation publication — 2026-11-05
+
+Implementation: `d77d3af54487637aa339456aa1915f1e89fa76dd` (version 1.0.37).
+
+The existing lifecycle transaction validates the complete previous policy before
+publishing one guest’s release. Parallel host preflights can therefore be
+invalidated by the first guest’s successful publication. Use native Ansible
+`serial: 1` on the existing Windows-basics guest play, completing each baseline
+and release before starting the next. All exact-guest and policy safeguards are
+preserved. No new job, orchestration engine or schema is introduced.
+
+Focused production lint passes four processed files. The normal basics job will
+run only after the current AD update job succeeds; scheduling configuration alone
+does not establish that the four guest baselines have passed.
+
 ## Preserve native PowerShell NIC address arrays — 2026-11-05
 
 Implementation: `799dc3d7e9e9bc92e66206822d1b537263e4e160` (version 1.0.35).
