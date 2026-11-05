@@ -1,5 +1,20 @@
 # Design decisions history
 
+## Preserve native PowerShell NIC address arrays — 2026-11-05
+
+Implementation: `799dc3d7e9e9bc92e66206822d1b537263e4e160` (version 1.0.35).
+
+The normal AD retry identified the exact NIC MAC/address-list predicate. The
+installed native PowerShell module’s default depth of two converts the nested
+`interfaces[].addresses` collection into a string. Set its existing serialization
+parameter to four so the projected identity retains actual nested arrays.
+No guest address, MAC, credential or provenance condition changes.
+
+The installed module documentation and conversion implementation establish the
+depth behavior; focused production lint passes. The next normal AD-stage retry
+will verify the correction against the live guest rather than claiming success
+from a schema fixture alone.
+
 ## Expose only controlled Windows identity failure reasons — 2026-11-05
 
 Implementation: `6d3f45f362e72d76e61ff3b29ddd022884b0eca4` (version 1.0.33).
