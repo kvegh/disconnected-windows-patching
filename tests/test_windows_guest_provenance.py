@@ -57,6 +57,25 @@ def fixture(count=2):
 
 
 class WindowsGuestProvenanceTests(unittest.TestCase):
+    def test_checked_failure_reason_preserves_proof_rules_without_exposing_private_evidence(self):
+        values = fixture()
+        self.assertTrue(proof.checked_provenance(*values)['verified'])
+        values[0]['update_urls'] = ['https://example.invalid/synthetic-private-value']
+        checked = proof.checked_provenance(*values)
+        self.assertFalse(checked['verified'])
+        self.assertEqual(checked['reason'], 'An inherited update-service endpoint prevents guest release.')
+        self.assertNotIn('synthetic-private-value', json.dumps(checked))
+        with patch.object(proof, 'provenance', side_effect=RuntimeError('synthetic-private-value')):
+            checked = proof.checked_provenance(*fixture())
+        self.assertEqual(checked, {'verified': False, 'reason': 'Protected Windows provenance verification failed.'})
+        task = next(row for row in yaml.safe_load((ROOT / 'tasks/windows_verified_guest_release.yml').read_text())[3]['block']
+                    if row['name'].startswith('Require actual Windows'))
+        rendered = Templar(loader=DataLoader(), variables={'windows_runtime_provenance_check': dict(
+            checked, invocation={'password': 'synthetic-private-value'}, stderr='synthetic-private-value')}).template(
+                task['ansible.builtin.assert']['fail_msg'])
+        self.assertEqual(rendered, checked['reason'])
+        self.assertNotIn('synthetic-private-value', rendered)
+
     def test_real_one_and_two_nic_windows_identity_produces_only_shared_windows_fields(self):
         for count in [1, 2]:
             values = fixture(count)

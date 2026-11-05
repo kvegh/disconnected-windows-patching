@@ -52,6 +52,8 @@ standalone, byte-identical golden copy without guest permissions. The existing
 lock covers comparison and reuse; no file is overwritten or deleted. Other
 existing disks remain a stop. The selected AD public-update baseline also removes
 inherited WSUS URL values and records only numeric before/after evidence.
+Windows/native provenance failures expose only their controlled validation reason;
+the actual computer, disk and network evidence stays protected.
 
 ## Review release
 

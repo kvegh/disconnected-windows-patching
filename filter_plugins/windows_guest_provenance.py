@@ -122,6 +122,17 @@ def provenance(computer, native, instance, name, guest, primary_address, pin, tr
             'winrm_certificate_validated': trust['validation'] == 'validate'}
 
 
+def checked_provenance(*args):
+    """Keep evidence private while returning only controlled validation reasons."""
+    try:
+        return {'verified': True, 'resource': provenance(*args)}
+    except AnsibleFilterError as error:
+        return {'verified': False, 'reason': str(error)}
+    except Exception:
+        return {'verified': False, 'reason': 'Protected Windows provenance verification failed.'}
+
+
 class FilterModule:
     def filters(self):
-        return {'windows_guest_verified_provenance': provenance}
+        return {'windows_guest_verified_provenance': provenance,
+                'windows_guest_checked_provenance': checked_provenance}

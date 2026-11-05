@@ -82,8 +82,8 @@
 
     - name: Join actual Windows identity and native ownership into the shared Windows resource
       ansible.builtin.set_fact:
-        windows_runtime_verified_resource: >-
-          {{ windows_runtime_computer_identity.result | windows_guest_verified_provenance(
+        windows_runtime_provenance_check: >-
+          {{ windows_runtime_computer_identity.result | windows_guest_checked_provenance(
                windows_runtime_native_identity.stdout | from_json,
                windows_runtime_expected_instance, inventory_hostname,
                windows_runtime_guests[inventory_hostname], windows_connection_address | default(active_directory.ipv4),
@@ -92,6 +92,17 @@
                 'validation': ansible_winrm_server_cert_validation,
                 'ca_present': windows_runtime_ca_file.path is defined},
                active_directory, windows_runtime_guests) }}
+
+    - name: Require actual Windows and native provenance with a controlled failure reason
+      no_log: false
+      ansible.builtin.assert:
+        that: windows_runtime_provenance_check.verified is sameas true
+        fail_msg: "{{ windows_runtime_provenance_check.reason | default('The protected Windows provenance check failed.') }}"
+        quiet: true
+
+    - name: Retain only the verified Windows resource without displaying its evidence
+      ansible.builtin.set_fact:
+        windows_runtime_verified_resource: "{{ windows_runtime_provenance_check.resource }}"
 
     - name: Release only this completed Windows deployment through the existing shared role
       ansible.builtin.include_role:
