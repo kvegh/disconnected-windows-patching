@@ -26,6 +26,22 @@ def run_play(play, extra_files=None, environment=None):
 
 
 class InitialRunTests(unittest.TestCase):
+    def test_infrastructure_failure_shows_only_a_failed_plans_controlled_message(self):
+        tasks = yaml.safe_load((ROOT / 'tasks/windows_aap_management_network.yml').read_text())[0]['block']
+        operation = next(row for row in tasks if row['name'].startswith('Run the same-job plan'))
+        task = next(row for row in operation['rescue'] if row['name'].startswith('Stop after an incomplete'))
+        self.assertFalse(task['no_log'])
+        for failed in [True, False]:
+            plan = {'failed': failed, 'msg': 'Controlled ownership reason' if failed else 'synthetic-private-value',
+                    'stderr': 'synthetic-private-value', 'invocation': {'password': 'synthetic-private-value'}}
+            result = run_play([{'hosts': 'localhost', 'gather_facts': False,
+                                'vars': {'__recovery_release_plan': plan}, 'tasks': [task]}])
+            output = result.stdout + result.stderr
+            self.assertEqual(result.returncode, 2, output)
+            self.assertNotIn('synthetic-private-value', output)
+            if failed:
+                self.assertIn('Controlled ownership reason', output)
+
     def test_real_ad_import_preserves_its_network_over_the_common_default(self):
         common = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]
         imported = yaml.safe_load((ROOT / 'create_active_directory_vm.yml').read_text())[1]

@@ -190,10 +190,13 @@
             - not (__recovery_release_plan.durable_ownership_published | default(false) | bool)
 
         - name: Stop after an incomplete Windows AAP management operation
+          no_log: false
           ansible.builtin.fail:
             msg: >-
               Windows infrastructure preparation did not complete. Published or uncertain components are retained.
               Only this job's freshly proved unpublished additions are eligible for rollback. No Windows clone was started by this step.
+              {{ ('Source preflight: ' ~ (__recovery_release_plan.msg | default('The protected preflight returned no controlled reason.')))
+                 if (((__recovery_release_plan | default({})).failed | default(false)) is sameas true) else '' }}
 
       always:
         - name: Remove only this job's protected trust and implementation workspace

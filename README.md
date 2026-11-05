@@ -39,6 +39,9 @@ guest host key pinned at its private address and rejects any unregistered key
 for the selected aliases. It reports only a safe reason and numeric coverage;
 key material remains protected. Strict SSH checking and native guest identity
 verification remain required.
+If shared ownership preflight fails, the infrastructure rescue displays only its
+controlled failure reason; action arguments, complete results and private errors
+remain protected.
 
 ## Review release
 
