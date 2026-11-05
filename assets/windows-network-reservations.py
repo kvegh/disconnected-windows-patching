@@ -2,7 +2,9 @@
 """Manage only a selected clone's exact DHCP/DNS tuples after conflict checks."""
 
 import ipaddress
+import fcntl
 import json
+from pathlib import Path
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -50,6 +52,10 @@ def main():
         raise ValueError('Use preview, reserve or remove.')
     record = json.load(sys.stdin)
     targets = record['interfaces']
+    if mode == 'reserve':
+        disk = Path('/opt/vms/win-' + record['name'] + '-clone.disk.qcow2')
+        if not disk.is_file() or disk.is_symlink():
+            raise ValueError('Create the selected standalone clone before any fresh DHCP/DNS reservation.')
     for name in virsh('list', '--all', '--name').splitlines():
         root = ET.fromstring(virsh('dumpxml', name, '--inactive'))
         for nic in root.findall('./devices/interface'):
@@ -89,4 +95,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # Match the existing NIC/disk lifecycle boundary; no reservation may appear after cleanup wins.
+    with open('/run/lock/aap-windows-management-interface.lock', 'a', encoding='utf-8') as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        main()

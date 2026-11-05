@@ -23,14 +23,20 @@ The two completed per-VM baseline stages prepare genuine Windows/native identity
 and invoke the same existing AutoDeploy release role before content downloads.
 They reuse existing credentials and report the actual Windows certificate policy. Offline
 checks do not establish a live guest deployment or successful release.
-The same guide describes the guarded LDAP/CA cleanup component; full Windows
-decommission and live functional acceptance remain separate required checks.
+The existing Windows infrastructure job also prepares the selected AAP VM's
+Windows-owned isolated NIC and persistent static connection before creating
+clones. It preserves the primary network, uses existing SSH credentials, records
+exact ownership through the same shared publisher, and removes only its owned
+connection after all five test clones and disks are absent. No extra job or
+wrapper is introduced. The same guide describes this transaction and the guarded
+LDAP/CA cleanup component; complete Windows decommission and live functional
+acceptance remain separate required checks.
 
 ## Review release
 
 The first tracked major version is **1.0.0**, representing the review and cleanup
 baseline under the [agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
-The current cleanup version is **1.0.12**. Work proceeds directly on `main`, as
+The current cleanup version is **1.0.13**. Work proceeds directly on `main`, as
 requested by the owner; `VERSION` identifies this project independently of the
 other umbrella projects. Implementation changes and their reasons are recorded
 in [the decision history](design_decisions_history.md).

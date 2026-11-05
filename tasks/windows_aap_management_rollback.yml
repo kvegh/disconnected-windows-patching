@@ -1,0 +1,28 @@
+---
+- name: Detach only the NIC this job actually created and no job durably published
+  ansible.builtin.command:
+    argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-interface.py') }}"]
+    stdin: >-
+      {{ {'mode': 'rollback', 'guest': windows_aap_network_guest,
+          'owned_guests': windows_runtime_guests,
+          'prefix_length': windows_aap_management.prefix_length,
+          'published': false, 'job_created': true} | to_json }}
+  when: windows_aap_nic_job_created
+  register: windows_aap_network_nic_rollback
+  changed_when: (windows_aap_network_nic_rollback.stdout | from_json).changed
+  no_log: true
+
+- name: Remove only this job's unpublished OS profile after its NIC is absent
+  ansible.builtin.command:
+    argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-networkmanager.py') }}"]
+    stdin: >-
+      {{ {'mode': 'rollback', 'guest': windows_aap_network_guest,
+          'prefix_length': windows_aap_management.prefix_length,
+          'baseline': windows_aap_network_baseline,
+          'published': false, 'job_created': true} | to_json }}
+  delegate_to: windows_aap_management_target
+  become: true
+  when: windows_aap_nm_job_created
+  register: windows_aap_network_os_rollback
+  changed_when: (windows_aap_network_os_rollback.stdout | from_json).changed
+  no_log: true

@@ -12,6 +12,12 @@
       when: windows_runtime_settings_vault is defined
       tags: always
 
+    - name: Defer selected fresh AD reservation to the locked common clone and pre-boot stage
+      ansible.builtin.meta: end_host
+      when:
+        - windows_runtime_settings_vault is defined
+        - ad_address_reservation_before_create | default(false) | bool
+
   tasks:
     - name: Require an absent VM and clone disk before a fresh reservation
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -102,6 +108,17 @@
       check_mode: false
       no_log: true
 
+    - name: Reconcile selected AD reservations only while its existing clone disk protects the lifecycle lock
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-network-reservations.py') }}", reserve]
+        stdin: >-
+          {{ {'name': active_directory.hostname,
+              'interfaces': windows_runtime_guests[active_directory.hostname].interfaces} | to_json }}
+      register: windows_ad_selected_reservations
+      changed_when: (windows_ad_selected_reservations.stdout | from_json).changed
+      when: windows_runtime_settings_vault is defined
+      no_log: true
+
     - name: Publish the exact LDAPS DNS name on the management network
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
@@ -114,7 +131,9 @@
           - "{{ (ad_reservation_inspection.stdout | from_json).dns_xml }}"
           - --live
           - --config
-      when: not (ad_reservation_inspection.stdout | from_json).dns_exists
+      when:
+        - windows_runtime_settings_vault is not defined
+        - not (ad_reservation_inspection.stdout | from_json).dns_exists
       changed_when: true
       no_log: true
 
@@ -130,7 +149,9 @@
           - "{{ (ad_reservation_inspection.stdout | from_json).xml }}"
           - --live
           - --config
-      when: not (ad_reservation_inspection.stdout | from_json).exists
+      when:
+        - windows_runtime_settings_vault is not defined
+        - not (ad_reservation_inspection.stdout | from_json).exists
       changed_when: true
       no_log: true
 

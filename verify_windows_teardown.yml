@@ -1,5 +1,5 @@
 ---
-- name: Verify Windows teardown without changing the hypervisor
+- name: Verify Windows teardown and remove only its recorded management connection
   hosts: hypervisor
   become: true
   gather_facts: false
@@ -61,7 +61,13 @@
 
     - name: Verify preserved VM definitions are unchanged
       ansible.builtin.assert:
-        that: item.stdout == teardown_baseline.domains[item.item].xml | trim
+        that: >-
+          item.stdout == teardown_baseline.domains[item.item].xml | trim or
+          (windows_runtime_aap_management is defined and
+           item.item == windows_runtime_aap_management.route.vm_name and
+           teardown_baseline.aap_management | default({}) == windows_runtime_aap_management and
+           (item.stdout | windows_aap_preserved_definition(
+             teardown_baseline.domains[item.item].xml, windows_runtime_aap_management)))
         fail_msg: A preserved VM definition changed; inspect before redeployment.
       loop: "{{ preserved_definitions.results }}"
       no_log: true
@@ -118,8 +124,45 @@
       loop: "{{ clone_files.results }}"
       no_log: true
 
+    - name: Require the captured exact Windows-owned AAP connection before its removal
+      ansible.builtin.assert:
+        that:
+          - teardown_baseline.aap_management is defined
+          - teardown_baseline.aap_management == windows_runtime_aap_management
+        quiet: true
+      when: windows_runtime_aap_management is defined
+      no_log: true
+
+    - name: Remove only the recorded Windows-owned AAP connection after all five clones and disks are absent
+      ansible.builtin.include_tasks: tasks/windows_aap_management_network.yml
+      vars:
+        windows_aap_management_state: absent
+      when: windows_runtime_aap_management is defined
+
+    - name: Read preserved definitions again after the bounded connection cleanup
+      ansible.builtin.command:
+        argv: [virsh, dumpxml, "{{ item }}", --inactive]
+      loop: "{{ remaining_domains.stdout.split() }}"
+      register: windows_final_preserved_definitions
+      changed_when: false
+      when: windows_runtime_aap_management is defined
+      no_log: true
+
+    - name: Verify only the recorded supplemental NIC was removed from the selected AAP
+      ansible.builtin.assert:
+        that: >-
+          (item.stdout | windows_aap_preserved_definition(
+            teardown_baseline.domains[item.item].xml, windows_runtime_aap_management))
+          if item.item == windows_runtime_aap_management.route.vm_name
+          else item.stdout == teardown_baseline.domains[item.item].xml | trim
+        quiet: true
+      loop: "{{ windows_final_preserved_definitions.results | default([]) }}"
+      when: windows_runtime_aap_management is defined
+      no_log: true
+
     - name: Report successful teardown verification
       ansible.builtin.debug:
         msg: >-
           All {{ windows_demo_expected_count }} approved Windows clones are absent;
           other VM definitions and states and original base image metadata match the baseline.
+          When selected, only the recorded Windows-owned AAP NIC and OS connection were removed.

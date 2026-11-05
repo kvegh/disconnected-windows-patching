@@ -70,7 +70,9 @@
         data:
           teardown_baseline: >-
             {{ (windows_teardown_baseline.stdout | from_json)
-               | combine({'target_vm_names': windows_demo_vm_names}) }}
+               | combine({'target_vm_names': windows_demo_vm_names})
+               | combine({'aap_management': windows_runtime_aap_management}
+                 if windows_runtime_aap_management is defined else {}) }}
         per_host: false
       no_log: true
 

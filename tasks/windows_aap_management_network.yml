@@ -1,0 +1,205 @@
+---
+- name: Prepare only the selected Windows-owned AAP management connection
+  when: windows_runtime_aap_management is defined
+  no_log: true
+  block:
+    - name: Require a complete normal run on the exact pinned hypervisor
+      ansible.builtin.assert:
+        that:
+          - windows_runtime_settings_vault is defined
+          - inventory_hostname == windows_runtime_hypervisor.inventory_host
+          - not ansible_check_mode
+          - ansible_run_tags | default(['all']) == ['all']
+          - ansible_skip_tags | default([]) | length == 0
+          - windows_aap_management_state in ['present', 'absent']
+          - lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_USERNAME') | length > 0
+          - lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_PASSWORD') | length > 0
+          - lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_KNOWN_HOSTS') | length > 0
+        quiet: true
+        fail_msg: Use a complete selected-instance infrastructure job and its existing pinned OS SSH credential.
+
+    - name: Validate the optional management declaration against the existing route
+      ansible.builtin.set_fact:
+        windows_aap_management: >-
+          {{ windows_runtime_aap_management | windows_aap_management_profile(
+             windows_runtime_expected_instance, windows_runtime_recovery_pin, windows_runtime_guests) }}
+        windows_aap_network_complete: false
+        windows_aap_nic_job_created: false
+        windows_aap_nm_job_created: false
+
+    - name: Require existing SSH trust to match the selected AAP guest's independently recorded keys
+      ansible.builtin.assert:
+        that: >-
+          lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_KNOWN_HOSTS') |
+          windows_aap_management_ssh_trust(windows_aap_management.route)
+        quiet: true
+
+    - name: Keep the existing AD target and AAP management identities consistent
+      ansible.builtin.assert:
+        that:
+          - active_directory.test_vm_name == windows_aap_management.route.vm_name
+          - active_directory.test_vm_uuid == windows_aap_management.primary.uuid
+          - active_directory.test_ssh_address == windows_aap_management.primary.address
+          - active_directory.test_aap_url == windows_aap_management.route.aap_hostname
+        quiet: true
+
+    - name: Allocate this job's private trust and public-code workspace
+      ansible.builtin.tempfile:
+        state: directory
+        path: /tmp
+        prefix: windows-aap-network-code-
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+      register: windows_aap_network_workspace
+
+    - name: Run the same-job plan and exact native network transaction
+      block:
+        - name: Write only the existing independently pinned AAP SSH host keys
+          ansible.builtin.copy:
+            content: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_KNOWN_HOSTS') }}"
+            dest: "{{ windows_aap_network_workspace.path }}/known_hosts"
+            mode: '0600'
+          delegate_to: localhost
+          become: false
+          vars:
+            ansible_connection: local
+          diff: false
+
+        - name: Bind only the existing selected AAP OS SSH login
+          ansible.builtin.add_host:
+            name: windows_aap_management_target
+            groups: windows_aap_management_targets
+            ansible_connection: ssh
+            ansible_host: "{{ windows_aap_management.primary.address }}"
+            ansible_port: 22
+            ansible_user: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_USERNAME') }}"
+            ansible_password: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_PASSWORD') }}"
+            ansible_become_password: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_PASSWORD') }}"
+            ansible_ssh_common_args: >-
+              -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null
+              -o UserKnownHostsFile={{ (windows_aap_network_workspace.path ~ '/known_hosts') | quote }}
+              -o PubkeyAuthentication=no -o PreferredAuthentications=password
+            ansible_host_key_checking: true
+            ansible_ssh_host_key_checking: true
+
+        - name: Read the already running AAP guest's authenticated OS identities
+          ansible.builtin.slurp:
+            src: "{{ item }}"
+          loop: [/sys/class/dmi/id/product_uuid, /etc/machine-id]
+          delegate_to: windows_aap_management_target
+          become: true
+          register: windows_aap_os_identity
+          changed_when: false
+
+        - name: Refuse all OS changes on a different or unverified AAP guest
+          ansible.builtin.assert:
+            that:
+              - windows_aap_os_identity.results[0].content | b64decode | trim | lower == windows_aap_management.primary.uuid
+              - windows_aap_os_identity.results[1].content | b64decode | trim is match('^[0-9a-f]{32}$')
+              - >-
+                windows_aap_os_identity.results[1].content | b64decode | trim not in
+                ['00000000000000000000000000000000', windows_runtime_recovery_pin.machine_id]
+            quiet: true
+
+        - name: Retain the genuine selected AAP identity and exact typed request
+          ansible.builtin.set_fact:
+            windows_aap_network_guest:
+              kind: aap
+              route: "{{ windows_aap_management.route }}"
+              primary: "{{ windows_aap_management.primary }}"
+              guest_machine_id: "{{ windows_aap_os_identity.results[1].content | b64decode | trim }}"
+              supplemental_interface: "{{ windows_aap_management.interface }}"
+              supplemental_state: "{{ windows_aap_management_state }}"
+              connection_readback: {}
+
+        - name: Read the existing reviewed shared-code dependency
+          ansible.builtin.include_vars:
+            file: "{{ playbook_dir }}/roles/windows_recovery_release/defaults/main.yml"
+            name: windows_aap_network_dependency
+
+        - name: Require the same fixed public source used by the existing Windows release
+          ansible.builtin.assert:
+            that:
+              - windows_aap_network_dependency.windows_recovery_release_repository == 'https://github.com/kvegh/aap_autodeploy_configascode.git'
+              - windows_aap_network_dependency.windows_recovery_release_revision == 'eb806b7b79d51f08d7cf54fb2edb3d449ed375aa'
+            quiet: true
+
+        - name: Fetch the single reviewed public implementation for this whole job
+          ansible.builtin.git:
+            repo: "{{ windows_aap_network_dependency.windows_recovery_release_repository }}"
+            dest: "{{ windows_aap_network_workspace.path }}/source"
+            version: "{{ windows_aap_network_dependency.windows_recovery_release_revision }}"
+            update: false
+            recursive: false
+          delegate_to: localhost
+          become: false
+          vars:
+            ansible_connection: local
+
+        - name: Serialize identical concurrent infrastructure attempts through native locks and fresh source plans
+          ansible.builtin.include_tasks: windows_aap_management_attempt.yml
+          loop: "{{ range(0, 30) | list }}"
+          loop_control:
+            loop_var: windows_aap_network_attempt
+          when: not windows_aap_network_complete
+
+        - name: Require verified native and durable ownership completion before cloning Windows
+          ansible.builtin.assert:
+            that: windows_aap_network_complete
+            quiet: true
+            fail_msg: Another infrastructure job still owns an unpublished network operation; retry after its outcome is known.
+
+      rescue:
+        - name: Default to preserving components while durable ownership is uncertain
+          ansible.builtin.set_fact:
+            windows_aap_network_canonical_refreshed: false
+
+        - name: Refresh canonical ownership before considering any unpublished rollback
+          when: windows_aap_network_guest is defined and windows_aap_network_dependency is defined
+          block:
+            - name: Re-read the source through the same existing role # noqa: role-name[path]
+              ansible.builtin.include_role:
+                name: "{{ windows_aap_network_workspace.path }}/source/roles/recovery_guest_release"
+                tasks_from: plan
+              vars:
+                recovery_release_operation: aap_supplemental_interface
+                recovery_release_guest: "{{ windows_aap_network_guest }}"
+                recovery_release_hypervisor: "{{ windows_runtime_recovery_pin }}"
+                recovery_release_trust_file: "{{ windows_runtime_host_keys.path }}"
+
+            - name: Retain only the freshly authenticated canonical result
+              ansible.builtin.set_fact:
+                windows_aap_network_canonical_refreshed: true
+
+          rescue:
+            - name: Preserve components when the canonical source cannot be read
+              ansible.builtin.debug:
+                msg: Canonical ownership is uncertain; no existing component will be removed.
+
+        - name: Undo only this job's actual new components after fresh canonical absence
+          ansible.builtin.include_tasks: windows_aap_management_rollback.yml
+          when:
+            - windows_aap_management_state == 'present'
+            - windows_aap_network_canonical_refreshed
+            - __recovery_release_plan.canonical_resource_absent | default(false) | bool
+            - not (__recovery_release_plan.canonical_resource_present | default(false) | bool)
+            - not (__recovery_release_plan.durable_ownership_published | default(false) | bool)
+
+        - name: Stop after an incomplete Windows AAP management operation
+          ansible.builtin.fail:
+            msg: >-
+              Windows infrastructure preparation did not complete. Published or uncertain components are retained.
+              Only this job's freshly proved unpublished additions are eligible for rollback. No Windows clone was started by this step.
+
+      always:
+        - name: Remove only this job's protected trust and implementation workspace
+          ansible.builtin.file:
+            path: "{{ windows_aap_network_workspace.path }}"
+            state: absent
+          delegate_to: localhost
+          become: false
+          vars:
+            ansible_connection: local
+          when: windows_aap_network_workspace.path is match('^/tmp/windows-aap-network-code-[A-Za-z0-9_]+$')

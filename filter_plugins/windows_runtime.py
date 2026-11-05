@@ -22,6 +22,7 @@ PROFILE_KEYS = {
     'windows_runtime_guests', 'windows_runtime_winrm_ready',
     'windows_runtime_winrm_ca',
     'windows_runtime_recovery_pin',
+    'windows_runtime_aap_management',
 }
 NAME = re.compile(r'^[A-Za-z][A-Za-z0-9-]{0,14}$')
 MAC = re.compile(r'^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$')

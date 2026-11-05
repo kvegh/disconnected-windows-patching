@@ -45,6 +45,83 @@ jobs that do not select the new runtime transport. Their encrypted copies are
 retained in the private companion. Prepared versioned CaC imports use only their
 explicit private instance profile; they never fall back to inherited targets.
 
+## Infrastructure includes its AAP management connection
+
+The original captured topology includes an AAP interface on the Windows isolated
+network. Fresh versioned AAP deployments initially retain their primary network
+only. For a prepared Windows profile, `01-win-vm-setup.yml` now establishes the
+explicitly selected AAP VM's second NIC and persistent RHEL connection before
+creating Windows clones. The existing AD creation playbook imports that same
+entrypoint. Omitting the optional encrypted connection profile preserves legacy
+behavior. The API-only CaC importer installs definitions and never changes NICs.
+
+The private profile holds the immutable registered AAP route and eight primary
+ownership fields, plus one Windows-owned NIC/connection declaration. Its static
+address is outside the existing DHCP pool and distinct from every selected guest.
+Fresh native checks reject conflicts in both domain/network definitions, leases,
+reservations, host addresses and neighbours. The isolated bridge has no forward
+configuration. The playbook adds no DHCP/DNS record for the AAP NIC, gateway,
+forwarding rule, firewall exception, execution node or proxy.
+
+The existing hypervisor Machine credential authenticates pinned SSH. Only the
+existing AD Target credential's OS SSH username, password and independently
+verified host keys are used for AAP OS configuration. They must match the
+selected route's public SSH keys. The guest's real DMI UUID and machine-id are
+read before changes; neither API/admin-password fallback nor key installation is
+allowed. The existing source API reader, source CA, Git writer and two Vaults
+support the same shared publisher. These existing references are added only to
+the infrastructure, AD creation and post-teardown templates; other assignments,
+credential definitions and secret values are unchanged.
+
+Before hotplug, the job captures protected primary addresses, routes, resolver
+bytes and all existing persistent NetworkManager settings. It refuses a foreign
+unbound autoconnect Ethernet profile, then creates the exact manual profile bound
+to the future NIC MAC. NetworkManager can therefore select the intended disk
+profile when that device appears. This follows its documented
+[automatic-default selection](https://networkmanager.dev/docs/admins/) and
+[Ethernet MAC binding](https://www.networkmanager.dev/docs/api/latest/settings-802-3-ethernet.html).
+No global NetworkManager setting changes. The profile has manual IPv4, no gateway
+or DNS, no automatic DNS, no default route and disabled IPv6. Authenticated final
+readback checks the persistent policy, actual address and absent IPv6/default
+routes. All meaningful primary settings stay exact; only naturally decreasing
+address lifetimes and route expiry are excluded from comparison.
+
+One protected checkout of the fixed shared AutoDeploy implementation remains
+alive for source planning, native work, publication and any fresh ownership
+readback. Its existing `recovery_guest_release` role supplies the `plan` entrypoint
+and `aap_supplemental_interface` transaction. Ownership is stored in the existing
+AAP resource and mirrored main-inventory record, preserving primary fields,
+route and the entire firewall policy. There is no extra registry or publisher.
+
+Native component locks serialize identical jobs. A matching unpublished profile
+from another job is not adopted; the caller waits and refreshes canonical state.
+A failure may undo only components this job actually created, and only after a
+fresh authenticated canonical read proves no job durably published them. If that
+read is uncertain or publication succeeded, components remain for a safe retry.
+
+The same existing native lock covers the first standalone clone conversion and
+teardown's final check of all five Windows names and derived clone paths before
+NIC detach. If cloning wins, its disk prevents cleanup. If cleanup wins, cloning
+refuses a missing management NIC before disk or reservation writes. All selected
+DHCP/DNS reservations occur after that protected disk exists and before boot;
+the selected fresh AD address stage defers to this same path. Legacy reservation
+and recovery behavior stays unchanged.
+
+The baseline records the optional exact management declaration. After all five
+Windows clones/disks are absent and unrelated definitions, states and golden
+metadata pass preservation checks, the existing post-teardown playbook removes
+only the declared owned NIC, then its OS connection. It validates current owned
+addresses and policy first, supports an interrupted retry with the exact profile
+but NIC already detached, and publishes removal through the same transaction.
+The final XML comparison permits only that exact supplemental NIC removal.
+Preexisting/shared or ambiguously owned interfaces and connections are refused.
+The full AAP decommissioner separately recognizes the same saved supplemental
+record; this component does not stop or delete the AAP VM.
+
+These are offline implementation guarantees pending the serialized live test.
+Successful CaC import alone does not prove guest SSH, hotplug, WinRM, patching or
+complete Windows environment decommission.
+
 ## Release after verified per-VM configuration
 
 The server-basics job checks Windows identity after its permanent networking,
@@ -76,12 +153,15 @@ checkout and temporary hypervisor trust file are removed on success or failure.
 There is no second publisher, extra orchestration job or Windows bootstrap
 HTTPS exception.
 
-The current pin is AutoDeploy 0.42.4 implementation
-`276ad84e257453d14a729d9cc806c0b65771e2e8`. Its existing Windows branch accepts
+The current pin is AutoDeploy 0.45.0 implementation
+`eb806b7b79d51f08d7cf54fb2edb3d449ed375aa`. Its existing Windows branch accepts
 the genuine Boolean certificate result under the owner's lab policy while
 retaining every successful identity, ownership and source/policy check. It also
 retains the canonical Controller SSH-port representation fix; different or
-malformed ports still fail.
+malformed ports still fail. The same reviewed implementation supplies the plan
+entrypoint and exact supplemental-interface ownership transaction, preserves
+existing primary identities, and resolves action support code from the current
+checked-out role when one job invokes it repeatedly.
 
 These two jobs use the existing hypervisor Machine credential for pinned SSH.
 Server-basics binds only its guest connection to the already-encrypted bootstrap

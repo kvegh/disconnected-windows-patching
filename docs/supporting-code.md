@@ -205,3 +205,21 @@ infrastructure requests, receive no credentials and do not prove deployment
 success. Their YAML snippets are shortened examples; the linked playbooks are
 the execution source. Node's built-in test runner checks the state and scheduling
 model without adding a frontend framework. See the [test guide](../tests/README.md).
+
+`windows-aap-interface.py` checks the selected AAP primary UUID/disk/NIC and the
+single marked Windows-owned supplemental NIC in both native definitions. Its
+existing component flock covers exact attach/detach and selected standalone
+clone creation, preventing cleanup from winning between a management check and
+the first disk write. It also refuses DHCP/address/MAC conflicts. The network
+reservation helper uses that same lock and requires the clone disk before writes.
+
+`windows-aap-networkmanager.py` uses the installed `nmcli` and `ip` interfaces to
+pre-create one MAC-bound static profile before hotplug and read all relevant
+persistent/native state together. It preserves the pre-hotplug primary network,
+rejects foreign autoconnect profiles and policy drift, and removes an owned profile
+only after its NIC is absent. The available generic modules do not combine these
+native ownership, opposite-operation race and preservation guarantees. Ansible
+owns authentication, exact protected inputs, shared publication and cleanup.
+The profile/preservation filter permits no primary XML change beyond exact owned
+NIC removal. Tests execute these actual parsers with synthetic platform responses;
+real hotplug and authenticated connectivity remain live acceptance requirements.

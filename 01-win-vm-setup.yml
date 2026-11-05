@@ -18,6 +18,12 @@
       tags: always
 
   tasks:
+    - name: Prepare the selected AAP's isolated Windows management connection before cloning
+      ansible.builtin.include_tasks: tasks/windows_aap_management_network.yml
+      vars:
+        windows_aap_management_state: present
+      when: windows_runtime_aap_management is defined
+
     - name: Require the selected instance's exact owned clone and interfaces
       ansible.builtin.assert:
         that:
@@ -110,15 +116,6 @@
         that: not destination_disk.stat.exists
         fail_msg: "Disk {{ vm_disk_path }} already exists. Inspect it before retrying with this name."
 
-    - name: Reserve only the selected instance guest's exact fresh network resources
-      ansible.builtin.command:
-        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-network-reservations.py') }}", reserve]
-        stdin: "{{ {'name': vm_name, 'interfaces': windows_runtime_guests[vm_name].interfaces} | to_json }}"
-      register: windows_runtime_reservations
-      changed_when: (windows_runtime_reservations.stdout | from_json).changed
-      when: windows_runtime_settings_vault is defined and not ansible_check_mode
-      no_log: true
-
     - name: Create independent sparse qcow2 clone without resizing
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
       ansible.builtin.command:
@@ -134,6 +131,20 @@
           - "{{ selected_image }}"
           - "{{ vm_disk_path }}"
         creates: "{{ vm_disk_path }}"
+      when: windows_runtime_aap_management is not defined
+
+    - name: Create the selected Windows clone under the same lock as management NIC teardown
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-interface.py') }}"]
+        stdin: >-
+          {{ {'mode': 'clone', 'guest': windows_aap_network_guest,
+              'prefix_length': windows_aap_management.prefix_length,
+              'owned_guests': windows_runtime_guests, 'published': windows_aap_network_complete | bool,
+              'clone': {'vm_name': vm_name, 'source': selected_image, 'disk': vm_disk_path}} | to_json }}
+      register: windows_aap_guarded_clone
+      changed_when: (windows_aap_guarded_clone.stdout | from_json).changed
+      when: windows_runtime_aap_management is defined and not ansible_check_mode
+      no_log: true
 
     - name: Verify cloned disk capacity
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -148,6 +159,15 @@
         that:
           - (clone_info.stdout | from_json)['virtual-size'] == (base_image_info.stdout | from_json)['virtual-size']
       when: not ansible_check_mode
+
+    - name: Reserve only the selected instance guest's exact resources after its locked disk creation
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-network-reservations.py') }}", reserve]
+        stdin: "{{ {'name': vm_name, 'interfaces': windows_runtime_guests[vm_name].interfaces} | to_json }}"
+      register: windows_runtime_reservations
+      changed_when: (windows_runtime_reservations.stdout | from_json).changed
+      when: windows_runtime_settings_vault is defined and not ansible_check_mode
+      no_log: true
 
     - name: Build Windows VM deployment command
       ansible.builtin.set_fact:
