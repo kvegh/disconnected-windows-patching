@@ -1,5 +1,22 @@
 # Design decisions history
 
+## Expose only controlled Windows identity failure reasons — 2026-11-05
+
+Implementation: `6d3f45f362e72d76e61ff3b29ddd022884b0eca4` (version 1.0.33).
+
+The three pristine-copy creation retries succeeded. AD preparation still stopped
+at protected Windows/native provenance verification. Its actual registry readback
+showed zero inherited WSUS endpoints before and after cleanup, so endpoint
+inheritance was not that observed failure’s cause. Keep this correction explicit.
+
+A tiny checked-result function in the existing provenance filter invokes the
+unchanged validator. Only its controlled validation error reaches a visible
+assertion; unexpected exceptions use a fixed generic message. Computer/network/
+disk evidence and the verified resource remain protected. No new helper file,
+job, flag or weakened predicate is introduced. Eleven focused checks pass,
+including native message rendering and a private-data canary; production lint
+passes. A normal failed AD-stage retry must identify the actual predicate.
+
 ## Respect disabled DNS and resume only a proven unbooted copy — 2026-11-05
 
 Implementation: `7e3cada254d35b0d404627ffa5c280116c2138a9` (version 1.0.31).
