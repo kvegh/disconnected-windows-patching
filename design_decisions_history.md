@@ -1,5 +1,22 @@
 # Design decisions history
 
+## Preserve AD network selection and explain fixed SSH trust failures — 2026-11-05
+
+Implementation: `1f579b12102fd31f415192d2c75cf2a521525b77` (version 1.0.21).
+
+The initial real workflow stopped before cloning. Move only the common VM
+network default from the variables file to play variables, allowing the AD
+entrypoint’s explicit network to take precedence. Its exact selected-instance
+name, network, MAC, version and ownership checks remain required.
+
+The existing OS SSH assertion now exposes only its fixed filter error reason.
+Recorded trust material remains hidden, and every registered-key check stays
+enabled. Native Ansible tests prove the real AD import selects its own network
+and the SSH assertion accepts registered trust while rejecting foreign trust
+without printing it. Production lint passes six processed files. No credential,
+trust, publisher or cleanup behavior changes. Live retry must still establish
+the SSH failure; offline replay alone does not prove the EE’s actual environment.
+
 ## Report safe failures from the initial ownership read — 2026-11-05
 
 Implementation: `3a5998951a3244f4fa15e67e653fffb4ad3e09bc` (version 1.0.19).
