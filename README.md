@@ -60,6 +60,9 @@ The existing Windows-basics play completes each guest’s baseline and isolation
 publication before moving to the next guest, preserving each policy preflight.
 The read-only AD inspection records recent System shutdown events alongside
 license status, so an interrupted update can be diagnosed before changing configuration.
+AD preparation requires a licensed installed OS and positive remaining grace for
+an evaluation before updates; a fully licensed non-evaluation edition needs no
+evaluation grace. This check does not activate, rearm or change licensing.
 
 ## Review release
 

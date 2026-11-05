@@ -29,7 +29,7 @@
     - name: Connect using the valid protected identity before or after promotion
       ansible.builtin.include_tasks: tasks/connect_active_directory_guest.yml
 
-    - name: Verify Windows Server 2025 and available system disk space
+    - name: Verify Windows Server 2025, disk space and installed license state
       # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
         script: |
@@ -40,9 +40,28 @@
               throw 'The selected guest must be Windows Server 2025.'
           }
           if ($disk.FreeSpace -lt 12GB) { throw 'At least 12 GiB free system disk space is required.' }
+          $licenseFilter = "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL"
+          $licenses = @(Get-CimInstance SoftwareLicensingProduct -Filter $licenseFilter |
+              Where-Object { -not $_.LicenseIsAddon })
+          if ($licenses.Count -ne 1) { throw 'Expected exactly one installed Windows operating system license.' }
+          $license = $licenses[0]
+          $evaluation = $license.Description -match 'TIMEBASED_EVAL' -or $license.Name -match 'Eval'
           $Ansible.Changed = $false
-          $Ansible.Result = @{ Build = $os.BuildNumber; FreeBytes = $disk.FreeSpace }
+          $Ansible.Result = @{
+              Build = $os.BuildNumber; FreeBytes = $disk.FreeSpace;
+              LicenseStatus = [int]$license.LicenseStatus;
+              Evaluation = [bool]$evaluation; GraceMinutes = [int]$license.GracePeriodRemaining
+          }
+      register: ad_windows_prerequisites
       no_log: true
+
+    - name: Require a valid installed Windows license before the update run
+      ansible.builtin.assert:
+        that:
+          - ad_windows_prerequisites.result.LicenseStatus == 1
+          - not ad_windows_prerequisites.result.Evaluation or ad_windows_prerequisites.result.GraceMinutes > 0
+        quiet: true
+        fail_msg: Windows licensing is not valid for updates; run the existing AD inspection job. No licensing change was made.
 
     - name: Set the dedicated guest hostname
       ansible.windows.win_hostname:
