@@ -28,6 +28,8 @@
         windows_aap_nm_job_created: false
 
     - name: Require existing SSH trust to match the selected AAP guest's independently recorded keys
+      # The filter raises fixed reasons only; never display its input material.
+      no_log: false
       ansible.builtin.assert:
         that: >-
           lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_KNOWN_HOSTS') |

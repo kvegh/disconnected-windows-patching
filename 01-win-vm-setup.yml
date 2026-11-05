@@ -6,6 +6,7 @@
   vars_files:
     - vars/main.yml
   vars:
+    vm_network: windows-isolated
     selected_image: "{{ windows_images[windows_version | string] }}"
     selected_memory_mb: "{{ windows_memory_mb[vm_role] }}"
     vm_boot_mode: "{{ windows_boot_modes[windows_version | string] }}"

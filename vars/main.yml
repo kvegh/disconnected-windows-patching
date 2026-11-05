@@ -1,6 +1,5 @@
 ---
 vm_dir: /opt/vms
-vm_network: windows-isolated
 # Set to the management libvirt network for internal WSUS only.
 vm_management_network: ''
 # Initial Windows setup may need console interaction before a DHCP lease appears.
