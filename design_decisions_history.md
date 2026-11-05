@@ -1,5 +1,17 @@
 # Design decisions history
 
+## Read actual shutdown events before repairing an interrupted update — 2026-11-05
+
+Implementation: `e22e5c74946a52385a6eb040ad65ba6328870a37` (version 1.0.39).
+
+The selected AD guest shut down during its update run despite a normal native
+restart policy. The existing read-only AD inspection now also collects recent
+System events 1074, 6006 and 6008 next to licensing information. This identifies
+the actual Windows shutdown request without guessing about evaluation expiry
+or changing guest networking, trust or licensing. Detailed events stay in the
+protected job artifact. Focused production lint passes. The update stage and
+remaining functional acceptance are still unfinished.
+
 ## Serialize each Windows baseline and isolation publication — 2026-11-05
 
 Implementation: `d77d3af54487637aa339456aa1915f1e89fa76dd` (version 1.0.37).
