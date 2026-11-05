@@ -59,11 +59,18 @@ class InitialRunTests(unittest.TestCase):
             self.assertNotIn('synthetic-private-value', output)
             if expected:
                 self.assertIn('unregistered selected-guest SSH key', output)
-        play[0]['vars']['windows_aap_management']['route']['guest_host_keys'].append('ssh-rsa second-example')
+        play[0]['vars']['windows_aap_management']['route']['guest_host_keys'].extend(
+            ['ssh-rsa second-example', 'ecdsa-sha2-nistp256 third-example'])
         result = run_play(play, environment={'AD_AAP_TARGET_SSH_KNOWN_HOSTS':
                                              '192.0.2.2 ssh-ed25519 example\n'})
-        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-        self.assertIn('1 of 2 registered keys; 1 input lines', result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for material in ['', 'example.test ssh-ed25519 example\n',
+                         '192.0.2.99 ssh-ed25519 example\n',
+                         '192.0.2.2 ssh-ed25519 example\n192.0.2.2 ssh-rsa synthetic-private-value\n']:
+            result = run_play(play, environment={'AD_AAP_TARGET_SSH_KNOWN_HOSTS': material})
+            output = result.stdout + result.stderr
+            self.assertEqual(result.returncode, 2, output)
+            self.assertNotIn('synthetic-private-value', output)
 
 
 if __name__ == '__main__':

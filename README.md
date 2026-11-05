@@ -34,9 +34,11 @@ wrapper is introduced. The same guide describes this transaction and the guarded
 LDAP/CA cleanup component; complete Windows decommission and live functional
 acceptance remain separate required checks.
 The common VM network default stays at play-variable precedence, so the AD
-entrypoint’s explicit network is preserved. The OS SSH trust assertion reports
-only its validation reason and numeric key/line coverage; key material remains protected and every
-registered-key check remains required.
+entrypoint’s explicit network is preserved. OS SSH requires at least one recorded
+guest host key pinned at its private address and rejects any unregistered key
+for the selected aliases. It reports only a safe reason and numeric coverage;
+key material remains protected. Strict SSH checking and native guest identity
+verification remain required.
 
 ## Review release
 
