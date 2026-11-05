@@ -15,10 +15,13 @@ offline suites prove and what still needs live AAP validation.
 For prepared versioned environments, read the
 [selected-instance runtime contract](docs/selected-instance-runtime.md). Its
 private encrypted profiles pin the hypervisor, guest names and network mapping;
-normal WinRM trust remains a required prerequisite before guest jobs can run.
+the selected demo retains its existing HTTPS/5986 and NTLM WinRM policy, including
+the owner-approved `ignore` certificate-validation setting. Normal authenticated
+connection tests remain required; no extra certificate or image-inspection gate
+is added. AAP HTTPS and hypervisor SSH validation are unchanged.
 The two completed per-VM baseline stages prepare genuine Windows/native identity
 and invoke the same existing AutoDeploy release role before content downloads.
-They reuse existing credentials and preserve normal HTTPS validation. Offline
+They reuse existing credentials and report the actual Windows certificate policy. Offline
 checks do not establish a live guest deployment or successful release.
 The same guide describes the guarded LDAP/CA cleanup component; full Windows
 decommission and live functional acceptance remain separate required checks.
@@ -27,7 +30,7 @@ decommission and live functional acceptance remain separate required checks.
 
 The first tracked major version is **1.0.0**, representing the review and cleanup
 baseline under the [agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
-The current cleanup version is **1.0.10**. Work proceeds directly on `main`, as
+The current cleanup version is **1.0.11**. Work proceeds directly on `main`, as
 requested by the owner; `VERSION` identifies this project independently of the
 other umbrella projects. Implementation changes and their reasons are recorded
 in [the decision history](design_decisions_history.md).

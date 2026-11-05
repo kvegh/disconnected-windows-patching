@@ -84,9 +84,9 @@ class WindowsRuntimeTests(unittest.TestCase):
         with self.assertRaises(AnsibleFilterError):
             runtime.selected_settings(document, 'example-instance')
 
-    def test_winrm_readiness_requires_its_public_issuer(self):
+    def test_optional_winrm_ca_must_contain_a_public_certificate(self):
         document = profile()
-        document['windows_runtime']['settings']['windows_runtime_winrm_ready'] = True
+        document['windows_runtime']['settings']['windows_runtime_winrm_ca'] = 'not-a-certificate'
         with self.assertRaises(AnsibleFilterError):
             runtime.selected_settings(document, 'example-instance')
 

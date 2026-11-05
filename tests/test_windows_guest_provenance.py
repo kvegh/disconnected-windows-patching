@@ -51,7 +51,7 @@ def fixture(count=2):
     native = {'hypervisor_machine_id': pin['machine_id'], 'persistent_xml': xml, 'current_xml': xml,
               'networks': networks, 'snapshots': [],
               'disk': {'path': disk, 'regular': True, 'symlink': False, 'links': 1, 'standalone_qcow2': True}}
-    trust = {'ready': True, 'scheme': 'https', 'validation': 'validate', 'ca_present': True}
+    trust = {'scheme': 'https', 'validation': 'validate', 'ca_present': True}
     return [computer, native, instance, name, guest, nics[-1]['address'], pin, trust,
             {'dns_domain': 'ad.v07.example.test'}, {name: guest}]
 
@@ -73,12 +73,11 @@ class WindowsGuestProvenanceTests(unittest.TestCase):
             self.assertEqual(values, original)
 
     def test_real_winrm_trust_and_versioned_computer_identity_are_mandatory(self):
-        for variant in ['unready', 'http', 'ignore', 'no-ca', 'foreign-name', 'unicode-name', 'foreign-uuid', 'client-os', 'wrong-build']:
+        for variant in ['http', 'unknown-policy', 'no-ca', 'foreign-name', 'unicode-name', 'foreign-uuid', 'client-os', 'wrong-build']:
             values = fixture()
             computer, trust = values[0], values[7]
-            if variant == 'unready': trust['ready'] = False
-            elif variant == 'http': trust['scheme'] = 'http'
-            elif variant == 'ignore': trust['validation'] = 'ignore'
+            if variant == 'http': trust['scheme'] = 'http'
+            elif variant == 'unknown-policy': trust['validation'] = 'disabled'
             elif variant == 'no-ca': trust['ca_present'] = False
             elif variant == 'foreign-name': computer['computer_name'] = 'foreign-v07'
             elif variant == 'unicode-name': computer['computer_name'] = '\u212aXAMPLE-V07'
@@ -87,6 +86,16 @@ class WindowsGuestProvenanceTests(unittest.TestCase):
             elif variant == 'wrong-build': computer['os_build'] = '20348'
             with self.subTest(variant=variant), self.assertRaises(AnsibleFilterError):
                 proof.provenance(*values)
+
+    def test_approved_lab_policy_records_false_without_weakening_native_identity(self):
+        values = fixture()
+        values[7] = {'scheme': 'https', 'validation': 'ignore', 'ca_present': False}
+        result = proof.provenance(*values)
+        self.assertTrue(result['verified'])
+        self.assertIs(result['winrm_certificate_validated'], False)
+        values[0]['computer_uuid'] = '99999999-2222-3333-4444-555555555555'
+        with self.assertRaises(AnsibleFilterError):
+            proof.provenance(*values)
 
     def test_observed_mac_ip_and_primary_management_nic_cannot_be_copied_or_guessed(self):
         for variant in ['foreign-mac', 'foreign-ip', 'extra-ip', 'missing-nic', 'extra-nic', 'primary']:
@@ -146,11 +155,13 @@ class WindowsProducerGuardsTests(unittest.TestCase):
             'kind': 'windows', 'verified': True, 'winrm_certificate_validated': True,
             'vm_name': 'example-v07', 'instance_name': 'aap27-test-7', 'hypervisor_machine_id': 'a' * 32},
             inventory_hostname='example-v07', windows_runtime_expected_instance='aap27-test-7',
+            ansible_winrm_server_cert_validation='validate',
             windows_runtime_recovery_pin={'machine_id': 'a' * 32},
             windows_runtime_release_trust={'path': '/tmp/windows-release-known-hosts-fixture'})
         expressions = guard['ansible.builtin.assert']['that']
         self.assertTrue(self.evaluate(expressions, values))
-        for revision in ['ae9cfdbdbf29fe0471b71a0163cd557f607d7d8c', '0' * 40, 'main']:
+        for revision in ['ae9cfdbdbf29fe0471b71a0163cd557f607d7d8c',
+                         '6de45e0a10a4119d596e1ed65c22c6ee48360e4a', '0' * 40, 'main']:
             with self.subTest(revision=revision):
                 self.assertFalse(self.evaluate(expressions, dict(values, windows_recovery_release_revision=revision)))
         self.assertFalse(self.evaluate(expressions, dict(values, windows_recovery_release_repository='https://example.invalid/other.git')))
@@ -175,20 +186,23 @@ class WindowsProducerGuardsTests(unittest.TestCase):
     def test_release_requires_full_unskipped_normal_run_and_real_trust(self):
         first = yaml.safe_load((ROOT / 'tasks/windows_verified_guest_release.yml').read_text())[0]
         values = {'ansible_run_tags': ['all'], 'ansible_skip_tags': [], 'ansible_check_mode': False,
-                  'windows_runtime_winrm_ready': True, 'windows_runtime_recovery_pin': {'address': '192.0.2.1', 'port': 22, 'machine_id': 'a' * 32},
+                  'windows_runtime_recovery_pin': {'address': '192.0.2.1', 'port': 22, 'machine_id': 'a' * 32},
                   'windows_runtime_hypervisor': {'address': '192.0.2.1', 'port': 22, 'machine_id': 'a' * 32},
                   'inventory_hostname': 'example-v07', 'windows_runtime_guests': {'example-v07': {}},
                   'windows_hostname': 'example-v07', 'active_directory': {'hostname': 'ad-v07'},
                   'ansible_connection': 'winrm', 'ansible_winrm_scheme': 'https',
+                  'ansible_port': 5986, 'ansible_winrm_transport': 'ntlm',
                   'ansible_winrm_server_cert_validation': 'validate', 'windows_runtime_ca_file': {'path': '/tmp/fixture-ca'}}
         expressions = first['ansible.builtin.assert']['that']
         self.assertTrue(self.evaluate(expressions, values))
         for field, value in [('ansible_run_tags', ['partial']), ('ansible_skip_tags', ['some-task']),
-                             ('ansible_check_mode', True), ('windows_runtime_winrm_ready', False),
-                             ('ansible_winrm_server_cert_validation', 'ignore'), ('ansible_winrm_scheme', 'http'),
+                             ('ansible_check_mode', True), ('ansible_port', 5985),
+                             ('ansible_winrm_server_cert_validation', 'disabled'), ('ansible_winrm_scheme', 'http'),
                              ('ansible_connection', 'local'), ('windows_runtime_ca_file', {})]:
             with self.subTest(field=field):
                 self.assertFalse(self.evaluate(expressions, dict(values, **{field: value})))
+        self.assertTrue(self.evaluate(expressions, dict(values,
+            ansible_winrm_server_cert_validation='ignore', windows_runtime_ca_file={})))
 
     def test_native_probe_refuses_wrong_machine_before_any_libvirt_or_disk_command(self):
         request = {'name': 'example-v07', 'hypervisor_machine_id': 'a' * 32}

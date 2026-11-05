@@ -110,16 +110,20 @@
         quiet: true
         fail_msg: The connected hypervisor does not match the independently pinned replacement identity.
 
-- name: Refuse inherited Windows connections before verified instance trust is available
+- name: Require the selected Windows HTTPS connection policy
   ansible.builtin.assert:
     that:
       - inventory_hostname in windows_runtime_guests
-      - windows_runtime_winrm_ready | bool
       - ansible_connection == 'winrm'
       - ansible_winrm_scheme == 'https'
-      - ansible_winrm_server_cert_validation == 'validate'
+      - ansible_port | default(ansible_winrm_port | default(5986)) | int == 5986
+      - ansible_winrm_transport == 'ntlm'
+      - ansible_winrm_server_cert_validation in ['ignore', 'validate']
+      - >-
+        ansible_winrm_server_cert_validation != 'validate' or
+        ('-----BEGIN CERTIFICATE-----' in (windows_runtime_winrm_ca | default('')))
     quiet: true
-    fail_msg: Complete the reviewed instance-specific WinRM certificate bootstrap before running Windows guest jobs.
+    fail_msg: Use the selected HTTPS/NTLM lab policy, or supply a public CA when certificate validation is selected.
   when:
     - inventory_hostname != 'localhost'
     - inventory_hostname != windows_runtime_hypervisor.inventory_host
@@ -127,7 +131,9 @@
   no_log: true
 
 - name: Install the selected WinRM public CA in the execution environment
-  when: inventory_hostname in windows_runtime_guests and windows_runtime_winrm_ready | bool
+  when:
+    - inventory_hostname in windows_runtime_guests
+    - ansible_winrm_server_cert_validation == 'validate'
   no_log: true
   block:
     - name: Allocate private WinRM CA file

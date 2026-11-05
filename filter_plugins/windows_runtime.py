@@ -48,7 +48,7 @@ def selected_settings(document, instance):
             'The encrypted document contains unreviewed runtime variables.')
     required = {'windows_runtime_hypervisor', 'windows_runtime_guests',
                 'windows_demo_vm_names', 'windows_demo_include_ad',
-                'windows_runtime_winrm_ready', 'active_directory'}
+                'active_directory'}
     require(required <= set(values), 'The instance runtime identity is incomplete.')
     pin = values['windows_runtime_hypervisor']
     require(isinstance(pin, dict) and set(pin) == {
@@ -113,12 +113,13 @@ def selected_settings(document, instance):
             and guests[ad['hostname']]['role'] == 'ad', 'The AD host must be one of the five owned guests.')
     require(ad.get('fqdn') == ad['hostname'] + '.' + ad.get('dns_domain', ''),
             'The AD certificate and DNS identity must match the selected forest.')
-    require(isinstance(values['windows_runtime_winrm_ready'], bool),
-            'WinRM bootstrap readiness must be explicit.')
-    if values['windows_runtime_winrm_ready']:
+    if 'windows_runtime_winrm_ready' in values:
+        require(isinstance(values['windows_runtime_winrm_ready'], bool),
+                'An older readiness value must remain a Boolean.')
+    if values.get('windows_runtime_winrm_ca'):
         require(isinstance(values.get('windows_runtime_winrm_ca'), str)
                 and '-----BEGIN CERTIFICATE-----' in values['windows_runtime_winrm_ca'],
-                'Validated WinRM requires its selected public CA.')
+                'A supplied WinRM CA must contain a public certificate.')
     return values
 
 

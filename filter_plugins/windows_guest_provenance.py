@@ -26,9 +26,11 @@ def identifier(value):
 
 def provenance(computer, native, instance, name, guest, primary_address, pin, trust, directory, owned_guests):
     """Emit the shared Windows resource only after normal WinRM and native proof."""
-    require(isinstance(trust, dict) and trust == {
-        'ready': True, 'scheme': 'https', 'validation': 'validate', 'ca_present': True},
-        'Complete normal HTTPS WinRM certificate validation before guest release.')
+    require(isinstance(trust, dict) and set(trust) == {'scheme', 'validation', 'ca_present'}
+            and trust['scheme'] == 'https' and trust['validation'] in ['ignore', 'validate']
+            and isinstance(trust['ca_present'], bool)
+            and (trust['validation'] != 'validate' or trust['ca_present']),
+            'Use the selected HTTPS policy and retain a public CA when validation is enabled.')
     require(isinstance(name, str) and re.fullmatch(r'[a-z][a-z0-9-]*-v[0-9]{2,}', name)
             and len(name) <= 15, 'Use the selected versioned Windows computer name.')
     require(isinstance(computer, dict) and isinstance(native, dict) and isinstance(guest, dict),
@@ -116,7 +118,8 @@ def provenance(computer, native, instance, name, guest, primary_address, pin, tr
     return {'kind': 'windows', 'vm_name': name, 'instance_name': instance, 'uuid': native_uuid,
             'disk': disk, 'hypervisor_machine_id': pin['machine_id'], 'verified': True,
             'computer_name': computer['computer_name'], 'computer_uuid': native_uuid,
-            'address': primary_address, 'interfaces': interfaces, 'winrm_certificate_validated': True}
+            'address': primary_address, 'interfaces': interfaces,
+            'winrm_certificate_validated': trust['validation'] == 'validate'}
 
 
 class FilterModule:

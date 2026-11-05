@@ -5,7 +5,6 @@
       - ansible_run_tags == ['all']
       - ansible_skip_tags | length == 0
       - not ansible_check_mode
-      - windows_runtime_winrm_ready is sameas true
       - windows_runtime_recovery_pin is mapping
       - windows_runtime_recovery_pin.machine_id == windows_runtime_hypervisor.machine_id
       - windows_runtime_recovery_pin.address == windows_runtime_hypervisor.address
@@ -14,10 +13,12 @@
       - windows_hostname | default(active_directory.hostname) | lower == inventory_hostname
       - ansible_connection == 'winrm'
       - ansible_winrm_scheme == 'https'
-      - ansible_winrm_server_cert_validation == 'validate'
-      - windows_runtime_ca_file.path is defined
+      - ansible_port | default(ansible_winrm_port | default(5986)) | int == 5986
+      - ansible_winrm_transport == 'ntlm'
+      - ansible_winrm_server_cert_validation in ['ignore', 'validate']
+      - ansible_winrm_server_cert_validation != 'validate' or windows_runtime_ca_file.path is defined
     quiet: true
-    fail_msg: Complete the selected Windows baseline over validated WinRM before releasing its isolation.
+    fail_msg: Complete the selected Windows baseline over authenticated HTTPS WinRM before releasing its isolation.
   no_log: true
 
 - name: Read the actual authenticated Windows computer and every active NIC
@@ -87,7 +88,7 @@
                windows_runtime_expected_instance, inventory_hostname,
                windows_runtime_guests[inventory_hostname], windows_connection_address | default(active_directory.ipv4),
                windows_runtime_recovery_pin,
-               {'ready': windows_runtime_winrm_ready, 'scheme': ansible_winrm_scheme,
+               {'scheme': ansible_winrm_scheme,
                 'validation': ansible_winrm_server_cert_validation,
                 'ca_present': windows_runtime_ca_file.path is defined},
                active_directory, windows_runtime_guests) }}
