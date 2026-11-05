@@ -1,5 +1,21 @@
 # Design decisions history
 
+## Show the protected ownership preflight’s controlled failure reason — 2026-11-05
+
+Implementation: `72331883b2f3efe6607845008f384e1af0ec4d7b` (version 1.0.27).
+
+The normal workflow passed pinned SSH authentication and native AAP OS identity
+checks, then stopped before mutation in the shared ownership preflight. Keep
+the existing action and all inputs/results protected. The Windows rescue shows
+only that action’s controlled message when its result explicitly reports failure;
+it never prints arbitrary failed-task results, stderr or invocation data.
+No shared role, dependency pin, ownership check or policy validation is changed.
+
+Three focused native Ansible tests pass, including a secret canary in ignored
+stderr/invocation fields and suppression of a nonfailed plan’s message. Production
+lint passes three processed files. One normal failed creation retry must now
+establish the actual preflight cause before applying a bounded fix.
+
 ## Require a registered SSH pin rather than every host-key algorithm — 2026-11-05
 
 Implementation: `0108c05abd41b1ef672721fcbe0b7bdf02bd3073` (version 1.0.25).
