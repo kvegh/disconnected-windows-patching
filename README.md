@@ -58,6 +58,8 @@ The native PowerShell query preserves nested NIC address arrays with explicit
 serialization depth; strict address comparisons continue to use their real list values.
 The existing Windows-basics play completes each guest’s baseline and isolation
 publication before moving to the next guest, preserving each policy preflight.
+The read-only AD inspection records recent System shutdown events alongside
+license status, so an interrupted update can be diagnosed before changing configuration.
 
 ## Review release
 

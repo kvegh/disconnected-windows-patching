@@ -53,6 +53,8 @@
           $systemEventFilter = @{LogName='System';ProviderName='Microsoft-Windows-WindowsUpdateClient'}
           $systemUpdateEvents = @(Get-WinEvent -FilterHashtable $systemEventFilter -MaxEvents 12 -ErrorAction SilentlyContinue |
               Select-Object TimeCreated,Id,Message)
+          $shutdownEvents = @(Get-WinEvent -FilterHashtable @{LogName='System';Id=1074,6006,6008} -MaxEvents 12 -ErrorAction SilentlyContinue |
+              Select-Object TimeCreated,Id,ProviderName,Message)
           $agentState = @{ Available=$false }
           try {
               $session = New-Object -ComObject Microsoft.Update.Session
@@ -117,6 +119,7 @@
               DomainRole=$cs.DomainRole; Domain=$cs.Domain; Hostname=$cs.Name;
               Boot=$os.LastBootUpTime; Licenses=$licenses; UpdateEvents=$events;
               SystemUpdateEvents=$systemUpdateEvents;
+              ShutdownEvents=$shutdownEvents;
               UpdateAgent=$agentState; AnsibleScheduledTasks=$updateTasks;
               FreeSystemBytes=$disk.FreeSpace; ServicingProcesses=$servicing;
               DeliveryOptimization=$delivery; BitsTransfers=$bits; ServicingLog=$cbs;
