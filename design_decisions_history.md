@@ -1,5 +1,26 @@
 # Design decisions history
 
+## Refresh the reviewed shared source-port guard — 2026-11-05
+
+Implementation: `12605b8f8dd04ee9e2d641eea60de6a750d5f9f4`.
+
+The same-job Windows caller now pins AutoDeploy 0.42.2 implementation
+`6de45e0a10a4119d596e1ed65c22c6ee48360e4a`. A real Linux consumer job found
+that Controller returns the existing SSH port as canonical text while the
+independent pin stores an integer. The shared fix normalizes only that wire
+representation and retains refusal of different or malformed ports. Its remote
+publication and ancestry were independently verified before updating this pin.
+
+Only the existing dependency default/assertion, consumer rejection test,
+version and documentation changed. No schema, credential assignment, secret,
+private payload, trust requirement or live resource changed. Initial WinRM
+readiness and Windows functional acceptance remain pending.
+
+Validation: nine affected producer/guard tests pass, including rejection of the
+old or unreviewed dependency before checkout. Focused production lint passes
+with zero failures/warnings, and the Git whitespace check passes. These checks
+perform no Windows guest authentication, deployment or isolation release.
+
 ## Prepare same-job Windows release after verified baseline — 2026-11-05
 
 Implementation: `45f4692`.
