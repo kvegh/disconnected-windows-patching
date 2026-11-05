@@ -1,5 +1,35 @@
 # Design decisions history
 
+## Retain the owner-selected Windows lab connection policy — 2026-11-05
+
+Implementation: `b0bf1af3c5f4d16b56877c999cbfe3412ed95629` (version 1.0.11).
+
+The owner explicitly chose the existing demo policy: authenticated WinRM over
+HTTPS/5986 with NTLM and certificate validation `ignore`. The additional
+certificate-bootstrap and image-inspection readiness gate introduced during
+preparation is removed. The prepared images already declare working WinRM;
+normal authenticated connection checks and Windows commands remain required.
+Offline inspection and a console observation are not deployment prerequisites.
+
+The implementation uses the existing Ansible connection setting and encrypted
+credentials. No policy flag, wrapper, job, credential type, store, fallback or
+network route is added. Selecting `validate` still requires the public CA and
+retains normal validation. AAP HTTPS, LDAPS and pinned hypervisor SSH are
+unchanged.
+
+The same-job caller pins the published shared implementation
+`276ad84e257453d14a729d9cc806c0b65771e2e8`. Its existing Windows proof field now
+records the genuine Boolean certificate result, including `false` for the lab
+policy. Successful authenticated/native UUID, NIC, clone ownership and
+source/policy checks still precede release; the caller never claims validation
+that was skipped.
+
+Validation: all 141 tests, 35 runtime syntax checks and focused production lint
+for ten files passed. Three native encrypted-loader cases cover lab ignore with
+no CA or readiness flag, strict validation refusing a missing CA, and strict
+validation retaining its public-CA path. No CaC import, guest deployment,
+connection test or live isolation change was performed by this publication.
+
 ## Refresh the reviewed shared source-port guard — 2026-11-05
 
 Implementation: `12605b8f8dd04ee9e2d641eea60de6a750d5f9f4`.
