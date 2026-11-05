@@ -1,5 +1,18 @@
 # Design decisions history
 
+## Report actual SSH key coverage without trust material — 2026-11-05
+
+Implementation: `1eb1f0de898028b765cf43a133c6a911f0b025aa` (version 1.0.23).
+
+The normal creation retry reported incomplete key coverage although its
+Controller metadata and direct replay contained the complete registered trust.
+Append only observed/registered key counts and input-line count to the existing
+filter’s fixed failure reason, so the next ordinary job can distinguish actual
+EE delivery from stored metadata. Every trust condition is unchanged. Native
+Ansible regression checks the incomplete-coverage reason and verifies foreign
+trust is rejected without printing its material. This is diagnosis only, with
+no credential, SSH validation or deployment policy change.
+
 ## Preserve AD network selection and explain fixed SSH trust failures — 2026-11-05
 
 Implementation: `1f579b12102fd31f415192d2c75cf2a521525b77` (version 1.0.21).
