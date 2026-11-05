@@ -1,5 +1,23 @@
 # Design decisions history
 
+## Stop queued network attempts after successful publication — 2026-11-05
+
+Implementation: `a0a569c49b7bdfb2b429253122d3d2a22dba82e2` (version 1.0.29).
+
+Real workflow events proved that the exact AAP NIC had been verified and durably
+published, but already queued include iterations kept executing. A condition on
+the include itself was evaluated while completion was still false. Add the same
+completion condition to the entire included attempt block, so it is evaluated
+when those tasks execute. The first successful transaction now skips every later
+queued attempt. Ownership, native verification, rollback and locking stay intact;
+no new loop, orchestration job or recovery mechanism was added.
+
+A native Ansible regression queues thirty includes and proves exactly one
+transaction executes after success. Four focused native tests and production
+lint pass. Two still-running creation jobs were stopped through their normal
+AAP cancellation endpoints; the already published NIC must be preserved and
+verified before a fresh normal workflow. Original core baseline remains intact.
+
 ## Show the protected ownership preflight’s controlled failure reason — 2026-11-05
 
 Implementation: `72331883b2f3efe6607845008f384e1af0ec4d7b` (version 1.0.27).
