@@ -1,5 +1,55 @@
 # Design decisions history
 
+## Include owned AAP networking in Windows infrastructure — 2026-11-05
+
+Implementation: `1c06083666567d24bcfae088228e9353682cb5a1` (version 1.0.13).
+
+The owner chose the existing Windows infrastructure entrypoint as the place for
+its required AAP networking, following the use case's existing deployment pattern.
+The API-only CaC importer still installs definitions; it does not configure NICs.
+The common provisioner and its existing AD import now prepare one selected,
+Windows-owned isolated AAP NIC and persistent static OS connection. Existing OS
+SSH, hypervisor and publisher credentials are reused. No wrapper, Job Template,
+credential type, key installation, authentication fallback or store was added.
+
+The connection profile is prepared before hotplug so automatic DHCP cannot
+change the primary network first. It binds the future MAC, uses manual IPv4,
+ignores automatic DNS, has no gateway/default route and disables IPv6. Exact
+SSH host keys, DMI UUID and genuine guest machine-id precede OS writes. Native
+readback and a protected pre-hotplug baseline preserve every unrelated profile,
+meaningful primary address/route and resolver byte. Only naturally decreasing
+address lifetimes and route expiry are excluded. Foreign autoconnect profiles,
+IPv4/IPv6/DNS drift and unowned components fail closed.
+
+The same component lock covers standalone clone creation and cleanup's final
+all-five-guest/disk absence check plus exact NIC detach. Reservations follow the
+protected disk creation and precede boot; selected fresh AD reservations defer
+to this common path. This closes both cleanup-before-clone and orphan-reservation
+races while preserving legacy operations. Cleanup detaches the recorded NIC
+before deleting its profile, verifies all other VM state and golden metadata,
+and allows only that exact supplemental XML removal. Interrupted exact owned
+cleanup can resume. A failed deployment removes only additions it actually made,
+after a fresh canonical read proves no job durably owns them; uncertainty retains
+the components for review.
+
+The public dependency pins reviewed AutoDeploy 0.45.0 implementation
+`eb806b7b79d51f08d7cf54fb2edb3d449ed375aa`. One checkout remains alive across
+source planning, native work, publication and rollback ownership checks. Its
+existing transaction mirrors supplemental ownership into the existing AAP
+resource/main inventory and preserves primary identity and firewall policy.
+The private companion adds only the reviewed selected runtime key/ciphertext
+and three existing template credential lists; other secrets and profiles remain
+unchanged. Initial Windows WinRM lab policy is unchanged.
+
+Validation: 179 offline tests, all 35 declared runtime syntax checks and the
+actual encrypted-loader/profile render passed. After the final dependency pin,
+38 management/native and 10 Windows provenance checks passed; production lint
+passed 11 files with no rule violations. Lint reported a custom-filter mocking
+diagnostic; actual native encrypted rendering separately exercised that filter.
+Live OS SSH, hotplug, Windows provisioning, functional acceptance and complete
+scoped decommission remain pending the serialized test window.
+
+
 ## Retain the owner-selected Windows lab connection policy — 2026-11-05
 
 Implementation: `b0bf1af3c5f4d16b56877c999cbfe3412ed95629` (version 1.0.11).
