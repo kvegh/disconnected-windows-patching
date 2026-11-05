@@ -1,5 +1,34 @@
 # Design decisions history
 
+## Prepare same-job Windows release after verified baseline — 2026-11-05
+
+Implementation: `45f4692`.
+
+The owner approved per-VM release after successful
+configuration, before network-dependent downloads, separately from complete
+use-case acceptance. The server-basics and AD preparation stages therefore
+collect actual authenticated Windows identity and both native domain definitions
+at those milestones. Wrong computer UUID/name/build, NIC/address, clone marker,
+disk, hypervisor identity and inherited production integrations prevent release.
+
+The caller reuses the existing AutoDeploy lifecycle role in the same job through
+a fixed public repository and reviewed exact revision. It does not add a second
+publisher or Windows bootstrap exception. The two selected jobs reuse the
+existing hypervisor Machine credential; the Windows login already exists in the
+private runtime profile. Guest-only variable binding preserves normal WinRM
+HTTPS validation, while AD's existing later authentication logic is unchanged.
+
+Native checks in the actual cached supported EE proved login-option precedence
+and loading both current unlabeled ciphertexts with the existing distinct Vault
+identities. No Vault password, label, matching policy or encryption key changes.
+Offline tests do not establish an actual Windows TLS handshake, guest login,
+successful deployment, policy release or full post-test decommission.
+
+Validation: all 136 Python tests, all 35 runtime playbook syntax checks and
+focused production lint for ten files passed. Eight producer tests cover trusted
+WinRM requirements, actual NIC/UUID ownership and the native Ansible full-run and
+guest-only login guards. These checks perform no live guest or policy changes.
+
 ## Prepare scoped test LDAP and CA retirement — 2026-11-04
 
 Implementation `5ddbf35` adds a guarded removal mode to the existing AD trust
