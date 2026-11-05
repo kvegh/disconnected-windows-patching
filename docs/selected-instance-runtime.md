@@ -66,6 +66,12 @@ checkout and temporary hypervisor trust file are removed on success or failure.
 There is no second publisher, extra orchestration job or Windows bootstrap
 HTTPS exception.
 
+The current pin is AutoDeploy 0.42.2 implementation
+`6de45e0a10a4119d596e1ed65c22c6ee48360e4a`. Its existing source-inventory guard
+accepts Controller's canonical text representation of the same pinned SSH port.
+Different or malformed ports still fail; target identity and trust requirements
+are unchanged.
+
 These two jobs use the existing hypervisor Machine credential for pinned SSH.
 Server-basics binds only its guest connection to the already-encrypted bootstrap
 login; AD preparation retains its existing protected initial login and subsequent

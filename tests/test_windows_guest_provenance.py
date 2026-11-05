@@ -138,6 +138,23 @@ class WindowsProducerGuardsTests(unittest.TestCase):
         conditional.when = expressions
         return conditional.evaluate_conditional(Templar(loader=loader, variables=values), values)
 
+    def test_shared_role_requires_exact_reviewed_dependency_before_checkout(self):
+        role = ROOT / 'roles/windows_recovery_release'
+        defaults = yaml.safe_load((role / 'defaults/main.yml').read_text())
+        guard = yaml.safe_load((role / 'tasks/main.yml').read_text())[0]
+        values = dict(defaults, windows_runtime_verified_resource={
+            'kind': 'windows', 'verified': True, 'winrm_certificate_validated': True,
+            'vm_name': 'example-v07', 'instance_name': 'aap27-test-7', 'hypervisor_machine_id': 'a' * 32},
+            inventory_hostname='example-v07', windows_runtime_expected_instance='aap27-test-7',
+            windows_runtime_recovery_pin={'machine_id': 'a' * 32},
+            windows_runtime_release_trust={'path': '/tmp/windows-release-known-hosts-fixture'})
+        expressions = guard['ansible.builtin.assert']['that']
+        self.assertTrue(self.evaluate(expressions, values))
+        for revision in ['ae9cfdbdbf29fe0471b71a0163cd557f607d7d8c', '0' * 40, 'main']:
+            with self.subTest(revision=revision):
+                self.assertFalse(self.evaluate(expressions, dict(values, windows_recovery_release_revision=revision)))
+        self.assertFalse(self.evaluate(expressions, dict(values, windows_recovery_release_repository='https://example.invalid/other.git')))
+
     def test_existing_bootstrap_login_is_bound_only_to_initial_standalone_guest_configuration(self):
         tasks = yaml.safe_load((ROOT / 'tasks/windows_runtime_settings.yml').read_text())
         task = next(row for row in tasks if row['name'].startswith('Bind the existing private Windows bootstrap login'))
