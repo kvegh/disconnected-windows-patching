@@ -1,5 +1,23 @@
 # Design decisions history
 
+## Report safe failures from the initial ownership read — 2026-11-05
+
+Implementation: `3a5998951a3244f4fa15e67e653fffb4ad3e09bc` (version 1.0.19).
+
+The first normal baseline job failed in its read-only AD API collector before
+any Windows provisioning. Its protected command result hid the actual cause.
+The command remains under `no_log`; a separate assertion now reports only the
+collector's controlled failure reason. TLS failures have a fixed certificate
+validation category, and unexpected transport errors expose only their class.
+Authentication inputs and transport exception details remain protected. No
+certificate validation, credential, target, cleanup or ownership rule changes.
+
+Eight focused reset tests pass, including private-error redaction and native
+Ansible rendering of the failure message. Production lint passes three files
+without rule violations. The next normal baseline retry must establish the
+actual environment failure before applying a focused configuration fix.
+
+
 ## Reset the demo through its existing jobs — 2026-11-05
 
 Implementation `a93b3ea406776cb8534fa92660c1bf92aa32a083` (1.0.17) completes
