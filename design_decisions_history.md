@@ -1,5 +1,36 @@
 # Design decisions history
 
+## Reject invalid clone requests before AAP network preparation — 2026-11-05
+
+Implementation: `88fe3e79427f8244f73011b6275f0c0911d5669b` (version 1.0.15).
+
+Final read-only Controller review found four inherited creation nodes alongside
+the selected replacements. Although the private capture declares only the
+selected twenty-nine-node graph, the identifier-based CoP update retained the
+four obsolete nodes. This requires an exact, reviewed one-time Controller node
+migration before launching the existing workflow; replacing its entire graph or
+introducing another workflow is unnecessary. Actual identities and graph review
+evidence remain protected. Normal reimports use only the declared selected
+identifiers and must not recreate the obsolete entries.
+
+That finding exposed an ordering issue in the common infrastructure playbook:
+AAP management preparation preceded validation of the requested Windows name.
+The existing include now follows exact selected clone/survey validation and
+cheap read-only network, image and destination checks. Directory creation also
+follows those checks. Invalid or obsolete clone inputs therefore fail before
+entering OS/network preparation. The shared component lock, standalone clone
+path, existing credentials and exact backend pin remain unchanged.
+
+A native Ansible regression instruments the real management entrypoint and
+proves an invalid legacy name fails at the actual ownership assertion without
+entering preparation. It fails against the preceding published ordering and
+passes after this fix. All thirty-nine focused management tests pass, and
+production lint passes five processed files without rule violations. No
+Controller nodes, guests, reservations, OS settings or network state were changed
+by this code publication. The coordinator owns the exact migration and live test
+window.
+
+
 ## Include owned AAP networking in Windows infrastructure — 2026-11-05
 
 Implementation: `1c06083666567d24bcfae088228e9353682cb5a1` (version 1.0.13).
