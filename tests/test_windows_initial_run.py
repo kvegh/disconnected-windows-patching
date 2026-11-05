@@ -26,6 +26,24 @@ def run_play(play, extra_files=None, environment=None):
 
 
 class InitialRunTests(unittest.TestCase):
+    def test_queued_network_attempts_stop_after_the_first_completed_transaction(self):
+        attempt = yaml.safe_load((ROOT / 'tasks/windows_aap_management_attempt.yml').read_text())
+        self.assertEqual(len(attempt), 1)
+        self.assertEqual(attempt[0]['when'], 'not windows_aap_network_complete')
+        fixture = copy.deepcopy(attempt)
+        fixture[0]['block'] = [{'ansible.builtin.set_fact': {
+            'example_attempt_count': '{{ example_attempt_count | int + 1 }}',
+            'windows_aap_network_complete': True}}]
+        include = {'ansible.builtin.include_tasks': 'attempt.yml',
+                   'loop': '{{ range(0, 30) | list }}',
+                   'when': 'not windows_aap_network_complete'}
+        play = [{'hosts': 'localhost', 'gather_facts': False,
+                 'vars': {'windows_aap_network_complete': False, 'example_attempt_count': 0},
+                 'tasks': [include, {'ansible.builtin.assert': {
+                     'that': ['windows_aap_network_complete', 'example_attempt_count | int == 1']}}]}]
+        result = run_play(play, {'attempt.yml': fixture})
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_infrastructure_failure_shows_only_a_failed_plans_controlled_message(self):
         tasks = yaml.safe_load((ROOT / 'tasks/windows_aap_management_network.yml').read_text())[0]['block']
         operation = next(row for row in tasks if row['name'].startswith('Run the same-job plan'))

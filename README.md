@@ -42,6 +42,8 @@ verification remain required.
 If shared ownership preflight fails, the infrastructure rescue displays only its
 controlled failure reason; action arguments, complete results and private errors
 remain protected.
+The network retry block also checks completion when each queued attempt executes,
+so a successful publication prevents all later attempts from repeating it.
 
 ## Review release
 

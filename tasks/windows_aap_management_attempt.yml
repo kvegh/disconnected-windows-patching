@@ -1,117 +1,120 @@
 ---
-- name: Plan the exact selected AAP supplemental component through the existing role # noqa: role-name[path]
-  ansible.builtin.include_role:
-    name: "{{ windows_aap_network_workspace.path }}/source/roles/recovery_guest_release"
-    tasks_from: plan
-  vars:
-    recovery_release_operation: aap_supplemental_interface
-    recovery_release_guest: "{{ windows_aap_network_guest }}"
-    recovery_release_hypervisor: "{{ windows_runtime_recovery_pin }}"
-    recovery_release_trust_file: "{{ windows_runtime_host_keys.path }}"
-  no_log: true
-
-- name: Capture primary state and prepare the manual MAC-bound profile before any hotplug
-  ansible.builtin.command:
-    argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-networkmanager.py') }}"]
-    stdin: >-
-      {{ {'mode': ('prepare' if windows_aap_management_state == 'present' else 'capture'),
-          'guest': windows_aap_network_guest, 'prefix_length': windows_aap_management.prefix_length,
-          'published': __recovery_release_plan.canonical_resource_present | bool} | to_json }}
-  delegate_to: windows_aap_management_target
-  become: true
-  register: windows_aap_network_prepared
-  changed_when: (windows_aap_network_prepared.stdout | from_json).changed
-  no_log: true
-
-- name: Wait for an identical unpublished operation without adopting its profile
-  ansible.builtin.pause:
-    seconds: 2
-  when: (windows_aap_network_prepared.stdout | from_json).busy
-
-- name: Configure and durably record the exact owned connection
-  when: not (windows_aap_network_prepared.stdout | from_json).busy
-  no_log: true
+- name: Execute only an unfinished selected AAP network attempt
+  when: not windows_aap_network_complete
   block:
-    - name: Retain the pre-hotplug baseline and this job's actual OS creation
-      ansible.builtin.set_fact:
-        windows_aap_nm_job_created: >-
-          {{ windows_aap_nm_job_created or (windows_aap_network_prepared.stdout | from_json).created }}
-        windows_aap_network_baseline: "{{ (windows_aap_network_prepared.stdout | from_json).baseline }}"
-
-    - name: Add or inspect only the declared NIC after OS preparation and canonical conflict checks
-      ansible.builtin.command:
-        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-interface.py') }}"]
-        stdin: >-
-          {{ {'mode': ('ensure' if windows_aap_management_state == 'present' else 'inspect'),
-              'guest': windows_aap_network_guest, 'prefix_length': windows_aap_management.prefix_length,
-              'published': __recovery_release_plan.canonical_resource_present | bool} | to_json }}
-      register: windows_aap_network_native
-      changed_when: (windows_aap_network_native.stdout | from_json).changed
-
-    - name: Retain this job's actual native creation independently of durable ownership
-      ansible.builtin.set_fact:
-        windows_aap_nic_job_created: >-
-          {{ windows_aap_nic_job_created or (windows_aap_network_native.stdout | from_json).created }}
-
-    - name: Refuse an unpublished NIC left by a different operation
-      ansible.builtin.assert:
-        that: not (windows_aap_network_native.stdout | from_json).busy
-        quiet: true
-        fail_msg: The prepared OS profile cannot authorize adopting another job's unpublished NIC.
-
-    - name: Detach only the recorded NIC before removing its OS profile
-      ansible.builtin.command:
-        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-interface.py') }}"]
-        stdin: >-
-          {{ {'mode': 'remove', 'guest': windows_aap_network_guest,
-              'owned_guests': windows_runtime_guests,
-              'prefix_length': windows_aap_management.prefix_length,
-              'published': __recovery_release_plan.canonical_resource_present | bool} | to_json }}
-      when: windows_aap_management_state == 'absent'
-      register: windows_aap_network_removed
-      changed_when: (windows_aap_network_removed.stdout | from_json).changed
-
-    - name: Activate the prepared static connection or remove its now-detached owned profile
-      ansible.builtin.command:
-        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-networkmanager.py') }}"]
-        stdin: >-
-          {{ {'mode': ('ensure' if windows_aap_management_state == 'present' else 'remove'),
-              'guest': windows_aap_network_guest, 'prefix_length': windows_aap_management.prefix_length,
-              'baseline': windows_aap_network_baseline, 'job_created': windows_aap_nm_job_created,
-              'published': __recovery_release_plan.canonical_resource_present | bool} | to_json }}
-      delegate_to: windows_aap_management_target
-      become: true
-      register: windows_aap_network_os
-      changed_when: (windows_aap_network_os.stdout | from_json).changed
-
-    - name: Read the final authenticated OS state against the unchanged pre-hotplug primary baseline
-      ansible.builtin.command:
-        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-networkmanager.py') }}"]
-        stdin: >-
-          {{ {'mode': 'read', 'guest': windows_aap_network_guest,
-              'prefix_length': windows_aap_management.prefix_length,
-              'baseline': windows_aap_network_baseline,
-              'published': __recovery_release_plan.canonical_resource_present | bool} | to_json }}
-      delegate_to: windows_aap_management_target
-      become: true
-      register: windows_aap_network_readback
-      changed_when: false
-
-    - name: Supply observed native values without a caller verification shortcut
-      ansible.builtin.set_fact:
-        windows_aap_network_guest: >-
-          {{ windows_aap_network_guest | combine({
-             'connection_readback': (windows_aap_network_readback.stdout | from_json).connection_readback}) }}
-
-    - name: Verify and publish through the same existing lifecycle transaction # noqa: role-name[path]
+    - name: Plan the exact selected AAP supplemental component through the existing role # noqa: role-name[path]
       ansible.builtin.include_role:
         name: "{{ windows_aap_network_workspace.path }}/source/roles/recovery_guest_release"
+        tasks_from: plan
       vars:
         recovery_release_operation: aap_supplemental_interface
         recovery_release_guest: "{{ windows_aap_network_guest }}"
         recovery_release_hypervisor: "{{ windows_runtime_recovery_pin }}"
         recovery_release_trust_file: "{{ windows_runtime_host_keys.path }}"
+      no_log: true
 
-    - name: Record completed durable supplemental ownership
-      ansible.builtin.set_fact:
-        windows_aap_network_complete: true
+    - name: Capture primary state and prepare the manual MAC-bound profile before any hotplug
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-networkmanager.py') }}"]
+        stdin: >-
+          {{ {'mode': ('prepare' if windows_aap_management_state == 'present' else 'capture'),
+              'guest': windows_aap_network_guest, 'prefix_length': windows_aap_management.prefix_length,
+              'published': __recovery_release_plan.canonical_resource_present | bool} | to_json }}
+      delegate_to: windows_aap_management_target
+      become: true
+      register: windows_aap_network_prepared
+      changed_when: (windows_aap_network_prepared.stdout | from_json).changed
+      no_log: true
+
+    - name: Wait for an identical unpublished operation without adopting its profile
+      ansible.builtin.pause:
+        seconds: 2
+      when: (windows_aap_network_prepared.stdout | from_json).busy
+
+    - name: Configure and durably record the exact owned connection
+      when: not (windows_aap_network_prepared.stdout | from_json).busy
+      no_log: true
+      block:
+        - name: Retain the pre-hotplug baseline and this job's actual OS creation
+          ansible.builtin.set_fact:
+            windows_aap_nm_job_created: >-
+              {{ windows_aap_nm_job_created or (windows_aap_network_prepared.stdout | from_json).created }}
+            windows_aap_network_baseline: "{{ (windows_aap_network_prepared.stdout | from_json).baseline }}"
+
+        - name: Add or inspect only the declared NIC after OS preparation and canonical conflict checks
+          ansible.builtin.command:
+            argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-interface.py') }}"]
+            stdin: >-
+              {{ {'mode': ('ensure' if windows_aap_management_state == 'present' else 'inspect'),
+                  'guest': windows_aap_network_guest, 'prefix_length': windows_aap_management.prefix_length,
+                  'published': __recovery_release_plan.canonical_resource_present | bool} | to_json }}
+          register: windows_aap_network_native
+          changed_when: (windows_aap_network_native.stdout | from_json).changed
+
+        - name: Retain this job's actual native creation independently of durable ownership
+          ansible.builtin.set_fact:
+            windows_aap_nic_job_created: >-
+              {{ windows_aap_nic_job_created or (windows_aap_network_native.stdout | from_json).created }}
+
+        - name: Refuse an unpublished NIC left by a different operation
+          ansible.builtin.assert:
+            that: not (windows_aap_network_native.stdout | from_json).busy
+            quiet: true
+            fail_msg: The prepared OS profile cannot authorize adopting another job's unpublished NIC.
+
+        - name: Detach only the recorded NIC before removing its OS profile
+          ansible.builtin.command:
+            argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-interface.py') }}"]
+            stdin: >-
+              {{ {'mode': 'remove', 'guest': windows_aap_network_guest,
+                  'owned_guests': windows_runtime_guests,
+                  'prefix_length': windows_aap_management.prefix_length,
+                  'published': __recovery_release_plan.canonical_resource_present | bool} | to_json }}
+          when: windows_aap_management_state == 'absent'
+          register: windows_aap_network_removed
+          changed_when: (windows_aap_network_removed.stdout | from_json).changed
+
+        - name: Activate the prepared static connection or remove its now-detached owned profile
+          ansible.builtin.command:
+            argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-networkmanager.py') }}"]
+            stdin: >-
+              {{ {'mode': ('ensure' if windows_aap_management_state == 'present' else 'remove'),
+                  'guest': windows_aap_network_guest, 'prefix_length': windows_aap_management.prefix_length,
+                  'baseline': windows_aap_network_baseline, 'job_created': windows_aap_nm_job_created,
+                  'published': __recovery_release_plan.canonical_resource_present | bool} | to_json }}
+          delegate_to: windows_aap_management_target
+          become: true
+          register: windows_aap_network_os
+          changed_when: (windows_aap_network_os.stdout | from_json).changed
+
+        - name: Read the final authenticated OS state against the unchanged pre-hotplug primary baseline
+          ansible.builtin.command:
+            argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-networkmanager.py') }}"]
+            stdin: >-
+              {{ {'mode': 'read', 'guest': windows_aap_network_guest,
+                  'prefix_length': windows_aap_management.prefix_length,
+                  'baseline': windows_aap_network_baseline,
+                  'published': __recovery_release_plan.canonical_resource_present | bool} | to_json }}
+          delegate_to: windows_aap_management_target
+          become: true
+          register: windows_aap_network_readback
+          changed_when: false
+
+        - name: Supply observed native values without a caller verification shortcut
+          ansible.builtin.set_fact:
+            windows_aap_network_guest: >-
+              {{ windows_aap_network_guest | combine({
+                 'connection_readback': (windows_aap_network_readback.stdout | from_json).connection_readback}) }}
+
+        - name: Verify and publish through the same existing lifecycle transaction # noqa: role-name[path]
+          ansible.builtin.include_role:
+            name: "{{ windows_aap_network_workspace.path }}/source/roles/recovery_guest_release"
+          vars:
+            recovery_release_operation: aap_supplemental_interface
+            recovery_release_guest: "{{ windows_aap_network_guest }}"
+            recovery_release_hypervisor: "{{ windows_runtime_recovery_pin }}"
+            recovery_release_trust_file: "{{ windows_runtime_host_keys.path }}"
+
+        - name: Record completed durable supplemental ownership
+          ansible.builtin.set_fact:
+            windows_aap_network_complete: true
