@@ -1,5 +1,22 @@
 # Design decisions history
 
+## Reset the demo through its existing jobs — 2026-11-05
+
+Implementation `a93b3ea406776cb8534fa92660c1bf92aa32a083` (1.0.17) completes
+the normal reset sequence without a new job, workflow or store. Capture the
+original core and image evidence before provisioning, preserve it when adding
+actual cleanup identities, remove LDAP references before regional demo objects,
+retire each exact Windows guest, then verify everything before removing the owned
+AAP interface. Registered guests use the existing typed publisher; unconfigured
+clones require both absent managed ownership/permissions and actual native proof.
+Orphan disks without their owned domain remain a clear stop. Reusable CaC/JTs,
+project target rows, shared PAH credentials and unrelated resources are preserved.
+
+The shared dependency is published implementation `41c77d231c54baf9ea3fd70d7b2b35f00183de33`.
+All 186 offline tests passed, final focused cleanup checks and fifteen-file
+production lint passed, and the encrypted CaC rendered in both templating modes.
+Normal live provisioning and full reset acceptance remain separate.
+
 ## Reject invalid clone requests before AAP network preparation — 2026-11-05
 
 Implementation: `88fe3e79427f8244f73011b6275f0c0911d5669b` (version 1.0.15).
