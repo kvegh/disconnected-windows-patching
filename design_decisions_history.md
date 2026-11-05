@@ -1,5 +1,36 @@
 # Design decisions history
 
+## Respect disabled DNS and resume only a proven unbooted copy — 2026-11-05
+
+Implementation: `7e3cada254d35b0d404627ffa5c280116c2138a9` (version 1.0.31).
+
+The first real cloning workflow created the external repository and AD guests.
+Three isolated-network copies stopped when their reservation helper attempted
+DNS records on a network whose XML explicitly disables DNS. Keep that service
+disabled: manage exact DHCP hostnames only there, refuse matching DNS records,
+and retain the existing two-record requirement on DNS-enabled networks. Release
+and retirement use reviewed shared implementation
+`3f5c7e253133d9b25e7a213cdb45bebdabca3f17` with the same distinction.
+
+The existing clone operation can retain a selected pre-boot copy without deletion
+or overwrite. Each attempt first reuses the existing read-only retirement-plan
+entrypoint to prove current canonical/main-inventory ownership absent. Under
+the existing native lock, regular root ownership, one link, standalone format,
+original capacity, no domain reference, no guest permission and logical content
+identical to the golden image are required. Changed, registered, referenced or
+linked disks remain a stop. Legacy disk refusal is preserved; no generic resume
+engine, helper file, registry, credential, type or additional job was added.
+
+Read-only review also found that the selected AD public-update baseline disabled
+WSUS but retained its inherited endpoint values. Native registry tasks now remove
+only those two URLs and record protected before/after presence as numeric evidence.
+The exact earlier provenance predicate was censored, so this does not claim that
+URL inheritance was its proven sole cause. Strict guest provenance stays intact.
+
+Validation: 21 runtime/network tests, 40 native network/clone checks, five native
+Ansible guard regressions and eleven-file production lint pass. The real failed
+stages still need retries, and the original core baseline remains unchanged.
+
 ## Stop queued network attempts after successful publication — 2026-11-05
 
 Implementation: `a0a569c49b7bdfb2b429253122d3d2a22dba82e2` (version 1.0.29).
