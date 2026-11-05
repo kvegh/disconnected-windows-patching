@@ -125,7 +125,7 @@
           ansible.builtin.assert:
             that:
               - windows_aap_network_dependency.windows_recovery_release_repository == 'https://github.com/kvegh/aap_autodeploy_configascode.git'
-              - windows_aap_network_dependency.windows_recovery_release_revision == '41c77d231c54baf9ea3fd70d7b2b35f00183de33'
+              - windows_aap_network_dependency.windows_recovery_release_revision == '3f5c7e253133d9b25e7a213cdb45bebdabca3f17'
             quiet: true
 
         - name: Fetch the single reviewed public implementation for this whole job
@@ -152,6 +152,29 @@
             that: windows_aap_network_complete
             quiet: true
             fail_msg: Another infrastructure job still owns an unpublished network operation; retry after its outcome is known.
+
+        - name: Check current registered ownership before considering a leftover unbooted copy
+          when:
+            - windows_aap_management_state == 'present'
+            - destination_disk.stat.exists | default(false)
+          block:
+            - name: Read canonical and main inventory ownership through the existing read-only plan # noqa: role-name[path]
+              ansible.builtin.include_role:
+                name: "{{ windows_aap_network_workspace.path }}/source/roles/recovery_guest_retire"
+                tasks_from: plan
+              vars:
+                recovery_retire_phase: plan
+                recovery_retire_guest_name: "{{ vm_name }}"
+                recovery_retire_guest_kind: windows
+                recovery_retire_hypervisor: "{{ windows_runtime_recovery_pin }}"
+
+            - name: Require no canonical or main inventory ownership for an unbooted copy
+              ansible.builtin.assert:
+                that:
+                  - recovery_guest_retire_plan.records_absent is sameas true
+                  - recovery_guest_retire_plan.guest is none
+                quiet: true
+                fail_msg: A registered guest cannot be replaced or treated as an unbooted golden copy.
 
       rescue:
         - name: Default to preserving components while durable ownership is uncertain

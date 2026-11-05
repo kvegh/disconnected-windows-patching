@@ -26,6 +26,21 @@ def run_play(play, extra_files=None, environment=None):
 
 
 class InitialRunTests(unittest.TestCase):
+    def test_existing_copy_requires_the_existing_read_only_source_plan_to_prove_absence(self):
+        tasks = yaml.safe_load((ROOT / 'tasks/windows_aap_management_network.yml').read_text())[0]['block']
+        operation = next(row for row in tasks if row['name'].startswith('Run the same-job plan'))
+        candidate = next(row for row in operation['block'] if row['name'].startswith('Check current registered ownership'))
+        plan = candidate['block'][0]
+        self.assertEqual(plan['ansible.builtin.include_role']['tasks_from'], 'plan')
+        self.assertEqual(plan['vars']['recovery_retire_phase'], 'plan')
+        check = candidate['block'][1]
+        for record, expected in [({'records_absent': True, 'guest': None}, 0),
+                                 ({'records_absent': True, 'guest': {'verified': True}}, 2),
+                                 ({'records_absent': False, 'guest': None}, 2)]:
+            result = run_play([{'hosts': 'localhost', 'gather_facts': False,
+                                'vars': {'recovery_guest_retire_plan': record}, 'tasks': [check]}])
+            self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+
     def test_queued_network_attempts_stop_after_the_first_completed_transaction(self):
         attempt = yaml.safe_load((ROOT / 'tasks/windows_aap_management_attempt.yml').read_text())
         self.assertEqual(len(attempt), 1)

@@ -120,6 +120,11 @@ def main(request):
     for name in run('virsh', 'list', '--all', '--name').splitlines():
         for state in ([], ['--inactive']):
             root = ET.fromstring(run('virsh', 'dumpxml', name, *state))
+            if request['mode'] == 'clone' and isinstance(request.get('clone'), dict):
+                target = request['clone'].get('disk', '')
+                require(not any(node.get('file') and os.path.realpath(node.get('file')) == os.path.realpath(target)
+                                for node in root.findall('./devices/disk/source')),
+                        'No live or persistent domain may reference the selected unbooted copy.')
             if name != guest['route']['vm_name']:
                 require(not any(node.get('address', '').lower() == extra['mac']
                                 for node in root.findall('./devices/interface/mac')),
@@ -135,12 +140,29 @@ def main(request):
                 and isinstance(clone['source'], str) and clone['source'].startswith('/opt/')
                 and clone['source'] != clone['disk'],
                 'Clone only a selected Windows disk while its management NIC remains exact.')
-        require(clone['vm_name'] not in run('virsh', 'list', '--all', '--name').splitlines()
-                and not os.path.lexists(clone['disk']), 'Never reuse an existing domain or clone disk.')
+        require(clone['vm_name'] not in run('virsh', 'list', '--all', '--name').splitlines(),
+                'Never reuse or replace an existing domain.')
         source_stat = os.stat(clone['source'], follow_symlinks=False)
         image = json.loads(run('qemu-img', 'info', '--output=json', clone['source']))
         require(stat.S_ISREG(source_stat.st_mode) and image.get('format') == 'qcow2'
                 and 'backing-filename' not in image, 'Use only the selected standalone regular golden image.')
+        if os.path.lexists(clone['disk']):
+            disk_stat = os.stat(clone['disk'], follow_symlinks=False)
+            require(stat.S_ISREG(disk_stat.st_mode) and disk_stat.st_uid == 0 and disk_stat.st_nlink == 1,
+                    'A leftover unbooted copy must be one root-owned regular file, never a link.')
+            copied = json.loads(run('qemu-img', 'info', '--output=json', clone['disk']))
+            require(copied.get('format') == 'qcow2' and 'backing-filename' not in copied
+                    and not copied.get('snapshots') and copied.get('virtual-size', 0) > 0
+                    and copied['virtual-size'] == image.get('virtual-size'),
+                    'Reuse only a standalone unbooted copy with the original virtual capacity.')
+            policy = json.loads(Path('/etc/hactarconfig/replacement-isolation.json').read_text())
+            interfaces = request['owned_guests'][clone['vm_name']]['interfaces']
+            require(not any(row.get('mac') == nic['mac'] or row.get('ipv4') == nic['address']
+                            for field in ('https_clients', 'http_clients', 'released_clients', 'guest_host_clients')
+                            for row in policy.get(field, []) for nic in interfaces),
+                    'An unbooted copy must have no existing guest permissions.')
+            run('qemu-img', 'compare', '-f', 'qcow2', '-F', 'qcow2', clone['source'], clone['disk'])
+            return {'changed': False, 'created': False, 'busy': False}
         run('qemu-img', 'convert', '-f', 'qcow2', '-O', 'qcow2', '-S', '4k', clone['source'], clone['disk'])
         return {'changed': True, 'created': True, 'busy': False}
     if mode == 'ensure':

@@ -170,10 +170,14 @@ class NativeTopologyTests(unittest.TestCase):
 
 
 class NativeFiles:
+    policy = {}
+
     def __init__(self, path):
         self.path = path
 
     def read_text(self):
+        if self.path == '/etc/hactarconfig/replacement-isolation.json':
+            return json.dumps(self.policy)
         return HYPERVISOR
 
 
@@ -185,6 +189,8 @@ class LibvirtFixture:
         self.partial_attach_failure = False
         self.foreign = False
         self.disks = set()
+        self.pristine = True
+        self.disk_reference = False
 
     def run(self, *args, content=None):
         if args == ('virsh', 'domstate', 'example-aap'):
@@ -198,8 +204,11 @@ class LibvirtFixture:
         if args[:2] == ('virsh', 'net-dhcp-leases'):
             return 'header\nseparator'
         if args == ('virsh', 'list', '--all', '--name'):
-            return 'example-aap\nforeign' if self.foreign else 'example-aap'
+            return 'example-aap\nforeign' if self.foreign or self.disk_reference else 'example-aap'
         if args[:3] == ('virsh', 'dumpxml', 'foreign'):
+            if self.disk_reference:
+                return domain().replace('<name>example-aap</name>', '<name>foreign</name>').replace(
+                    '/opt/vms/example-aap.disk.qcow2', '/opt/vms/win-example-ext-clone.disk.qcow2')
             return domain(True).replace('<name>example-aap</name>', '<name>foreign</name>')
         if args[:2] == ('virsh', 'attach-device'):
             self.writes.append(args)
@@ -216,7 +225,11 @@ class LibvirtFixture:
                 self.saved = domain()
             return ''
         if args[:2] == ('qemu-img', 'info'):
-            return '{"format":"qcow2"}'
+            return '{"format":"qcow2","virtual-size":4096}'
+        if args[:2] == ('qemu-img', 'compare'):
+            if not self.pristine:
+                raise ValueError('The copy differs from the original golden.')
+            return ''
         if args[:2] == ('qemu-img', 'convert'):
             self.writes.append(args)
             self.disks.add(args[-1])
@@ -228,10 +241,12 @@ class LibvirtOperationTests(unittest.TestCase):
     def execute(self, fixture, mode='ensure', published=False, job_created=False, clone=None):
         with patch.object(native, 'run', fixture.run), patch.object(native, 'Path', NativeFiles), \
                 patch.object(native.os.path, 'lexists', lambda path: path in fixture.disks), \
-                patch.object(native.os, 'stat', return_value=SimpleNamespace(st_mode=stat.S_IFREG)):
+                patch.object(native.os, 'stat', return_value=SimpleNamespace(st_mode=stat.S_IFREG, st_uid=0, st_nlink=1)):
             return native.main({'guest': guest(), 'mode': mode, 'prefix_length': 24,
-                                'owned_guests': dict.fromkeys(['example-ext', 'example-int', 'example-win22',
-                                                              'example-win25', 'example-ad'], {}),
+                                'owned_guests': {name: {'interfaces': [{'mac': '52:54:00:00:02:%02x' % index,
+                                                                      'address': '10.42.0.%d' % (20 + index)}]}
+                                                for index, name in enumerate(['example-ext', 'example-int', 'example-win22',
+                                                                              'example-win25', 'example-ad'])},
                                 'clone': clone, 'published': published, 'job_created': job_created})
 
     def test_exact_new_attachment_changes_only_the_supplemental_device(self):
@@ -300,6 +315,27 @@ class LibvirtOperationTests(unittest.TestCase):
             self.execute(fixture, mode='remove', published=True)
         self.assertTrue(native.inspect_domain(fixture.live, guest()))
         self.assertEqual(len(fixture.disks), 1)
+
+    def test_only_an_unreferenced_pristine_copy_without_permissions_can_be_reused(self):
+        clone = {'vm_name': 'example-ext', 'source': '/opt/images/example.qcow2',
+                 'disk': '/opt/vms/win-example-ext-clone.disk.qcow2'}
+        fixture = LibvirtFixture(True)
+        fixture.disks.add(clone['disk'])
+        result = self.execute(fixture, mode='clone', published=True, clone=clone)
+        self.assertFalse(result['created'])
+        self.assertFalse(result['changed'])
+        self.assertEqual(fixture.writes, [])
+        fixture.pristine = False
+        with self.assertRaises(ValueError):
+            self.execute(fixture, mode='clone', published=True, clone=clone)
+        fixture.pristine = True
+        fixture.disk_reference = True
+        with self.assertRaises(ValueError):
+            self.execute(fixture, mode='clone', published=True, clone=clone)
+        fixture.disk_reference = False
+        with patch.object(NativeFiles, 'policy', {'released_clients': [{'mac': '52:54:00:00:02:00', 'ipv4': '10.42.0.20'}]}):
+            with self.assertRaises(ValueError):
+                self.execute(fixture, mode='clone', published=True, clone=clone)
 
     def test_detach_wins_then_clone_refuses_before_any_disk_write(self):
         fixture = LibvirtFixture(True)

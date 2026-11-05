@@ -1,4 +1,4 @@
 ---
 # Public implementation dependency; all environment data remains in Vault.
 windows_recovery_release_repository: https://github.com/kvegh/aap_autodeploy_configascode.git
-windows_recovery_release_revision: 41c77d231c54baf9ea3fd70d7b2b35f00183de33
+windows_recovery_release_revision: 3f5c7e253133d9b25e7a213cdb45bebdabca3f17

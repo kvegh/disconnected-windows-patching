@@ -98,11 +98,15 @@
     - name: Check destination disk
       ansible.builtin.stat:
         path: "{{ vm_disk_path }}"
+        follow: false
       register: destination_disk
 
     - name: Refuse to reuse an existing disk
       ansible.builtin.assert:
-        that: not destination_disk.stat.exists
+        that: >-
+          not destination_disk.stat.exists or
+          (windows_runtime_aap_management is defined and windows_runtime_settings_vault is defined and
+           destination_disk.stat.isreg | default(false) and not (destination_disk.stat.islnk | default(false)))
         fail_msg: "Disk {{ vm_disk_path }} already exists. Inspect it before retrying with this name."
 
     - name: Prepare the selected AAP's isolated Windows management connection before cloning

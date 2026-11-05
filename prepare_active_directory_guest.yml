@@ -77,6 +77,49 @@
         - path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
           name: SetPolicyDrivenUpdateSourceForDriverUpdates
 
+    - name: Read inherited WSUS endpoint presence without exposing its values
+      ansible.windows.win_reg_stat:
+        path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+        name: "{{ item }}"
+      loop: [WUServer, WUStatusServer]
+      register: ad_wsus_endpoints_before
+      when: windows_runtime_settings_vault is defined
+      no_log: true
+
+    - name: Remove inherited WSUS URLs from the selected public-update AD guest
+      ansible.windows.win_regedit:
+        path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+        name: "{{ item }}"
+        state: absent
+      loop: [WUServer, WUStatusServer]
+      when: windows_runtime_settings_vault is defined
+      no_log: true
+
+    - name: Read back the selected AD guest's public update-source baseline
+      ansible.windows.win_reg_stat:
+        path: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+        name: "{{ item }}"
+      loop: [WUServer, WUStatusServer]
+      register: ad_wsus_endpoints_after
+      when: windows_runtime_settings_vault is defined
+      no_log: true
+
+    - name: Require inherited WSUS endpoint values absent on the selected AD guest
+      ansible.builtin.assert:
+        that: ad_wsus_endpoints_after.results | selectattr('exists', 'equalto', true) | list | length == 0
+        quiet: true
+        fail_msg: The selected public-update AD guest still has inherited WSUS endpoint values.
+      when: windows_runtime_settings_vault is defined
+
+    - name: Record only numeric AD update-source cleanup evidence
+      ansible.builtin.set_stats:
+        data:
+          windows_ad_public_source_cleanup:
+            before_count: "{{ ad_wsus_endpoints_before.results | selectattr('exists', 'equalto', true) | list | length }}"
+            after_count: "{{ ad_wsus_endpoints_after.results | selectattr('exists', 'equalto', true) | list | length }}"
+        per_host: false
+      when: windows_runtime_settings_vault is defined
+
     - name: Complete an explicitly requested reboot for update-agent recovery
       ansible.windows.win_reboot:
         reboot_timeout: 1800

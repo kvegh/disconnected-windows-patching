@@ -109,6 +109,22 @@ DHCP/DNS reservations occur after that protected disk exists and before boot;
 the selected fresh AD address stage defers to this same path. Legacy reservation
 and recovery behavior stays unchanged.
 
+On a network whose actual XML disables DNS, the reservation helper manages exact
+DHCP names and addresses but requires no matching DNS host record. Enabled DNS
+continues to require both records. The shared release/retirement pin below
+verifies the same distinction; this never enables a DNS service.
+
+If a selected provisioning job stopped after its disk copy but before VM creation,
+the same entrypoint can retain that copy. Before each such attempt, the existing
+`recovery_guest_retire` **plan** entrypoint reads current encrypted ownership and
+the source AAP's main inventory; it must find no guest ownership. It performs no
+deletion or publication. Under the existing native component lock, the clone
+operation then requires a root-owned regular single-link standalone disk, no
+live/persistent domain reference or guest permission, original virtual capacity,
+and successful logical-content comparison with the unchanged golden image.
+Only that pristine unused copy is retained without another conversion. A changed,
+registered, referenced or linked disk remains a stop; legacy behavior is unchanged.
+
 The baseline records the optional exact management declaration. After all five
 Windows clones/disks are absent and unrelated definitions, states and golden
 metadata pass preservation checks, the existing post-teardown playbook removes
@@ -175,7 +191,7 @@ There is no second publisher, extra orchestration job or Windows bootstrap
 HTTPS exception.
 
 The current pin is AutoDeploy 0.45.3 implementation
-`41c77d231c54baf9ea3fd70d7b2b35f00183de33`. Its existing Windows branch accepts
+`3f5c7e253133d9b25e7a213cdb45bebdabca3f17`. Its existing Windows branch accepts
 the genuine Boolean certificate result under the owner's lab policy while
 retaining every successful identity, ownership and source/policy check. It also
 retains the canonical Controller SSH-port representation fix; different or

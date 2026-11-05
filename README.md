@@ -44,6 +44,14 @@ controlled failure reason; action arguments, complete results and private errors
 remain protected.
 The network retry block also checks completion when each queued attempt executes,
 so a successful publication prevents all later attempts from repeating it.
+Networks with DNS explicitly disabled retain exact DHCP hostname reservations
+without DNS host records; release and cleanup verify that same native policy.
+An interrupted pre-boot copy can be reused only after the existing read-only role
+proves no canonical/main-inventory ownership and native checks prove an unused,
+standalone, byte-identical golden copy without guest permissions. The existing
+lock covers comparison and reuse; no file is overwritten or deleted. Other
+existing disks remain a stop. The selected AD public-update baseline also removes
+inherited WSUS URL values and records only numeric before/after evidence.
 
 ## Review release
 

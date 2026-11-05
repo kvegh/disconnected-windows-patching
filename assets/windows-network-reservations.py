@@ -17,6 +17,10 @@ def virsh(*args):
 def inspect(record, network_xml, leases):
     """Build exact operations; reject conflicting, ambiguous or shared records."""
     root = ET.fromstring(network_xml)
+    if not isinstance(record.get('dns_name'), str) or not record['dns_name'].strip():
+        raise ValueError('Keep a nonempty DHCP hostname for the selected NIC.')
+    dns_section = root.find('dns')
+    dns_enabled = dns_section is None or dns_section.get('enable', 'yes') != 'no'
     address = ipaddress.ip_address(record['address'])
     candidates = [node for node in root.findall('ip') if node.get('address') and address in
                   ipaddress.ip_network(node.get('address') + '/' +
@@ -34,6 +38,8 @@ def inspect(record, network_xml, leases):
             raise ValueError('The selected address is leased to another NIC.')
     dns_related = [node for node in root.findall('dns/host') if node.get('ip') == record['address']
                    or record['dns_name'] in [child.text for child in node.findall('hostname')]]
+    if not dns_enabled and dns_related:
+        raise ValueError('A DNS-disabled network must have no matching selected DNS records.')
     if len(dns_related) > 1 or any(node.attrib != {'ip': record['address']}
                                   or [child.text for child in node.findall('hostname')] != [record['dns_name']]
                                   for node in dns_related):
@@ -41,6 +47,7 @@ def inspect(record, network_xml, leases):
     dns = ET.Element('host', {'ip': record['address']})
     ET.SubElement(dns, 'hostname').text = record['dns_name']
     return {'network': record['network'],
+            'dns_enabled': dns_enabled,
             'dhcp_exists': bool(related), 'dns_exists': bool(dns_related),
             'dhcp_xml': ET.tostring(ET.Element('host', expected), encoding='unicode'),
             'dns_xml': ET.tostring(dns, encoding='unicode')}
@@ -84,6 +91,8 @@ def main():
     changed = False
     for plan in plans:
         for kind in ('dns', 'dhcp'):
+            if kind == 'dns' and not plan['dns_enabled']:
+                continue
             exists = plan[kind + '_exists']
             operation = 'add-last' if mode == 'reserve' and not exists else 'delete' if mode == 'remove' and exists else None
             if operation:
@@ -95,7 +104,8 @@ def main():
         for nic in targets:
             for options in ([], ['--inactive']):
                 final = inspect(nic, virsh('net-dumpxml', nic['network'], *options), [])
-                if any(final[kind + '_exists'] != (mode == 'reserve') for kind in ('dns', 'dhcp')):
+                if any(final[kind + '_exists'] != (mode == 'reserve' and (kind == 'dhcp' or final['dns_enabled']))
+                       for kind in ('dns', 'dhcp')):
                     raise ValueError('The exact network reservation operation did not complete.')
     print(json.dumps({'mode': mode, 'changed': changed, 'resources': plans}))
 

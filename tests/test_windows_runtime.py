@@ -3,8 +3,12 @@
 import copy
 import base64
 import importlib.util
+import io
+import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
+import xml.etree.ElementTree as ET
 
 from ansible.errors import AnsibleFilterError
 from ansible.parsing.dataloader import DataLoader
@@ -102,6 +106,47 @@ class WindowsReservationTests(unittest.TestCase):
         self.assertFalse(plan['dhcp_exists'])
         self.assertFalse(plan['dns_exists'])
         self.assertIn('name="example-ext"', plan['dhcp_xml'])
+
+    def test_disabled_dns_keeps_exact_dhcp_only_through_reserve_retry_and_remove(self):
+        root = ET.fromstring(self.xml.format(dns='', dhcp='').replace('<dns>', '<dns enable="no">'))
+        changes = []
+
+        def virsh(*args):
+            if args[0] == 'list':
+                return ''
+            if args[0] == 'net-dumpxml':
+                return ET.tostring(root, encoding='unicode')
+            if args[0] == 'net-dhcp-leases':
+                return 'header\nseparator\n'
+            self.assertEqual(args[0], 'net-update')
+            self.assertEqual(args[3], 'ip-dhcp-host')
+            self.assertEqual(args[-2:], ('--live', '--config'))
+            changes.append(args)
+            parent = root.find('./ip/dhcp')
+            if args[2] == 'add-last':
+                parent.append(ET.fromstring(args[4]))
+            else:
+                parent.remove(next(node for node in parent if node.attrib == ET.fromstring(args[4]).attrib))
+            return ''
+
+        for mode in ['reserve', 'reserve', 'remove']:
+            with patch.object(network, 'virsh', side_effect=virsh), \
+                    patch.object(network.Path, 'is_file', return_value=True), \
+                    patch.object(network.Path, 'is_symlink', return_value=False), \
+                    patch.object(network.sys, 'argv', ['helper', mode]), \
+                    patch.object(network.sys, 'stdin', io.StringIO(json.dumps({'name': 'example-ext', 'interfaces': [self.nic]}))), \
+                    patch('sys.stdout', io.StringIO()):
+                network.main()
+        self.assertEqual(len(changes), 2)
+        self.assertEqual(root.find('dns').attrib, {'enable': 'no'})
+        self.assertEqual(root.findall('./dns/host'), [])
+
+    def test_disabled_dns_refuses_matching_records_and_an_empty_dhcp_name(self):
+        xml = self.xml.format(dns='<host ip="192.0.2.11"><hostname>example-ext</hostname></host>', dhcp='')
+        with self.assertRaises(ValueError):
+            network.inspect(self.nic, xml.replace('<dns>', '<dns enable="no">'), [])
+        with self.assertRaises(ValueError):
+            network.inspect(dict(self.nic, dns_name=''), self.xml.format(dns='', dhcp=''), [])
 
     def test_exact_existing_records_are_idempotent(self):
         dhcp = '<host mac="52:54:00:00:00:01" ip="192.0.2.11" name="example-ext"/>'
