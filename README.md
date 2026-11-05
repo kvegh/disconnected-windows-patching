@@ -38,7 +38,7 @@ acceptance remain separate required checks.
 
 The first tracked major version is **1.0.0**, representing the review and cleanup
 baseline under the [agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
-The current cleanup version is **1.0.18**. Work proceeds directly on `main`, as
+The current cleanup version is **1.0.19**. Work proceeds directly on `main`, as
 requested by the owner; `VERSION` identifies this project independently of the
 other umbrella projects. Implementation changes and their reasons are recorded
 in [the decision history](design_decisions_history.md).
@@ -1141,3 +1141,8 @@ requires its serialized acceptance run.
 network result, scheduled-task status, current adapters, addresses and routes.
 It accepts a host limit and uses the Windows Machine credential. Diagnostic
 output includes network details and stays in AAP, outside Git.
+
+The original baseline keeps AD API input and authentication output protected.
+If its ownership read fails, a separate assertion reports only the reader's safe
+failure reason, including certificate-validation errors, before any provisioning.
+No credentials or transport exception details are printed.

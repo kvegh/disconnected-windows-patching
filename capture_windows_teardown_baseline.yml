@@ -130,11 +130,20 @@
               'retired_users': active_directory.retired_users, 'resource_sets': active_directory.resource_sets} | to_json }}
       register: windows_ad_ownership
       changed_when: false
+      failed_when: false
       delegate_to: localhost
       become: false
       vars:
         ansible_connection: local
       no_log: true
+
+    - name: Require the read-only AD ownership snapshot with a safe failure reason
+      ansible.builtin.assert:
+        that: windows_ad_ownership.rc == 0
+        fail_msg: >-
+          {{ (windows_ad_ownership.stdout | default('{}', true) | from_json).reason |
+             default('The protected AD ownership reader did not return a valid snapshot.') }}
+        quiet: true
 
     - name: Store the original core snapshot once without replacing it on later captures
       ansible.builtin.set_stats:

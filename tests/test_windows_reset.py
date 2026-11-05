@@ -1,13 +1,19 @@
 """Check normal reset planning and important wrong-target refusals offline."""
 import copy
 import importlib.util
+import json
 from pathlib import Path
+import ssl
 import unittest
+from urllib.error import URLError
 from urllib.parse import parse_qs, urlsplit
 
 from test_active_directory_migration import fixture, FixtureAPI
 from test_active_directory_verifier import FakeAAP
 from test_windows_runtime import ownership
+from ansible.parsing.dataloader import DataLoader
+from ansible.template import Templar
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('windows_ad_cleanup', ROOT / 'assets/windows-ad-cleanup.py')
@@ -47,6 +53,28 @@ def ad_fixture():
 
 
 class WindowsResetTests(unittest.TestCase):
+    def test_transport_failure_categories_do_not_expose_private_error_details(self):
+        secret = 'synthetic-private-password'
+        error = URLError(ssl.SSLCertVerificationError(1, secret))
+        self.assertEqual(cleanup.failure_reason(error), 'The selected AAP API certificate failed validation.')
+        self.assertNotIn(secret, cleanup.failure_reason(RuntimeError(secret)))
+        self.assertEqual(cleanup.failure_reason(AssertionError('An inspection API read failed: HTTP 401')),
+                         'An inspection API read failed: HTTP 401')
+
+    def test_baseline_failure_message_uses_only_the_protected_readers_safe_reason(self):
+        tasks = yaml.safe_load((ROOT / 'capture_windows_teardown_baseline.yml').read_text())[0]['tasks']
+        reader = next(row for row in tasks if row.get('register') == 'windows_ad_ownership')
+        self.assertTrue(reader['no_log'])
+        self.assertFalse(reader['failed_when'])
+        check = next(row for row in tasks if row['name'].endswith('with a safe failure reason'))
+        reason = 'The selected AAP API certificate failed validation.'
+        values = {'windows_ad_ownership': {'rc': 1, 'stdout': json.dumps({'reason': reason}),
+                                          'stderr': 'synthetic-private-password',
+                                          'invocation': {'stdin': 'synthetic-private-password'}}}
+        rendered = Templar(loader=DataLoader(), variables=values).template(check['ansible.builtin.assert']['fail_msg'])
+        self.assertEqual(rendered, reason)
+        self.assertNotIn('synthetic-private-password', rendered)
+
     def test_normal_dedicated_ad_plan_and_absent_retry(self):
         p, d = ad_fixture()
         saved = cleanup.snapshot(p, API(d))

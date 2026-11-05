@@ -7,8 +7,10 @@ Only Ansible's existing platform/controller modules perform deletion.
 import importlib.util
 import json
 from pathlib import Path
+import ssl
 import sys
 import tempfile
+import urllib.error
 from urllib.parse import urlencode
 
 
@@ -147,10 +149,19 @@ def main():
         print(json.dumps(result))
 
 
+def failure_reason(error):
+    """Expose a bounded failure category without API credentials or transport details."""
+    if isinstance(error, AssertionError):
+        return str(error)
+    cause = error.reason if isinstance(error, urllib.error.URLError) else error
+    if isinstance(cause, ssl.SSLCertVerificationError):
+        return 'The selected AAP API certificate failed validation.'
+    return 'Protected regional cleanup inspection failed (' + type(cause).__name__ + ').'
+
+
 if __name__ == '__main__':
     try:
         main()
     except Exception as error:
-        print(json.dumps({'reason': str(error) if isinstance(error, AssertionError)
-                          else 'Protected regional cleanup inspection failed.'}))
+        print(json.dumps({'reason': failure_reason(error)}))
         raise SystemExit(1)
