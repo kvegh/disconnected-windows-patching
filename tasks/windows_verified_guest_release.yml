@@ -1,0 +1,116 @@
+---
+- name: Require complete baseline configuration and the existing pinned lifecycle inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_run_tags == ['all']
+      - ansible_skip_tags | length == 0
+      - not ansible_check_mode
+      - windows_runtime_winrm_ready is sameas true
+      - windows_runtime_recovery_pin is mapping
+      - windows_runtime_recovery_pin.machine_id == windows_runtime_hypervisor.machine_id
+      - windows_runtime_recovery_pin.address == windows_runtime_hypervisor.address
+      - windows_runtime_recovery_pin.port == windows_runtime_hypervisor.port
+      - inventory_hostname in windows_runtime_guests
+      - windows_hostname | default(active_directory.hostname) | lower == inventory_hostname
+      - ansible_connection == 'winrm'
+      - ansible_winrm_scheme == 'https'
+      - ansible_winrm_server_cert_validation == 'validate'
+      - windows_runtime_ca_file.path is defined
+    quiet: true
+    fail_msg: Complete the selected Windows baseline over validated WinRM before releasing its isolation.
+  no_log: true
+
+- name: Read the actual authenticated Windows computer and every active NIC
+  ansible.windows.win_powershell:
+    script: "{{ lookup('ansible.builtin.file', 'assets/windows-guest-identity.ps1') }}"
+    error_action: stop
+  register: windows_runtime_computer_identity
+  no_log: true
+
+- name: Allocate short-lived pinned hypervisor trust for this verified guest
+  ansible.builtin.tempfile:
+    state: file
+    path: /tmp
+    prefix: windows-release-known-hosts-
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_connection: local
+  register: windows_runtime_release_trust
+  check_mode: false
+  no_log: true
+
+- name: Verify native clone identity and release through the existing lifecycle transaction
+  no_log: true
+  block:
+    - name: Write only independently pinned hypervisor host keys
+      ansible.builtin.copy:
+        content: "{{ windows_runtime_hypervisor.known_hosts }}"
+        dest: "{{ windows_runtime_release_trust.path }}"
+        mode: '0600'
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+      diff: false
+
+    - name: Inspect the exact owned native Windows clone without changing libvirt
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-guest-native-proof.py') }}"]
+        stdin: >-
+          {{ {'name': inventory_hostname, 'hypervisor_machine_id': windows_runtime_hypervisor.machine_id} | to_json }}
+      delegate_to: "{{ windows_runtime_recovery_pin.address }}"
+      become: true
+      vars:
+        ansible_connection: ssh
+        ansible_host: "{{ hostvars[inventory_hostname].windows_runtime_recovery_pin.address }}"
+        ansible_user: "{{ hostvars[inventory_hostname].windows_runtime_recovery_pin.user }}"
+        ansible_port: "{{ hostvars[inventory_hostname].windows_runtime_recovery_pin.port }}"
+        ansible_password: ''
+        ansible_ssh_pass: ''
+        ansible_become_password: ''
+        ansible_ssh_common_args: >-
+          -o BatchMode=yes -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no
+          -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null
+          -o UserKnownHostsFile={{ hostvars[inventory_hostname].windows_runtime_release_trust.path | quote }}
+        ansible_host_key_checking: true
+        ansible_ssh_host_key_checking: true
+      register: windows_runtime_native_identity
+      changed_when: false
+      check_mode: false
+
+    - name: Join actual Windows identity and native ownership into the shared Windows resource
+      ansible.builtin.set_fact:
+        windows_runtime_verified_resource: >-
+          {{ windows_runtime_computer_identity.result | windows_guest_verified_provenance(
+               windows_runtime_native_identity.stdout | from_json,
+               windows_runtime_expected_instance, inventory_hostname,
+               windows_runtime_guests[inventory_hostname], windows_connection_address | default(active_directory.ipv4),
+               windows_runtime_recovery_pin,
+               {'ready': windows_runtime_winrm_ready, 'scheme': ansible_winrm_scheme,
+                'validation': ansible_winrm_server_cert_validation,
+                'ca_present': windows_runtime_ca_file.path is defined},
+               active_directory, windows_runtime_guests) }}
+
+    - name: Release only this completed Windows deployment through the existing shared role
+      ansible.builtin.include_role:
+        name: windows_recovery_release
+
+    - name: Retain the genuinely verified Windows resource in authenticated job artifacts
+      ansible.builtin.set_stats:
+        data:
+          windows_verified_guests: "{{ {inventory_hostname: windows_runtime_verified_resource} }}"
+        per_host: false
+        aggregate: true
+
+  always:
+    - name: Remove this guest's short-lived hypervisor trust file
+      ansible.builtin.file:
+        path: "{{ windows_runtime_release_trust.path }}"
+        state: absent
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+      check_mode: false
+      when: windows_runtime_release_trust.path is match('^/tmp/windows-release-known-hosts-[A-Za-z0-9_]+$')

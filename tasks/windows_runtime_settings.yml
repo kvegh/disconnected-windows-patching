@@ -156,3 +156,15 @@
     - name: Use normal WinRM hostname and certificate validation
       ansible.builtin.set_fact:
         ansible_winrm_ca_trust_path: "{{ windows_runtime_ca_file.path }}"
+
+- name: Bind the existing private Windows bootstrap login only for initial server basics
+  ansible.builtin.set_fact:
+    ansible_user: "{{ active_directory.bootstrap_username }}"
+    ansible_password: "{{ active_directory.bootstrap_password }}"
+  when:
+    - windows_runtime_bind_bootstrap_login | default(false) | bool
+    - inventory_hostname in windows_runtime_guests
+    - windows_runtime_guests[inventory_hostname].role != 'ad'
+    - inventory_hostname in groups.get('wsus_external', []) + groups.get('wsus_internal', []) + groups.get('windows_managed', [])
+    - inventory_hostname not in groups.get('active_directory', [])
+  no_log: true

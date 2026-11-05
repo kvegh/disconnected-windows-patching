@@ -24,6 +24,7 @@
   hosts: wsus_external:wsus_internal:windows_managed
   gather_facts: false
   vars:
+    windows_runtime_bind_bootstrap_login: true
     windows_network_task_name: AAP-ConfigurePermanentNetwork
     windows_network_task_directory: 'C:\ProgramData\AAP\NetworkConfiguration'
   pre_tasks:
@@ -260,3 +261,7 @@
       ansible.windows.win_reboot:
         reboot_timeout: 900
       when: hostname_result.reboot_required | default(false)
+
+    - name: Release a fully configured selected Windows guest before content downloads
+      ansible.builtin.include_tasks: tasks/windows_verified_guest_release.yml
+      when: windows_runtime_settings_vault is defined and not ansible_check_mode

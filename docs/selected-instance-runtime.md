@@ -40,6 +40,44 @@ jobs that do not select the new runtime transport. Their encrypted copies are
 retained in the private companion. Prepared versioned CaC imports use only their
 explicit private instance profile; they never fall back to inherited targets.
 
+## Release after verified per-VM configuration
+
+The server-basics job checks Windows identity after its permanent networking,
+scheduled network-task result, hostname and required reboot have succeeded.
+The AD preparation job performs the same check after its hostname and explicit
+update-source configuration, before public update downloads. Release is limited
+to complete, unskipped normal runs. Later patch, application and directory
+functional tests remain separate acceptance steps.
+
+The proof reads the actual computer name, CIM product UUID, Server build and
+every active NIC's MAC and permanent IPv4 address through normally validated
+WinRM. It refuses inherited foreign domain membership or update-service URLs.
+Pinned SSH then reads both native domain definitions, the existing instance
+owner marker, independent clone disk and actual network bridges. The shared
+Windows resource is produced only when the observed computer UUID equals the
+native domain UUID and every interface matches. No Linux machine identity or
+SSH identity is invented for a Windows guest.
+
+Within that same job, a temporary checkout of the fixed public AutoDeploy
+repository at a reviewed forty-character revision supplies its existing
+`recovery_guest_release` role. The role owns the existing policy/publication
+transaction and preserves production exclusions and unrelated permissions. The
+checkout and temporary hypervisor trust file are removed on success or failure.
+There is no second publisher, extra orchestration job or Windows bootstrap
+HTTPS exception.
+
+These two jobs use the existing hypervisor Machine credential for pinned SSH.
+Server-basics binds only its guest connection to the already-encrypted bootstrap
+login; AD preparation retains its existing protected initial login and subsequent
+domain authentication logic. Other runtime jobs are unchanged. The existing
+source API reader, source CA, central Git writer, central CaC Vault and Windows
+Playbook Vault support the same publisher. Their existing distinct Vault
+identities and passwords are preserved; native supported-EE checks prove both
+current unlabeled ciphertexts load without a Vault matching override.
+
+Offline and cached-EE checks do not prove a Windows TLS handshake, successful
+guest configuration, live isolation release or completed functional test.
+
 ## Scoped authentication cleanup component
 
 The existing `configure_aap_ad_trust.yml` playbook supports `ad_trust_state:

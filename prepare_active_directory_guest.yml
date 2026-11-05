@@ -83,6 +83,10 @@
         post_reboot_delay: 30
       when: ad_reboot_update_recovery | default(false) | bool
 
+    - name: Release the completed selected AD baseline before public update downloads
+      ansible.builtin.include_tasks: tasks/windows_verified_guest_release.yml
+      when: windows_runtime_settings_vault is defined and not ansible_check_mode
+
     - name: Make Windows Update available for the explicit update run
       ansible.windows.win_service:
         name: wuauserv

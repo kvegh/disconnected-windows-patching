@@ -1,0 +1,65 @@
+---
+- name: Require genuine Windows provenance and the reviewed existing shared implementation
+  ansible.builtin.assert:
+    that:
+      - windows_runtime_verified_resource.kind == 'windows'
+      - windows_runtime_verified_resource.verified is sameas true
+      - windows_runtime_verified_resource.winrm_certificate_validated is sameas true
+      - windows_runtime_verified_resource.vm_name == inventory_hostname
+      - windows_runtime_verified_resource.instance_name == windows_runtime_expected_instance
+      - windows_runtime_verified_resource.hypervisor_machine_id == windows_runtime_recovery_pin.machine_id
+      - windows_runtime_release_trust.path is match('^/tmp/windows-release-known-hosts-[A-Za-z0-9_]+$')
+      - windows_recovery_release_repository == 'https://github.com/kvegh/aap_autodeploy_configascode.git'
+      - windows_recovery_release_revision == 'ae9cfdbdbf29fe0471b71a0163cd557f607d7d8c'
+    quiet: true
+    fail_msg: Complete trusted Windows and exact native ownership verification before invoking the shared lifecycle role.
+  no_log: true
+
+- name: Allocate this job's private public-code checkout
+  ansible.builtin.tempfile:
+    state: directory
+    path: /tmp
+    prefix: windows-recovery-release-code-
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_connection: local
+  register: windows_recovery_release_checkout
+  check_mode: false
+
+- name: Invoke the same lifecycle publisher within this deployment job
+  block:
+    - name: Fetch only the fixed public implementation at its reviewed revision
+      ansible.builtin.git:
+        repo: "{{ windows_recovery_release_repository }}"
+        dest: "{{ windows_recovery_release_checkout.path }}/source"
+        version: "{{ windows_recovery_release_revision }}"
+        update: false
+        recursive: false
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+      check_mode: false
+
+    - name: Reconcile this Windows resource through the existing shared role # noqa: role-name[path]
+      ansible.builtin.include_role:
+        name: "{{ windows_recovery_release_checkout.path }}/source/roles/recovery_guest_release"
+      vars:
+        recovery_release_guest: "{{ windows_runtime_verified_resource }}"
+        recovery_release_hypervisor: "{{ windows_runtime_recovery_pin }}"
+        recovery_release_trust_file: "{{ windows_runtime_release_trust.path }}"
+        recovery_release_operation: release_guest
+      no_log: true
+
+  always:
+    - name: Remove only this job's private implementation checkout
+      ansible.builtin.file:
+        path: "{{ windows_recovery_release_checkout.path }}"
+        state: absent
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+      check_mode: false
+      when: windows_recovery_release_checkout.path is match('^/tmp/windows-recovery-release-code-[A-Za-z0-9_]+$')

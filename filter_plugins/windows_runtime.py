@@ -21,6 +21,7 @@ PROFILE_KEYS = {
     'windows_demo_include_ad', 'windows_runtime_hypervisor',
     'windows_runtime_guests', 'windows_runtime_winrm_ready',
     'windows_runtime_winrm_ca',
+    'windows_runtime_recovery_pin',
 }
 NAME = re.compile(r'^[A-Za-z][A-Za-z0-9-]{0,14}$')
 MAC = re.compile(r'^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$')
@@ -60,6 +61,22 @@ def selected_settings(document, instance):
             'Invalid pinned SSH port.')
     require(isinstance(pin['known_hosts'], str) and pin['known_hosts'].strip()
             and 'ssh-' in pin['known_hosts'], 'Pinned SSH host keys are required.')
+    if 'windows_runtime_recovery_pin' in values:
+        recovery = values['windows_runtime_recovery_pin']
+        require(isinstance(recovery, dict) and set(recovery) <= {
+            'address', 'public_ip', 'user', 'port', 'machine_id', 'host_keys',
+            'isolation_bridges', 'isolation_dns_bridges', 'machine_credential_name'}
+            and {'address', 'public_ip', 'user', 'port', 'machine_id', 'host_keys',
+                 'isolation_bridges', 'isolation_dns_bridges'} <= set(recovery),
+            'Use the existing complete public recovery pin without passwords or private keys.')
+        require(all(recovery[key] == pin[key] for key in ['address', 'port', 'machine_id'])
+                and isinstance(recovery['host_keys'], list) and recovery['host_keys']
+                and isinstance(recovery['user'], str) and recovery['user'] != 'root'
+                and re.fullmatch(r'[a-z_][a-z0-9_-]*[$]?', recovery['user'])
+                and isinstance(recovery['isolation_bridges'], list) and recovery['isolation_bridges']
+                and isinstance(recovery['isolation_dns_bridges'], list)
+                and set(recovery['isolation_dns_bridges']) <= set(recovery['isolation_bridges']),
+                'The release connection must retain the selected independent hypervisor identity.')
     guests = values['windows_runtime_guests']
     names = values['windows_demo_vm_names']
     require(isinstance(guests, dict) and isinstance(names, list)
