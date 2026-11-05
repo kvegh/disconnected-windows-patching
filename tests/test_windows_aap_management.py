@@ -589,9 +589,10 @@ class NativeAnsibleGuardTests(unittest.TestCase):
 
     def test_optional_settings_absent_preserve_the_existing_infrastructure_path(self):
         tasks = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]['tasks']
-        self.assertEqual(tasks[0]['ansible.builtin.include_tasks'], 'tasks/windows_aap_management_network.yml')
-        self.assertFalse(self.condition([tasks[0]['when']], {}))
-        self.assertTrue(self.condition([tasks[0]['when']], {'windows_runtime_aap_management': {}}))
+        task = next(row for row in tasks if row.get('ansible.builtin.include_tasks')
+                    == 'tasks/windows_aap_management_network.yml')
+        self.assertFalse(self.condition([task['when']], {}))
+        self.assertTrue(self.condition([task['when']], {'windows_runtime_aap_management': {}}))
 
     def test_network_transaction_rejects_unreviewed_shared_code_before_checkout(self):
         outer = yaml.safe_load((ROOT / 'tasks/windows_aap_management_network.yml').read_text())[0]
@@ -636,6 +637,39 @@ class NativeAnsibleGuardTests(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which('ansible-playbook'), 'Native Ansible is required.')
 class NativeAnsibleCredentialBindingTests(unittest.TestCase):
+    def test_invalid_legacy_clone_name_fails_before_os_or_network_preparation(self):
+        play = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]
+        with tempfile.TemporaryDirectory(prefix='windows-invalid-clone-') as temporary:
+            directory = Path(temporary)
+            marker = directory / 'management-preparation-was-entered'
+            # Keep the production task order/guards; instrument only the management entrypoint.
+            management = next(row for row in play['tasks'] if row.get('ansible.builtin.include_tasks')
+                              == 'tasks/windows_aap_management_network.yml')
+            del management['ansible.builtin.include_tasks']
+            management['ansible.builtin.file'] = {'path': str(marker), 'state': 'touch', 'mode': '0600'}
+            play['become'] = False
+            play['pre_tasks'] = []  # Loader identity/authentication has its separate native tests.
+            play['vars_files'] = [str(ROOT / 'vars/main.yml')]
+            play['vars'].update({'windows_runtime_settings_vault': 'synthetic-defined-ciphertext',
+                'windows_runtime_aap_management': {}, 'vm_name': 'example-old', 'vm_role': 'managed',
+                'windows_version': '2022', 'vm_network': 'example-isolated', 'vm_mac': '52:54:00:00:00:30',
+                'windows_runtime_guests': {'example-owned': {'role': 'managed', 'version': '2022',
+                    'interfaces': [{'network': 'example-isolated', 'mac': '52:54:00:00:00:30'}]}}})
+            inventory = {'all': {'children': {'hypervisor': {'hosts': {'example-hypervisor': {
+                         'ansible_connection': 'local', 'ansible_python_interpreter': sys.executable}}}}}}
+            (directory / 'play.yml').write_text(yaml.safe_dump([play], sort_keys=False))
+            (directory / 'inventory.yml').write_text(yaml.safe_dump(inventory))
+            environment = dict(os.environ, ANSIBLE_HOME=str(directory / 'home'),
+                               ANSIBLE_LOCAL_TEMP=str(directory / 'local'), ANSIBLE_REMOTE_TEMP=str(directory / 'remote'),
+                               ANSIBLE_FILTER_PLUGINS=str(ROOT / 'filter_plugins'), ANSIBLE_NOCOLOR='1')
+            result = subprocess.run(['ansible-playbook', '-i', str(directory / 'inventory.yml'),
+                                     str(directory / 'play.yml')], cwd=ROOT, env=environment,
+                                    text=True, capture_output=True, timeout=60)
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            failed = result.stdout.split('fatal:', 1)[0].rsplit('TASK [', 1)[-1]
+            self.assertIn("Require the selected instance's exact owned clone and interfaces", failed)
+            self.assertFalse(marker.exists(), 'An invalid legacy VM request entered OS/network preparation.')
+
     def test_existing_os_injection_overrides_machine_login_only_for_the_selected_guest(self):
         outer = yaml.safe_load((ROOT / 'tasks/windows_aap_management_network.yml').read_text())[0]
         transaction = next(row for row in outer['block'] if row.get('rescue'))

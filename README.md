@@ -27,7 +27,9 @@ The existing Windows infrastructure job also prepares the selected AAP VM's
 Windows-owned isolated NIC and persistent static connection before creating
 clones. It preserves the primary network, uses existing SSH credentials, records
 exact ownership through the same shared publisher, and removes only its owned
-connection after all five test clones and disks are absent. No extra job or
+connection after all five test clones and disks are absent. Exact selected clone
+inputs and cheap read-only destination/image checks precede this preparation,
+so an obsolete or invalid VM request cannot change AAP networking. No extra job or
 wrapper is introduced. The same guide describes this transaction and the guarded
 LDAP/CA cleanup component; complete Windows decommission and live functional
 acceptance remain separate required checks.
@@ -36,7 +38,7 @@ acceptance remain separate required checks.
 
 The first tracked major version is **1.0.0**, representing the review and cleanup
 baseline under the [agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
-The current cleanup version is **1.0.14**. Work proceeds directly on `main`, as
+The current cleanup version is **1.0.15**. Work proceeds directly on `main`, as
 requested by the owner; `VERSION` identifies this project independently of the
 other umbrella projects. Implementation changes and their reasons are recorded
 in [the decision history](design_decisions_history.md).

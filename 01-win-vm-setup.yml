@@ -18,12 +18,6 @@
       tags: always
 
   tasks:
-    - name: Prepare the selected AAP's isolated Windows management connection before cloning
-      ansible.builtin.include_tasks: tasks/windows_aap_management_network.yml
-      vars:
-        windows_aap_management_state: present
-      when: windows_runtime_aap_management is defined
-
     - name: Require the selected instance's exact owned clone and interfaces
       ansible.builtin.assert:
         that:
@@ -100,12 +94,6 @@
           - (base_image_info.stdout | from_json).format == 'qcow2'
           - "'backing-filename' not in (base_image_info.stdout | from_json)"
 
-    - name: Ensure VM disk directory exists
-      ansible.builtin.file:
-        path: "{{ vm_dir }}"
-        state: directory
-        mode: '0755'
-
     - name: Check destination disk
       ansible.builtin.stat:
         path: "{{ vm_disk_path }}"
@@ -115,6 +103,18 @@
       ansible.builtin.assert:
         that: not destination_disk.stat.exists
         fail_msg: "Disk {{ vm_disk_path }} already exists. Inspect it before retrying with this name."
+
+    - name: Prepare the selected AAP's isolated Windows management connection before cloning
+      ansible.builtin.include_tasks: tasks/windows_aap_management_network.yml
+      vars:
+        windows_aap_management_state: present
+      when: windows_runtime_aap_management is defined
+
+    - name: Ensure VM disk directory exists
+      ansible.builtin.file:
+        path: "{{ vm_dir }}"
+        state: directory
+        mode: '0755'
 
     - name: Create independent sparse qcow2 clone without resizing
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).

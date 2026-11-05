@@ -52,8 +52,10 @@ network. Fresh versioned AAP deployments initially retain their primary network
 only. For a prepared Windows profile, `01-win-vm-setup.yml` now establishes the
 explicitly selected AAP VM's second NIC and persistent RHEL connection before
 creating Windows clones. The existing AD creation playbook imports that same
-entrypoint. Omitting the optional encrypted connection profile preserves legacy
-behavior. The API-only CaC importer installs definitions and never changes NICs.
+entrypoint. Exact selected clone/survey inputs, existing VM/disk refusal and
+read-only image/network/destination checks run before management preparation.
+Invalid legacy VM names therefore fail before an OS/network write. Omitting the
+optional encrypted connection profile preserves legacy behavior. The API-only CaC importer installs definitions and never changes NICs.
 
 The private profile holds the immutable registered AAP route and eight primary
 ownership fields, plus one Windows-owned NIC/connection declaration. Its static
@@ -121,6 +123,25 @@ record; this component does not stop or delete the AAP VM.
 These are offline implementation guarantees pending the serialized live test.
 Successful CaC import alone does not prove guest SSH, hotplug, WinRM, patching or
 complete Windows environment decommission.
+
+## Migrating the selected workflow graph
+
+The selected private capture declares twenty-nine workflow nodes. An existing
+Controller can still contain four inherited creation nodes with legacy inputs
+alongside the four selected replacements: the CoP workflow update matches nodes
+by identifier and does not implicitly remove the obsolete identifiers.
+A successful CaC import therefore also needs an exact graph comparison before
+this workflow can be launched; checking the template count alone is insufficient.
+
+For the reviewed migration, retain the existing workflow and every Job Template,
+compare the actual graph with the private selected graph, and preview only the
+four proven obsolete creation nodes and their existing edges. Require no active
+owned workflow/jobs or enabled schedules. The coordinator can then remove just
+those Controller template nodes and verify the selected twenty-nine-node graph.
+There is no blanket node destruction, replacement workflow or new removal
+mechanism. The current private desired graph already omits the four inherited
+identifiers, so a normal reimport must not recreate them. Actual migration
+identities and review evidence stay in protected records.
 
 ## Release after verified per-VM configuration
 
