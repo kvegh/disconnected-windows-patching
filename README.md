@@ -56,6 +56,8 @@ Windows/native provenance failures expose only their controlled validation reaso
 the actual computer, disk and network evidence stays protected.
 The native PowerShell query preserves nested NIC address arrays with explicit
 serialization depth; strict address comparisons continue to use their real list values.
+The existing Windows-basics play completes each guest’s baseline and isolation
+publication before moving to the next guest, preserving each policy preflight.
 
 ## Review release
 

@@ -23,6 +23,7 @@
 - name: Configure permanent Windows networking and guest identity
   hosts: wsus_external:wsus_internal:windows_managed
   gather_facts: false
+  serial: 1
   vars:
     windows_runtime_bind_bootstrap_login: true
     windows_network_task_name: AAP-ConfigurePermanentNetwork
