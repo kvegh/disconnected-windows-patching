@@ -54,6 +54,8 @@ existing disks remain a stop. The selected AD public-update baseline also remove
 inherited WSUS URL values and records only numeric before/after evidence.
 Windows/native provenance failures expose only their controlled validation reason;
 the actual computer, disk and network evidence stays protected.
+The native PowerShell query preserves nested NIC address arrays with explicit
+serialization depth; strict address comparisons continue to use their real list values.
 
 ## Review release
 

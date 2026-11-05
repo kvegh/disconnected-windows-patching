@@ -25,6 +25,7 @@
   ansible.windows.win_powershell:
     script: "{{ lookup('ansible.builtin.file', 'assets/windows-guest-identity.ps1') }}"
     error_action: stop
+    depth: 4
   register: windows_runtime_computer_identity
   no_log: true
 
