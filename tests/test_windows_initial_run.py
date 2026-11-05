@@ -59,6 +59,11 @@ class InitialRunTests(unittest.TestCase):
             self.assertNotIn('synthetic-private-value', output)
             if expected:
                 self.assertIn('unregistered selected-guest SSH key', output)
+        play[0]['vars']['windows_aap_management']['route']['guest_host_keys'].append('ssh-rsa second-example')
+        result = run_play(play, environment={'AD_AAP_TARGET_SSH_KNOWN_HOSTS':
+                                             '192.0.2.2 ssh-ed25519 example\n'})
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn('1 of 2 registered keys; 1 input lines', result.stdout + result.stderr)
 
 
 if __name__ == '__main__':

@@ -123,7 +123,9 @@ def ssh_trust(material, route):
             require(key in keys, 'The credential contains an unregistered selected-guest SSH key.')
             if {route['vm_ip'], '[' + route['vm_ip'] + ']:22'} & set(parts[0].split(',')):
                 observed.add(key)
-    require(observed == keys, 'The OS SSH credential does not pin every selected AAP guest key at its private address.')
+    require(observed == keys,
+            'The OS SSH credential does not pin every selected AAP guest key at its private address '
+            f'({len(observed)} of {len(keys)} registered keys; {len(material.splitlines())} input lines).')
     return True
 
 

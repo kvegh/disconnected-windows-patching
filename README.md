@@ -35,7 +35,7 @@ LDAP/CA cleanup component; complete Windows decommission and live functional
 acceptance remain separate required checks.
 The common VM network default stays at play-variable precedence, so the AD
 entrypoint’s explicit network is preserved. The OS SSH trust assertion reports
-only its fixed validation reason; key material remains protected and every
+only its validation reason and numeric key/line coverage; key material remains protected and every
 registered-key check remains required.
 
 ## Review release
