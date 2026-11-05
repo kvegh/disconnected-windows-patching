@@ -116,8 +116,10 @@ class ProfileAndPreservationTests(unittest.TestCase):
 
     def test_teardown_accepts_only_exact_owned_nic_removal(self):
         self.assertTrue(management.preserved_definition(domain(), domain(True), profile()))
+        self.assertTrue(management.preserved_definition(domain(True), domain(), profile()))
+        self.assertTrue(management.preserved_definition(domain(True), domain(True), profile()))
         for changed in [domain().replace(UUID, NM_UUID), domain().replace('example-internal', 'foreign'),
-                        domain().replace('</devices>', '<controller type="usb"/></devices>'), domain(True)]:
+                        domain().replace('</devices>', '<controller type="usb"/></devices>')]:
             with self.subTest(changed=changed), self.assertRaises(AnsibleFilterError):
                 management.preserved_definition(changed, domain(True), profile())
 

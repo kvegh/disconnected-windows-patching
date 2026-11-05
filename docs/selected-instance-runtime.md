@@ -174,8 +174,8 @@ checkout and temporary hypervisor trust file are removed on success or failure.
 There is no second publisher, extra orchestration job or Windows bootstrap
 HTTPS exception.
 
-The current pin is AutoDeploy 0.45.0 implementation
-`eb806b7b79d51f08d7cf54fb2edb3d449ed375aa`. Its existing Windows branch accepts
+The current pin is AutoDeploy 0.45.3 implementation
+`41c77d231c54baf9ea3fd70d7b2b35f00183de33`. Its existing Windows branch accepts
 the genuine Boolean certificate result under the owner's lab policy while
 retaining every successful identity, ownership and source/policy check. It also
 retains the canonical Controller SSH-port representation fix; different or
@@ -183,6 +183,12 @@ malformed ports still fail. The same reviewed implementation supplies the plan
 entrypoint and exact supplemental-interface ownership transaction, preserves
 existing primary identities, and resolves action support code from the current
 checked-out role when one job invokes it repeatedly.
+
+The existing reset jobs use the same retirement role. Its `tasks_from: plan`
+entry point reads actual canonical/source ownership before the destroy job selects
+typed Windows retirement or the strict unconfigured-clone path. Missing records
+remain null in both templating modes. See the [run/reset sequence](../README.md#teardown-verification)
+for the original core baseline, LDAP-before-regional cleanup and final NIC removal.
 
 These two jobs use the existing hypervisor Machine credential for pinned SSH.
 Server-basics binds only its guest connection to the already-encrypted bootstrap

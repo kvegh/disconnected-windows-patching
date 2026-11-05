@@ -45,6 +45,19 @@
     - name: Check the selected target credential before any platform changes
       ansible.builtin.include_tasks: tasks/require_active_directory_target.yml
 
+    - name: Require a supported regional resource operation
+      ansible.builtin.assert:
+        that: ad_aap_state | default('present') in ['present', 'absent']
+        quiet: true
+
+    - name: Remove only the captured dedicated demo after its LDAP references are removed
+      ansible.builtin.include_tasks: tasks/windows_remove_ad_regions.yml
+      when: ad_aap_state | default('present') == 'absent'
+
+    - name: Finish the explicit absent operation without running deployment tasks
+      ansible.builtin.meta: end_play
+      when: ad_aap_state | default('present') == 'absent'
+
     - name: Validate an optional focused resource-stage resume
       ansible.builtin.assert:
         that:

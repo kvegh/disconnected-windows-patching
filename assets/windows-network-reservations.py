@@ -91,6 +91,12 @@ def main():
                       'dns-host' if kind == 'dns' else 'ip-dhcp-host',
                       plan[kind + '_xml'], '--live', '--config')
                 changed = True
+    if mode != 'preview':
+        for nic in targets:
+            for options in ([], ['--inactive']):
+                final = inspect(nic, virsh('net-dumpxml', nic['network'], *options), [])
+                if any(final[kind + '_exists'] != (mode == 'reserve') for kind in ('dns', 'dhcp')):
+                    raise ValueError('The exact network reservation operation did not complete.')
     print(json.dumps({'mode': mode, 'changed': changed, 'resources': plans}))
 
 

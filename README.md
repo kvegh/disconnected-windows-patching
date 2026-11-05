@@ -38,7 +38,7 @@ acceptance remain separate required checks.
 
 The first tracked major version is **1.0.0**, representing the review and cleanup
 baseline under the [agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
-The current cleanup version is **1.0.16**. Work proceeds directly on `main`, as
+The current cleanup version is **1.0.17**. Work proceeds directly on `main`, as
 requested by the owner; `VERSION` identifies this project independently of the
 other umbrella projects. Implementation changes and their reasons are recorded
 in [the decision history](design_decisions_history.md).
@@ -1096,22 +1096,46 @@ unchanged. The basics JT accepts a host limit for targeted troubleshooting.
 
 ### Teardown verification
 
-`capture_windows_teardown_baseline.yml` and `verify_windows_teardown.yml` run
-read-only through normal AAP job templates using the hypervisor Machine credential.
-Capture the baseline before invoking the guarded destroy JT for each approved
-Windows domain. Pass the capture job's `teardown_baseline` artifact (pre-teardown
-domain XML/state and base-image file metadata) and the exact
-`windows_demo_vm_names` list as protected inputs to verification after destruction.
-It verifies only the captured approved domains disappeared, their clone disks are absent,
-and other domain definitions/states and base-image size/inode/mtime are unchanged.
-The default scope is four core Windows clones. To include the optional AD
-Windows clone, set `windows_demo_include_ad: true` and supply exactly five owned
-Windows target names. Capture and verification both require the Windows clone
-ownership marker and bind the verification list to the captured target list.
-Capture a fresh baseline after this review upgrade; older artifacts lack that
-target binding. Linux AAP platforms and unrelated domains remain preserved.
-This is a metadata comparison, not a full disk-content checksum. Keep
-environment-specific baseline values outside plaintext Git.
+Use the existing jobs; no cleanup workflow or additional job is required.
+
+1. Before provisioning, run **Capture Windows Teardown Baseline** with the selected
+   private runtime profile. Its selected clones and clone disks must be absent.
+   Retain the protected `teardown_baseline` artifact containing the original core
+   VM XML/states, golden-image metadata and pre-existing dedicated AD object IDs.
+2. Before reset, run that same capture job with the original `teardown_baseline`.
+   It checks the original core, permits only the declared Windows AAP NIC, and
+   appends actual five-clone UUID/disk/NIC and AD cleanup identities. It never
+   replaces the original core/image snapshot. Retain its two protected artifacts:
+   `teardown_baseline` and `windows_decommission_preview`.
+3. Run **Configure AD Gateway Trust** with those artifacts,
+   `ad_trust_state: absent` and Boolean `windows_decommission_apply: true`.
+   This removes the owned LDAP maps/authenticator and AD CA first.
+4. Run **Configure AD AAP Regions** with those artifacts,
+   `ad_aap_state: absent` and Boolean `windows_decommission_apply: true`.
+   It removes only the captured dedicated mock resources, test users, teams and
+   reader roles. Pre-existing objects, foreign memberships/grants, shared PAH
+   credentials and reusable deployment Job Templates are preserved or cause refusal.
+5. Run **Destroy VM** once per selected guest, including AD, passing
+   `windows_decommission_preview` and choosing the exact `vm_name` in its survey.
+   Registered guests use the existing typed Windows retirement role to remove
+   their exact reservations, permissions and shared inventory ownership. An
+   unconfigured clone requires absent managed records/permissions and exact
+   native ownership. Fully absent retries are allowed; an orphan disk without its
+   owned domain stops for investigation. No Windows computer identity is invented.
+6. Run **Verify Windows Teardown** with both artifacts. It checks core/image
+   preservation, all five domain/disk absences, reservations, managed ownership,
+   permissions and dedicated AD cleanup, then removes the owned AAP NIC and RHEL
+   connection last. The Windows project inventories/groups and reusable CaC/JTs
+   remain available for the next demo run.
+
+The destroy and verification jobs use existing source API, Git writer and CaC
+Vault credentials for shared retirement. Capture adds only the existing AD target
+credential for its read-only API snapshot. Existing Machine and distinct Vault
+credentials retain their identities. All API calls validate HTTPS and native
+operations use the selected hypervisor's pinned SSH identity. Keep artifacts
+outside plaintext Git. Golden-image verification compares metadata, not complete
+disk-content checksums. Offline validation is complete; normal live reset still
+requires its serialized acceptance run.
 
 `inspect_windows_network.yml` provides a read-only diagnostic JT for the saved
 network result, scheduled-task status, current adapters, addresses and routes.

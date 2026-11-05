@@ -1,0 +1,162 @@
+---
+- name: Require the exact selected runtime profile and original native preview
+  ansible.builtin.assert:
+    that:
+      - windows_runtime_settings_vault is defined
+      - inventory_hostname == windows_runtime_hypervisor.inventory_host
+      - vm_name in windows_runtime_guests
+      - windows_decommission_preview.instance == windows_runtime_expected_instance
+      - windows_decommission_preview.read_only is sameas true
+      - vm_name in windows_decommission_preview.domains
+      - not ansible_check_mode
+    quiet: true
+  no_log: true
+
+- name: Read the existing fixed shared lifecycle dependency
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/roles/windows_recovery_release/defaults/main.yml"
+    name: windows_retire_dependency
+
+- name: Require the same reviewed public implementation for this reset
+  ansible.builtin.assert:
+    that:
+      - windows_retire_dependency.windows_recovery_release_repository == 'https://github.com/kvegh/aap_autodeploy_configascode.git'
+      - windows_retire_dependency.windows_recovery_release_revision == '41c77d231c54baf9ea3fd70d7b2b35f00183de33'
+    quiet: true
+
+- name: Allocate one private implementation checkout for this retirement
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: windows-retire-code-
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_connection: local
+  register: windows_retire_checkout
+
+- name: Validate, remove and publish only the exact selected Windows guest
+  no_log: true
+  block:
+    - name: Fetch the same reviewed public lifecycle implementation
+      ansible.builtin.git:
+        repo: "{{ windows_retire_dependency.windows_recovery_release_repository }}"
+        version: "{{ windows_retire_dependency.windows_recovery_release_revision }}"
+        dest: "{{ windows_retire_checkout.path }}/source"
+        update: false
+        recursive: false
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+
+    - name: Read canonical and source Windows ownership before selecting a cleanup path # noqa: role-name[path]
+      ansible.builtin.include_role:
+        name: "{{ windows_retire_checkout.path }}/source/roles/recovery_guest_retire"
+        tasks_from: plan
+      vars:
+        recovery_retire_phase: plan
+        recovery_retire_guest_name: "{{ vm_name }}"
+        recovery_retire_hypervisor: "{{ windows_runtime_recovery_pin }}"
+        recovery_retire_guest_kind: windows
+
+    - name: Refuse incomplete Windows records instead of treating them as unconfigured clones
+      ansible.builtin.assert:
+        that:
+          - >-
+            (recovery_guest_retire_plan.guest is none and recovery_guest_retire_plan.records_absent) or
+            (recovery_guest_retire_plan.guest.kind == 'windows' and
+             recovery_guest_retire_plan.guest.verified is sameas true and
+             recovery_guest_retire_plan.guest.uuid == windows_decommission_preview.domains[vm_name].uuid and
+             recovery_guest_retire_plan.guest.disk == windows_decommission_preview.domains[vm_name].disk)
+        quiet: true
+
+    - name: Inspect exact persistent and active clone ownership and unconfigured permission absence
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-environment-ownership.py') }}"]
+        stdin: >-
+          {{ {'mode': 'selected', 'instance': windows_runtime_expected_instance,
+              'name': vm_name, 'guests': windows_runtime_guests,
+              'preview': windows_decommission_preview,
+              'unconfigured': recovery_guest_retire_plan.guest is none,
+              'policy': recovery_guest_retire_plan.transition.previous_policy} | to_json }}
+      register: windows_retire_native
+      changed_when: false
+
+    - name: Inspect exact live and saved reservations before any guest removal
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-network-reservations.py') }}", preview]
+        stdin: "{{ {'name': vm_name, 'interfaces': windows_runtime_guests[vm_name].interfaces} | to_json }}"
+      register: windows_retire_reservations
+      changed_when: false
+
+    - name: Require complete absence when this invocation only verifies teardown
+      ansible.builtin.assert:
+        that:
+          - not (windows_retire_native.stdout | from_json).present
+          - recovery_guest_retire_plan.guest is none
+          - recovery_guest_retire_plan.records_absent
+          - not ((windows_retire_reservations.stdout | from_json).resources | selectattr('dhcp_exists') | list | length)
+          - not ((windows_retire_reservations.stdout | from_json).resources | selectattr('dns_exists') | list | length)
+        quiet: true
+      when: windows_retire_verify_only | bool
+
+    - name: Complete native typed Windows retirement planning # noqa: role-name[path]
+      ansible.builtin.include_role:
+        name: "{{ windows_retire_checkout.path }}/source/roles/recovery_guest_retire"
+      vars:
+        recovery_retire_phase: plan
+        recovery_retire_guest_name: "{{ vm_name }}"
+        recovery_retire_hypervisor: "{{ windows_runtime_recovery_pin }}"
+        recovery_retire_guest_kind: windows
+      when:
+        - not (windows_retire_verify_only | bool)
+        - recovery_guest_retire_plan.guest is not none
+
+    - name: Remove only the revalidated standalone clone under the existing native lock
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-environment-ownership.py') }}"]
+        stdin: >-
+          {{ {'mode': 'remove', 'instance': windows_runtime_expected_instance,
+              'name': vm_name, 'guests': windows_runtime_guests,
+              'preview': windows_decommission_preview,
+              'unconfigured': recovery_guest_retire_plan.guest is none,
+              'policy': recovery_guest_retire_plan.transition.previous_policy} | to_json }}
+      register: windows_retire_removal
+      changed_when: >-
+        windows_retire_removal.rc | default(1) | int == 0 and
+        windows_retire_removal.stdout | default('') | length > 0 and
+        (windows_retire_removal.stdout | from_json).changed
+      when: not (windows_retire_verify_only | bool)
+
+    - name: Finish typed reservation, policy and shared inventory retirement # noqa: role-name[path]
+      ansible.builtin.include_role:
+        name: "{{ windows_retire_checkout.path }}/source/roles/recovery_guest_retire"
+      vars:
+        recovery_retire_phase: publish
+        recovery_retire_guest_name: "{{ vm_name }}"
+        recovery_retire_hypervisor: "{{ windows_runtime_recovery_pin }}"
+        recovery_retire_guest_kind: windows
+      when:
+        - not (windows_retire_verify_only | bool)
+        - recovery_guest_retire_plan.guest is not none
+
+    - name: Remove exact reservations for the proven unconfigured clone only
+      ansible.builtin.command:
+        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-network-reservations.py') }}", remove]
+        stdin: "{{ {'name': vm_name, 'interfaces': windows_runtime_guests[vm_name].interfaces} | to_json }}"
+      register: windows_retire_reservation_removal
+      changed_when: (windows_retire_reservation_removal.stdout | from_json).changed
+      when:
+        - not (windows_retire_verify_only | bool)
+        - recovery_guest_retire_plan.guest is none
+
+  always:
+    - name: Remove only this retirement's private public-code checkout
+      ansible.builtin.file:
+        path: "{{ windows_retire_checkout.path }}"
+        state: absent
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_connection: local
+      when: windows_retire_checkout.path is match('^/tmp/windows-retire-code-[A-Za-z0-9_]+$')

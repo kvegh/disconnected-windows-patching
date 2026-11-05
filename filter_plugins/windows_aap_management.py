@@ -76,22 +76,27 @@ def profile(value, instance, pin, guests):
 
 
 def preserved_definition(actual, baseline, management):
-    """Allow exactly the recorded NIC removal; preserve every other XML element."""
+    """Compare original core XML allowing only the exact owned NIC addition/removal."""
     extra = management['interface']
     before, after = ET.fromstring(baseline), ET.fromstring(actual)
     require(before.findtext('name') == management['route']['vm_name']
             and before.findtext('uuid', '').lower() == management['primary']['uuid'],
             'The captured AAP definition belongs to a different VM.')
-    nics = before.findall('./devices/interface')
-    owned = [node for node in nics if node.find('mac') is not None
-             and node.find('mac').get('address', '').lower() == extra['mac']]
-    require(len(owned) == 1 and owned[0].get('type') == 'network'
-            and owned[0].find('source') is not None
-            and owned[0].find('source').get('network') == extra['network']
-            and owned[0].find('alias') is not None
-            and owned[0].find('alias').get('name') == 'ua-windows-' + extra['connection_uuid'],
-            'The baseline lacks the exact Windows-owned supplemental NIC.')
-    before.find('devices').remove(owned[0])
+    require(after.findtext('name') == before.findtext('name')
+            and after.findtext('uuid') == before.findtext('uuid'), 'The preserved AAP identity changed.')
+    for definition in (before, after):
+        owned = [node for node in definition.findall('./devices/interface') if node.find('mac') is not None
+                 and node.find('mac').get('address', '').lower() == extra['mac']]
+        require(len(owned) <= 1, 'The declared supplemental NIC is duplicated.')
+        if owned:
+            node = owned[0]
+            require(node.get('type') == 'network' and node.find('source') is not None
+                    and node.find('source').get('network') == extra['network']
+                    and node.find('alias') is not None
+                    and node.find('alias').get('name') == 'ua-windows-' + extra['connection_uuid']
+                    and node.find('model') is not None and node.find('model').get('type') == 'virtio',
+                    'An extra interface differs from the exact Windows-owned declaration.')
+            definition.find('devices').remove(node)
 
     def canonical(node):
         return (node.tag, sorted(node.attrib.items()), (node.text or '').strip(),

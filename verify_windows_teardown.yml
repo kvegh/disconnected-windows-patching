@@ -5,6 +5,7 @@
   gather_facts: false
   vars_files:
     - vars/main.yml
+    - vars/active_directory_target.yml
   vars:
     windows_demo_expected_count: "{{ 5 if windows_demo_include_ad | default(false) | bool else 4 }}"
   pre_tasks:
@@ -19,19 +20,15 @@
         that:
           - teardown_baseline is mapping
           - teardown_baseline.domains is mapping
+          - teardown_baseline.core_before_deployment is sameas true
+          - teardown_baseline.windows_owned is mapping
+          - teardown_baseline.windows_owned == windows_decommission_preview.domains
           - teardown_baseline.images is mapping
           - teardown_baseline.target_vm_names is defined
           - windows_demo_vm_names | length == windows_demo_expected_count | int
           - windows_demo_vm_names | unique | length == windows_demo_expected_count | int
           - windows_demo_vm_names | sort == teardown_baseline.target_vm_names | sort
-          - windows_demo_vm_names | difference(teardown_baseline.domains.keys() | list) | length == 0
-      no_log: true
-
-    - name: Require the captured target ownership before accepting any removed domain
-      ansible.builtin.assert:
-        that: teardown_baseline.domains[item].marker == 'aap-disconnected-windows-clone'
-        fail_msg: A captured target is not a marked Windows demo clone.
-      loop: "{{ windows_demo_vm_names }}"
+          - windows_demo_vm_names | sort == teardown_baseline.windows_owned.keys() | list | sort
       no_log: true
 
     - name: Read remaining VM names
@@ -123,6 +120,29 @@
         fail_msg: A Windows clone disk remains after teardown.
       loop: "{{ clone_files.results }}"
       no_log: true
+
+    - name: Verify every retired Windows guest has no ownership, reservations or permissions remaining
+      ansible.builtin.include_tasks: tasks/windows_retire_guest.yml
+      vars:
+        vm_name: "{{ windows_verify_vm }}"
+        windows_retire_verify_only: true
+      loop: "{{ windows_demo_vm_names }}"
+      loop_control:
+        loop_var: windows_verify_vm
+
+    - name: Check the selected API target before final AD absence verification
+      ansible.builtin.include_tasks: tasks/require_active_directory_target.yml
+
+    - name: Verify all captured dedicated AD resources are absent before removing the AAP NIC
+      ansible.builtin.include_tasks:
+        file: tasks/windows_remove_ad_regions.yml
+        apply:
+          delegate_to: localhost
+          become: false
+      vars:
+        ansible_connection: local
+        windows_decommission_apply: false
+        windows_ad_cleanup_verify_only: true
 
     - name: Require the captured exact Windows-owned AAP connection before its removal
       ansible.builtin.assert:
