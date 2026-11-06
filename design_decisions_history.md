@@ -1,5 +1,23 @@
 # Design decisions history
 
+## Stop before accepting WSUS update agreements — 2026-11-06
+
+Implementation: `5dab08f` (version 1.1.5).
+
+The inherited external sync automatically accepted a selected update's agreement
+without a WSUS-specific consent gate. Reuse the historical-month path's clear
+pending-agreement stop before any download-group approval. Remove the acceptance
+call entirely. Agreement-free and previously accepted selections keep the normal
+download path; this introduces no new flag, helper or blanket consent.
+
+The existing native month-selection regression now extracts the actual production
+guard and exercises ordinary, accepted and pending fixtures, checks ordering
+before approvals and refuses any acceptance call. It never imports a live WSUS
+server or invokes licensing. Scoped strict production lint passed for five files;
+native execution through the existing regression template remains pending.
+The earlier completed live synchronization's historical agreement acceptance is
+unknown; its success is preserved and it is not repeated for this check.
+
 ## Reapply only the selected Nexus access rule — 2026-11-06
 
 Implementation: `2c5baa6` (version 1.1.4).
