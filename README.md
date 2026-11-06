@@ -1010,6 +1010,14 @@ and bootstraps the Chocolatey clients from an offline MSI. See
 [application deployment](docs/application-deployment.md) for installer inputs,
 credentials, resource requirements, package promotion, and pending live validation.
 
+After correcting the encrypted per-server `allowed_sources`, launch the existing
+Setup Chocolatey template with job tag `nexus_firewall` to reapply only its scoped
+Windows firewall rule. The existing runtime selection, input checks and Windows
+connection wait still run; installer copies, onboarding and feed creation do not.
+Include the AAP execution host's actual routed source address, which can differ
+from its secondary Windows-network address. This tag does not broaden the saved
+allowlist or change hypervisor policy.
+
 The clients have only an isolated NIC. AAP needs an execution node on that
 network or a restricted management route. Internal WSUS's second NIC does not
 provide a WinRM jump host automatically. The demo execution-node connectivity has been verified over WinRM; this playbook does not change network isolation or VM sizing.

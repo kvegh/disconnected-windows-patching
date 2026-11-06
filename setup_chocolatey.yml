@@ -92,6 +92,7 @@
       tags: always
 
     - name: Require credentials and scoped repository access
+      tags: [nexus_firewall]
       ansible.builtin.assert:
         that:
           - nexus_admin_username | default('') | length > 0
@@ -105,6 +106,7 @@
       no_log: true
 
     - name: Wait for Windows management
+      tags: [nexus_firewall]
       ansible.builtin.wait_for_connection:
         timeout: 600
 
@@ -179,6 +181,7 @@
         state: started
 
     - name: Allow scoped Nexus HTTP access
+      tags: [nexus_firewall]
       community.windows.win_firewall_rule:
         name: Demo Nexus repository access
         direction: in
