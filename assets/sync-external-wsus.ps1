@@ -107,6 +107,9 @@ while ($queue.Count -gt 0) {
 if ($updates.Count -gt $MaximumUpdates) {
     throw "Selection including prerequisites has $($updates.Count) updates, above the configured limit $MaximumUpdates."
 }
+if (@($updates.Values | Where-Object RequiresLicenseAgreementAcceptance).Count -gt 0) {
+    throw 'A selected update requires license acceptance. Review and accept its agreement separately; this job never accepts licenses.'
+}
 $content = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup').ContentDir.TrimEnd('\')
 $drive = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$([IO.Path]::GetPathRoot($content).TrimEnd('\'))'"
 $files = @{}
@@ -128,7 +131,6 @@ if (@($group[0].GetComputerTargets()).Count -ne 0) {
     throw 'The download-only group must contain no computers.'
 }
 foreach ($update in $updates.Values) {
-    if ($update.RequiresLicenseAgreementAcceptance) { $update.AcceptLicenseAgreement() }
     $approval = @($update.GetUpdateApprovals($group[0]) | Where-Object { [string]$_.Action -eq 'Install' })
     if ($approval.Count -eq 0) {
         $null = $update.Approve([Microsoft.UpdateServices.Administration.UpdateApprovalAction]::Install, $group[0])

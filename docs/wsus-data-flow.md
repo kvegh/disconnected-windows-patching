@@ -98,8 +98,11 @@ the download loop cancels pending selected downloads if the free-space reserve i
 reached. Broadening products/classifications or repeating many releases may require
 more storage; no disk is resized by this pipeline.
 
-Required license agreements are accepted and install approvals are made only for
-the empty `AAP-DownloadOnly` group on external WSUS. A nonempty group is rejected.
+Any selected update or prerequisite requiring a license agreement stops the job
+before approval or download. Review and accept that specific agreement separately
+with explicit authorization, then rerun; this job never accepts licenses.
+Selections without pending agreements proceed. Install approvals are made only
+for the empty `AAP-DownloadOnly` group on external WSUS. A nonempty group is rejected.
 No managed client is assigned to it. Completion requires every selected update's
 WSUS state to be `Ready`, covering update files and bundled children. A successful
 metadata sync alone does not qualify. Selection is recorded locally for export.

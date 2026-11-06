@@ -105,6 +105,12 @@ The focused AD continuation passed, followed by independent verification of all
 12 LDAP logins, 75 scoped grants and 360 permission checks. All 36 permitted
 inert jobs completed on localhost; no cross-region grants were present. The
 earlier intermittent Controller outage's initiating cause remains unproved.
+External WSUS synchronization now stops before approval/download if any selected
+update or prerequisite requires agreement acceptance. It never accepts licenses;
+existing accepted or agreement-free selections proceed. The earlier completed
+sync's historical agreement-acceptance behavior is unknown. Use the existing
+Verify PowerShell Regressions template to exercise this guard with synthetic
+updates; it invokes no real licensing operation.
 
 ## Review release
 

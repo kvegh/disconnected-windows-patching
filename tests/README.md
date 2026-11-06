@@ -76,7 +76,7 @@ type, allowing the real relationship comparisons to run without installing WSUS.
 
 | Test script | Behavior checked |
 | --- | --- |
-| `Test-WsusPatchMonthSelection.ps1` | Month validity, prerequisite and bundle closure, unsupported updates and canonical selection. |
+| `Test-WsusPatchMonthSelection.ps1` | Month validity, prerequisite/bundle closure and canonical selection; execute the actual external-sync agreement guard against pending, ordinary and already-accepted fixtures without accepting licenses. |
 | `Test-WsusContentValidation.ps1` | Missing/truncated/corrupt payload accounting, transfer selection and avoiding repeated hashes. |
 | `Test-WindowsUpdateClientPolicy.ps1` | Source-policy normalization and rejection of unsafe or unsupported client configuration. |
 | `Test-ManagedUpdateSearch.ps1` | Managed-server search under restricted COM access, exact observed-title matching, reboot markers and incomplete-search rejection. |

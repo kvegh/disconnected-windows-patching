@@ -90,4 +90,39 @@ Assert-Throws { Get-WsusPatchMonthPlan $server '2026-04' $products $classes } 's
 $newer.Bundled = @()
 $os2022.PublicationState = 'Expired'
 Assert-Throws { Get-WsusPatchMonthPlan $server '2026-04' $products $classes } 'not published'
+# Exercise the actual sync guard without importing WSUS or executing the pipeline.
+$syncPath = Join-Path $PSScriptRoot '..\assets\sync-external-wsus.ps1'
+$tokens = $null
+$parseErrors = $null
+$syncAst = [System.Management.Automation.Language.Parser]::ParseFile($syncPath, [ref]$tokens, [ref]$parseErrors)
+Assert-True ($parseErrors.Count -eq 0) 'The external sync script must parse successfully.'
+$licenseGuards = @($syncAst.FindAll({
+    param($node)
+    $node -is [System.Management.Automation.Language.IfStatementAst] -and
+        $node.Extent.Text -match 'RequiresLicenseAgreementAcceptance'
+}, $true))
+Assert-True ($licenseGuards.Count -eq 1) 'Require one explicit pending-agreement guard.'
+$acceptCalls = @($syncAst.FindAll({
+    param($node)
+    $node -is [System.Management.Automation.Language.InvokeMemberExpressionAst] -and
+        $node.Member.Value -eq 'AcceptLicenseAgreement'
+}, $true))
+Assert-True ($acceptCalls.Count -eq 0) 'The sync pipeline must never accept an agreement.'
+$approvalCalls = @($syncAst.FindAll({
+    param($node)
+    $node -is [System.Management.Automation.Language.InvokeMemberExpressionAst] -and
+        $node.Member.Value -eq 'Approve'
+}, $true))
+Assert-True ($approvalCalls.Count -gt 0 -and
+    $licenseGuards[0].Extent.EndOffset -lt $approvalCalls[0].Extent.StartOffset) 'Check agreements before any download-group approval.'
+$licenseGuard = [scriptblock]::Create($licenseGuards[0].Extent.Text)
+$updates = @{ ordinary = [pscustomobject]@{ RequiresLicenseAgreementAcceptance = $false } }
+& $licenseGuard
+Assert-True ($updates.Count -eq 1) 'An ordinary selection without a pending agreement must proceed unchanged.'
+$updates = @{ accepted = [pscustomobject]@{ RequiresLicenseAgreementAcceptance = $false; LicenseAccepted = $true } }
+& $licenseGuard
+Assert-True ($updates.accepted.LicenseAccepted) 'An already-accepted update must proceed unchanged.'
+$updates.prerequisite = [pscustomobject]@{ RequiresLicenseAgreementAcceptance = $true }
+Assert-Throws { & $licenseGuard } 'Review and accept its agreement separately; this job never accepts licenses'
+Assert-True $updates.prerequisite.RequiresLicenseAgreementAcceptance 'A pending agreement must remain unaccepted.'
 Write-Output "Passed $Assertions WSUS month-selection assertions."
