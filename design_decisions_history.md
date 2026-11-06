@@ -1,5 +1,14 @@
 # Design decisions history
 
+## Document the actual UTC repair outcome and supporting-code rationale — 2026-11-06
+
+The normal basics run verified clock implementation `e842b5c` on all four
+selected regular guests with zero measured UTC drift. Three guests completed
+their baseline and release; one remained unlicensed after the correction, so
+the existing clear guard stopped that guest. Clock repair is verified;
+activation and the complete functional/reset workflow are not. Link the native
+clock call to its documented module gap; no activation or access change follows.
+
 ## Pair selected Windows virtual hardware and guest clocks on UTC — 2026-11-06
 
 Implementation: `e842b5c` (version 1.0.45).

@@ -71,6 +71,9 @@ guest timezone. The normal basics job corrects drift over two minutes from the
 automation runtime, then rereads licensing and stops clearly if it is still
 invalid. It does not activate or rearm the guest. The AD and legacy paths retain
 their existing clock handling.
+A live normal run corrected all four selected regular guest clocks; one
+evaluation remained expired. Activation and complete end-to-end verification
+are still separate acceptance steps.
 
 ## Review release
 

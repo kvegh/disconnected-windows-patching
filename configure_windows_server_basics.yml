@@ -87,10 +87,12 @@
 
     - name: Correct gross guest clock drift and read the actual installed license
       # Native Set-Date is needed because win_timezone changes the zone, not UTC drift.
+      # Justification: [Windows clock handling](docs/supporting-code.md#windows-networking-and-activation).
       ansible.windows.win_powershell:
         parameters:
           ReferenceUtc: "{{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }}"
         script: |
+          # Justification: [Windows clock handling](docs/supporting-code.md#windows-networking-and-activation).
           param([string]$ReferenceUtc)
           $reference = [DateTime]::Parse($ReferenceUtc).ToUniversalTime()
           $offset = [Math]::Abs(([DateTime]::UtcNow - $reference).TotalSeconds)
