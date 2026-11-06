@@ -1,5 +1,26 @@
 # Design decisions history
 
+## Reapply only the selected Nexus access rule — 2026-11-06
+
+Implementation: `2c5baa6` (version 1.1.4).
+
+External package synchronization timed out before downloading packages. The
+selected AAP routed to the external repository from its primary address, which
+the encrypted repository source list did not contain. The existing setup job
+already accepts job tags. Tag its current scope check, connection wait and
+Windows firewall task so the corrected saved rule can be applied without
+repeating successful installer copies, onboarding or feed creation. Runtime
+selection remains mandatory; the tag itself adds no allowed address.
+
+Native task listing confirmed the focused task set. Strict production lint
+passed for the playbook and its eight discovered task files. Applying the
+corrected encrypted source list and retrying package synchronization remain
+pending; no live permission change is claimed by this code publication.
+
+The earlier partial AD continuation on `8c1df68` actually succeeded, retaining
+the final strict migration guard. The independent real-login verifier is still
+running; the Controller outage's initiating cause remains unproved.
+
 ## Continue creation of missing owned AD resources — 2026-11-06
 
 Implementation: `1838a4c` (version 1.1.3).
