@@ -1,5 +1,19 @@
 # Design decisions history
 
+## Diagnose managed Windows shutdowns through the existing inspection job — 2026-11-06
+
+Implementation: `0675643` (version 1.0.43).
+
+A managed guest was powered off before its first baseline. Extend the existing
+read-only network inspection with native computer UUID, current time, installed
+Windows license status and the last twelve System shutdown events. An exact
+host limit selects the intended guest. Detailed results stay protected in the
+job artifact; no license, clock, network or power setting is changed.
+
+The existing cached collections pass syntax validation and scoped production
+lint. The actual diagnostic run remains necessary to identify the shutdown cause;
+the earlier AD licensing shutdown does not establish this guest's cause.
+
 ## Require a valid existing Windows license before AD updates — 2026-11-05
 
 Implementation: `9bcf20234486ce285047bccbd7857e36e0fa4564` (version 1.0.41).
