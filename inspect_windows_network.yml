@@ -36,13 +36,31 @@
     - name: Inspect current adapters, addresses and routes
       # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
+        depth: 4
         script: |
           # Language choice: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
           $Ansible.Changed = $false
+          $licenseFilter = "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL"
           $Ansible.Result = @{
+              ComputerUuid = (Get-CimInstance Win32_ComputerSystemProduct).UUID
+              Utc = [DateTime]::UtcNow.ToString('o')
+              TimeZone = (Get-TimeZone).Id
+              Licenses = @(Get-CimInstance SoftwareLicensingProduct -Filter $licenseFilter |
+                  Select-Object Name, LicenseStatus, GracePeriodRemaining)
+              ShutdownEvents = @(Get-WinEvent -FilterHashtable @{LogName='System';Id=1074,6006,6008} -MaxEvents 12 -ErrorAction SilentlyContinue |
+                  Select-Object TimeCreated, Id, ProviderName, Message)
               Adapters = @(Get-NetAdapter | Select-Object Name, MacAddress, Status)
               Addresses = @(Get-NetIPAddress -AddressFamily IPv4 | Select-Object InterfaceAlias, IPAddress, PrefixLength, AddressState)
               Interfaces = @(Get-NetIPInterface -AddressFamily IPv4 | Select-Object InterfaceAlias, Dhcp, Forwarding)
               Defaults = @(Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
                   Select-Object InterfaceAlias, NextHop)
           }
+      register: windows_readonly_inspection
+      no_log: true
+
+    - name: Save protected read-only network and shutdown diagnostics
+      ansible.builtin.set_stats:
+        data:
+          windows_readonly_inspection: "{{ {inventory_hostname: windows_readonly_inspection.result} }}"
+        aggregate: true
+      no_log: true

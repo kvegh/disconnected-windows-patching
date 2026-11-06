@@ -60,6 +60,9 @@ The existing Windows-basics play completes each guest’s baseline and isolation
 publication before moving to the next guest, preserving each policy preflight.
 The read-only AD inspection records recent System shutdown events alongside
 license status, so an interrupted update can be diagnosed before changing configuration.
+The existing Windows network inspection provides the same bounded shutdown and
+license readback for managed guests; use an exact host limit. Detailed diagnostics
+stay in the protected job artifact and do not change licensing or configuration.
 AD preparation requires a licensed installed OS and positive remaining grace for
 an evaluation before updates; a fully licensed non-evaluation edition needs no
 evaluation grace. This check does not activate, rearm or change licensing.
@@ -68,7 +71,7 @@ evaluation grace. This check does not activate, rearm or change licensing.
 
 The first tracked major version is **1.0.0**, representing the review and cleanup
 baseline under the [agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
-The current cleanup version is **1.0.20**. Work proceeds directly on `main`, as
+The current project version is recorded in [VERSION](VERSION). Work proceeds directly on `main`, as
 requested by the owner; `VERSION` identifies this project independently of the
 other umbrella projects. Implementation changes and their reasons are recorded
 in [the decision history](design_decisions_history.md).
