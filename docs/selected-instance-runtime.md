@@ -138,9 +138,9 @@ record; this component does not stop or delete the AAP VM.
 
 The selected live test has created all five guests and completed the four regular
 baselines, AD preparation and real LDAP permission verification. WSUS content and
-the April ceiling passed; the Windows Server 2022 patch stage reached its exact
-baseline without remaining updates or reboot. Windows Server 2025 patching,
-Nexus package deployment and complete scoped decommission are still incomplete.
+the April ceiling passed. Both managed Windows versions reached their exact April
+baselines without remaining approved updates or reboot. Nexus package deployment
+and complete scoped decommission are still incomplete.
 Successful CaC import alone does not establish those runtime outcomes.
 
 ## Migrating the selected workflow graph

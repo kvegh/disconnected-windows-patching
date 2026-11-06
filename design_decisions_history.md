@@ -8,7 +8,9 @@ Preserve the completed guest baselines and AD acceptance rather than recreating
 them. The normal WSUS sync, export, import and April preparation succeeded; the
 verified policy offers four updates and blocks 131 others. Windows Server 2022
 then reached build 20348.5020 from 20348.169 in two passes, with no remaining
-approved updates or reboot. Windows Server 2025 is still updating.
+approved updates or reboot. Windows Server 2025 then reached its exact April
+build 26100.32690 from 26100.1742 in three passes, likewise with no remaining
+approved updates or reboot. The normal jobs revalidated the ceiling afterward.
 
 The existing package branch still needs the explicitly requested Nexus access
 approval. No source rule was applied without that answer. Fresh unattended
