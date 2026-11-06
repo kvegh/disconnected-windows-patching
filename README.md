@@ -74,8 +74,9 @@ their existing clock handling.
 A live normal run corrected all four selected regular guest clocks. The three
 initially licensed guests completed their baselines first; the remaining
 evaluation was then activated and completed its focused baseline and release.
-All four regular guest baselines are now verified. The remaining AD integration,
-repository/content pipeline and complete fresh workflow acceptance stay open.
+All four regular guest baselines are now verified. The AD integration and actual
+LDAP permission test also passed; the repository/content pipeline and complete
+fresh workflow acceptance stay open.
 For an approved activation in a prepared environment, the existing activation
 job verifies the exact clone and uses an unused IPv4 NAT network. Its generated
 temporary MAC receives only public HTTP/HTTPS and DNS to that network's gateway;
@@ -100,6 +101,10 @@ The AD resource-stage resume accepts an incomplete initial creation plan while
 retaining ownership/source/link checks. The final strict completeness check
 still precedes retirement and authentication. A failed native inventory-host
 request reports only its numeric HTTP status and timeout metadata.
+The focused AD continuation passed, followed by independent verification of all
+12 LDAP logins, 75 scoped grants and 360 permission checks. All 36 permitted
+inert jobs completed on localhost; no cross-region grants were present. The
+earlier intermittent Controller outage's initiating cause remains unproved.
 
 ## Review release
 

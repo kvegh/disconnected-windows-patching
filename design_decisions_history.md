@@ -18,8 +18,11 @@ corrected encrypted source list and retrying package synchronization remain
 pending; no live permission change is claimed by this code publication.
 
 The earlier partial AD continuation on `8c1df68` actually succeeded, retaining
-the final strict migration guard. The independent real-login verifier is still
-running; the Controller outage's initiating cause remains unproved.
+the final strict migration guard. The independent real-login verifier then
+passed all 12 LDAP logins, 75 scoped grants, 360 permission checks, 108 description
+patch checks, 48 resource-list checks and 24 team-membership checks. All 36 inert
+jobs completed on localhost; no cross-region grants were present. The Controller
+outage's initiating cause remains unproved.
 
 ## Continue creation of missing owned AD resources — 2026-11-06
 
