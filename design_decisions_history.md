@@ -1,5 +1,22 @@
 # Design decisions history
 
+## Pair selected Windows virtual hardware and guest clocks on UTC — 2026-11-06
+
+Implementation: `e842b5c` (version 1.0.45).
+
+Actual inspection found regular guests several hours ahead: virtual hardware
+used the hypervisor's local timezone while Windows retained a different zone.
+Future selected regular clones now request UTC hardware clocks. Their existing
+basics play sets the guest zone to UTC and corrects drift over two minutes from
+automation UTC before configuration. It rereads the installed license and stops
+clearly if licensing remains invalid; it never activates, rearms or grants access.
+AD and legacy clock handling remain unchanged. Current clones need a separately
+verified, persistent-only clock-attribute alignment before this normal repair.
+
+One native Ansible regression checks regular, AD and legacy creation arguments;
+the changed plays pass syntax and scoped production lint. The actual basics run
+and licensing outcome remain pending. No host clock or golden image is changed.
+
 ## Diagnose managed Windows shutdowns through the existing inspection job — 2026-11-06
 
 Implementation: `0675643` (version 1.0.43).
