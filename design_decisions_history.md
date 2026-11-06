@@ -14,7 +14,10 @@ The existing native month-selection regression now extracts the actual productio
 guard and exercises ordinary, accepted and pending fixtures, checks ordering
 before approvals and refuses any acceptance call. It never imports a live WSUS
 server or invokes licensing. Scoped strict production lint passed for five files;
-native execution through the existing regression template remains pending.
+native execution through the existing regression template passed all six suites
+on both selected managed guests in 68.990 seconds, including temporary-source
+cleanup. The guard cases use the actual production AST with synthetic updates;
+they invoke neither a real agreement nor another full content synchronization.
 The earlier completed live synchronization's historical agreement acceptance is
 unknown; its success is preserved and it is not repeated for this check.
 

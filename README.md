@@ -111,6 +111,10 @@ existing accepted or agreement-free selections proceed. The earlier completed
 sync's historical agreement-acceptance behavior is unknown. Use the existing
 Verify PowerShell Regressions template to exercise this guard with synthetic
 updates; it invokes no real licensing operation.
+That normal template passed all six suites on both selected managed guests,
+including pending, ordinary and already-accepted guard cases and temporary-file
+cleanup. The completed content sync was preserved rather than repeated; the
+remaining content/patch/application stages still require their live results.
 
 ## Review release
 
