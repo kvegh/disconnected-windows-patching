@@ -1,5 +1,22 @@
 # Design decisions history
 
+## Use the supported running-interface cleanup command — 2026-11-06
+
+Implementation: `34accc1` (version 1.1.2).
+
+Normal Windows activation passed both licensing guards, but cleanup stopped
+because the reused link-down command included `--live`. Actual libvirt help
+confirms that `domif-setlink` changes the running guest by default and accepts
+`--config`, not `--live`. Remove that unsupported option; retain `--live` on
+detachment so no persistent adapter changes. The same corrected production
+cleanup command then lowered/detached the temporary NIC, removed its tagged
+rules and restored the initially inactive network successfully on the pinned
+test hypervisor. No second licensing call or boot was needed.
+
+Three focused cleanup/control-flow tests and strict scoped production lint
+passed. Numeric Windows readback, deadline disarming, the normal licensed-skip
+rerun and remaining functional stages still require their actual results.
+
 ## Ignore native libvirt name-list separators — 2026-11-06
 
 Implementation: `bc4f5c2` (version 1.1.1).
