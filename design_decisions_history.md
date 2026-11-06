@@ -1,5 +1,19 @@
 # Design decisions history
 
+## Ignore native libvirt name-list separators — 2026-11-06
+
+Implementation: `bc4f5c2` (version 1.1.1).
+
+The first normal activation attempt stopped before connectivity because native
+libvirt name output ended with a blank line. The read-only inspector treated
+that separator as a domain name. It now skips empty names without changing
+identity, ownership or network checks. The regression fixture reproduces native
+output and rejects empty arguments; all nine inspector tests pass. The fixed
+inspector also passed the actual pinned hypervisor's read-only preflight,
+including exact clone identity and an unused inactive IPv4 NAT network.
+No licensing or temporary network operation was reached in the failed run.
+Actual activation and full end-to-end acceptance remain unverified.
+
 ## Bound prepared-instance evaluation activation and cleanup — 2026-11-06
 
 Implementation: `e04fe12` (version 1.1.0).
