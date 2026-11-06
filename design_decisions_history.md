@@ -1,5 +1,27 @@
 # Design decisions history
 
+## Bound prepared-instance evaluation activation and cleanup — 2026-11-06
+
+Implementation: `e04fe12` (version 1.1.0).
+
+The user approved one narrowly scoped activation using an unused existing IPv4
+NAT network. The prepared path verifies the selected clone and pinned hypervisor,
+then gives only a generated temporary MAC public HTTP/HTTPS and gateway DNS.
+Private/production destinations and IPv6 remain blocked. A shared guest bridge
+was unsuitable because routed rules alone do not prove guest-to-guest isolation.
+
+Normal cleanup and the existing 900-second deadline share one command. It
+isolates/removes that adapter before firewall cleanup, removes only matching
+MAC/comment rules, and stops an initially inactive network only when no domain
+references it. No licensing rearm, key/edition change, new network or service is
+introduced. Legacy deployments retain their existing connected-network path.
+
+Twenty-four focused tests, syntax and strict scoped production lint passed;
+the exact nft batch passed a non-mutating check on the selected hypervisor.
+Independent review caught a shell quote and cleanup ordering before publication;
+both were fixed and native shell parsing now passes for prepared and legacy
+paths. Actual activation and full end-to-end acceptance remain unverified.
+
 ## Document the actual UTC repair outcome and supporting-code rationale — 2026-11-06
 
 The normal basics run verified clock implementation `e842b5c` on all four
