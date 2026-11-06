@@ -115,7 +115,7 @@
       {% endif %}
       interfaces=$(/usr/bin/virsh --connect qemu:///system domiflist "$domain")
       if printf '%s\n' "$interfaces" | /usr/bin/awk -v mac="$mac" '$5 == mac {found=1} END {exit !found}'; then
-        /usr/bin/virsh --connect qemu:///system domif-setlink "$domain" "$mac" down --live
+        /usr/bin/virsh --connect qemu:///system domif-setlink "$domain" "$mac" down
         /usr/bin/virsh --connect qemu:///system detach-interface "$domain" network --mac "$mac" --live
       fi
       {% if windows_runtime_settings_vault is defined %}

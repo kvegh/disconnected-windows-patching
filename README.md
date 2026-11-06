@@ -85,6 +85,8 @@ retain their existing connected-network path. See the
 [activation instructions](docs/windows-evaluation-activation.md#prepared-environments).
 The activation network inspection ignores blank separators in native libvirt
 name output, so an otherwise valid preflight does not query an empty domain.
+Cleanup uses libvirt's running-interface link command without `--config`;
+`domif-setlink` does not accept the `--live` option used by interface detachment.
 
 ## Review release
 
