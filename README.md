@@ -71,9 +71,11 @@ guest timezone. The normal basics job corrects drift over two minutes from the
 automation runtime, then rereads licensing and stops clearly if it is still
 invalid. It does not activate or rearm the guest. The AD and legacy paths retain
 their existing clock handling.
-A live normal run corrected all four selected regular guest clocks; one
-evaluation remained expired. Activation and complete end-to-end verification
-are still separate acceptance steps.
+A live normal run corrected all four selected regular guest clocks. The three
+initially licensed guests completed their baselines first; the remaining
+evaluation was then activated and completed its focused baseline and release.
+All four regular guest baselines are now verified. The remaining AD integration,
+repository/content pipeline and complete fresh workflow acceptance stay open.
 For an approved activation in a prepared environment, the existing activation
 job verifies the exact clone and uses an unused IPv4 NAT network. Its generated
 temporary MAC receives only public HTTP/HTTPS and DNS to that network's gateway;
@@ -87,6 +89,13 @@ The activation network inspection ignores blank separators in native libvirt
 name output, so an otherwise valid preflight does not query an empty domain.
 Cleanup uses libvirt's running-interface link command without `--config`;
 `domif-setlink` does not accept the `--live` option used by interface detachment.
+A live readback confirmed licensed status with about 180 days remaining. Native
+checks verified original NICs, no temporary rules, an inactive unused activation
+network and the original cleanup deadline disarmed after verification. The normal
+activation rerun also passed its licensed skip and original DNS/routes checks.
+The existing workflow still runs basics before activation; a fresh expired
+evaluation can therefore stop at the early license guard. That ordering remains
+under review, and unattended fresh selected-instance acceptance is pending.
 
 ## Review release
 

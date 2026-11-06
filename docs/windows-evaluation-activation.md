@@ -178,6 +178,18 @@ preservation of matching URLs, and rejection of an arbitrary default route as
 evidence of connected-network access.
 Source validation does not substitute for a controlled fresh-clone workflow run.
 
+Selected-instance recovery subsequently verified actual activation and cleanup.
+The installed evaluation reached licensed status with approximately 180 days
+remaining. The first cleanup exposed an unsupported `domif-setlink --live`
+option; implementation `34accc1` removes it, and the same corrected cleanup
+successfully restored the original NICs, removed all operation rules and stopped
+the initially inactive network. Independent native checks confirmed those
+results. Normal job 293 then passed the already-licensed skip, including original
+addresses, DNS and routes; only after those checks was the original deadline
+disarmed. The focused remaining baseline, job 296, also succeeded. Earlier three
+baseline successes were preserved. Full selected-instance AD/content workflow and
+fresh-clone ordering acceptance remain pending.
+
 Live controller configuration on 2026-10-20 created activation Job Template 82
 and routed the existing Windows basics success edge through activation to
 repository preparation. Reapplying the configuration left the template and

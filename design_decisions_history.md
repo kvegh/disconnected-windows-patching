@@ -1,5 +1,24 @@
 # Design decisions history
 
+## Record verified activation and all regular baselines — 2026-11-06
+
+Relevant implementations: `e04fe12`, `bc4f5c2`, `34accc1` (current version 1.1.2).
+
+The focused import retry succeeded with the existing project wait budget raised
+to a bounded value. Activation then passed the installed evaluation's licensing
+guards; a subsequent read-only Windows query confirmed licensed status and about
+180 days of remaining evaluation time. The unsupported link-down option caused
+the original cleanup failure and was corrected before repeating only that exact
+cleanup. Native verification confirmed no temporary NIC/rules/network residue.
+
+Normal activation job 293 passed the licensed skip and original DNS/routes
+checks, then the original deadline was disarmed. Focused baseline job 296
+completed the fourth regular guest and emitted genuine Windows provenance after
+the existing shared release role. The earlier three baselines were preserved;
+no second licensing call, key/edition change or extra diagnostic boot occurred.
+Remaining AD integration, content stages and fresh selected-instance ordering
+still require their actual verification; this is not full workflow acceptance.
+
 ## Use the supported running-interface cleanup command — 2026-11-06
 
 Implementation: `34accc1` (version 1.1.2).
