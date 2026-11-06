@@ -1,5 +1,20 @@
 # Design decisions history
 
+## Record the live Windows functional checkpoint — 2026-11-06
+
+Tested executable revision: `2dfb9c0` (version 1.1.5).
+
+Preserve the completed guest baselines and AD acceptance rather than recreating
+them. The normal WSUS sync, export, import and April preparation succeeded; the
+verified policy offers four updates and blocks 131 others. Windows Server 2022
+then reached build 20348.5020 from 20348.169 in two passes, with no remaining
+approved updates or reboot. Windows Server 2025 is still updating.
+
+The existing package branch still needs the explicitly requested Nexus access
+approval. No source rule was applied without that answer. Fresh unattended
+ordering and complete teardown remain unverified. This is a runtime checkpoint,
+not complete end-to-end or formal-review acceptance.
+
 ## Stop before accepting WSUS update agreements — 2026-11-06
 
 Implementation: `5dab08f` (version 1.1.5).

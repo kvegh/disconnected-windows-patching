@@ -74,9 +74,12 @@ their existing clock handling.
 A live normal run corrected all four selected regular guest clocks. The three
 initially licensed guests completed their baselines first; the remaining
 evaluation was then activated and completed its focused baseline and release.
-All four regular guest baselines are now verified. The AD integration and actual
-LDAP permission test also passed; the repository/content pipeline and complete
-fresh workflow acceptance stay open.
+All four regular guest baselines are now verified. AD integration and real LDAP
+permission tests passed. WSUS synchronization, export/import and the April ceiling
+also passed, followed by Windows Server 2022 reaching the exact April build with
+no remaining updates or reboot. Windows Server 2025 patching is still running;
+Nexus package tests await the explicit source-access approval. Complete fresh
+workflow and teardown acceptance remain open.
 For an approved activation in a prepared environment, the existing activation
 job verifies the exact clone and uses an unused IPv4 NAT network. Its generated
 temporary MAC receives only public HTTP/HTTPS and DNS to that network's gateway;
