@@ -51,6 +51,27 @@ def profile():
 
 
 class WindowsRuntimeTests(unittest.TestCase):
+    def test_selected_regular_clones_use_utc_without_changing_ad_or_legacy_clocks(self):
+        play = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]
+        task = next(row for row in play['tasks'] if row['name'] == 'Build Windows VM deployment command')
+        expression = task['ansible.builtin.set_fact']['vm_install_argv']
+        values = dict(yaml.safe_load((ROOT / 'vars/main.yml').read_text()),
+                      vm_name='example-client', vm_role='managed', windows_version='2025',
+                      vm_network='example-isolated', vm_mac='52:54:00:00:00:01',
+                      selected_memory_mb=4096, vm_boot_mode='uefi',
+                      vm_disk_path='/opt/vms/example-client.qcow2')
+        for selected, role, expected in [(True, 'managed', True), (True, 'ad', False), (False, 'managed', False)]:
+            changed = dict(values)
+            if selected:
+                changed.update(windows_runtime_settings_vault='example ciphertext',
+                               windows_runtime_expected_instance='example-instance',
+                               windows_runtime_guests={'example-client': {'role': role}})
+            with self.subTest(selected=selected, role=role):
+                argv = Templar(loader=DataLoader(), variables=changed).template(expression)
+                self.assertEqual('--clock' in argv, expected)
+                if expected:
+                    self.assertEqual(argv[argv.index('--clock') + 1], 'offset=utc')
+
     def test_approved_profile_is_bound_to_one_exact_instance(self):
         document = profile()
         self.assertEqual(runtime.selected_settings(document, 'example-instance'),

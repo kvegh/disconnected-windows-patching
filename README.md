@@ -66,6 +66,11 @@ stay in the protected job artifact and do not change licensing or configuration.
 AD preparation requires a licensed installed OS and positive remaining grace for
 an evaluation before updates; a fully licensed non-evaluation edition needs no
 evaluation grace. This check does not activate, rearm or change licensing.
+Selected regular Windows guests use UTC in both their virtual hardware and
+guest timezone. The normal basics job corrects drift over two minutes from the
+automation runtime, then rereads licensing and stops clearly if it is still
+invalid. It does not activate or rearm the guest. The AD and legacy paths retain
+their existing clock handling.
 
 ## Review release
 

@@ -191,6 +191,8 @@
               + (['--network', 'network=' ~ vm_management_network ~ ',model=e1000e'
                  ~ (',mac=' ~ vm_management_mac if vm_management_mac | default('') | length > 0 else '')]
                  if vm_management_network | length > 0 else [])
+              + (['--clock', 'offset=utc'] if windows_runtime_settings_vault is defined
+                 and windows_runtime_guests[vm_name].role != 'ad' else [])
               + ['--noautoconsole'] }}
 
     - name: Create and start Windows VM

@@ -59,6 +59,12 @@ complete deployment.
 
 ## Windows networking and activation
 
+Selected regular guests use UTC virtual hardware and the certified
+`ansible.windows.win_timezone` module. The native `Set-Date` call in the existing
+basics play corrects only drift over two minutes from automation UTC; timezone
+configuration alone cannot repair that drift. The same task reads licensing
+without changing activation or granting connectivity.
+
 `configure-static-network.ps1` matches NICs by MAC, validates every requested
 adapter before writes, and manages address, DHCP/default-route and forwarding
 state in active and persistent stores. The currently pinned route module does
