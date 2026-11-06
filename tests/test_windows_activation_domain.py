@@ -26,12 +26,14 @@ class ActivationDomainTests(unittest.TestCase):
         network = '<network><name>activation-example</name><forward mode="nat"/><bridge name="virbr-example"/><ip address="192.0.2.1"/></network>'
 
         def run(argv, text):
+            if 'dumpxml' in argv:
+                self.assertTrue(argv[4], 'Native virsh rejects an empty domain argument.')
             if 'net-dumpxml' in argv:
                 return network
             if 'net-list' in argv:
                 return ''
             if 'list' in argv:
-                return 'demo-clone\nforeign-clone\n'
+                return 'demo-clone\nforeign-clone\n\n'
             if 'foreign-clone' in argv:
                 return XML.format(extra=EXTRA)
             return XML.format(extra='')

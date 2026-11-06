@@ -83,6 +83,8 @@ isolate/remove that adapter, remove only its tagged MAC rules, then stop a netwo
 that was initially inactive only if no adapter references it. Legacy deployments
 retain their existing connected-network path. See the
 [activation instructions](docs/windows-evaluation-activation.md#prepared-environments).
+The activation network inspection ignores blank separators in native libvirt
+name output, so an otherwise valid preflight does not query an empty domain.
 
 ## Review release
 

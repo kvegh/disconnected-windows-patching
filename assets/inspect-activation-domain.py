@@ -59,6 +59,8 @@ def inspect(domain, run=subprocess.check_output, network=None):
         gateway = str(ipaddress.IPv4Address(ipv4[0].get("address")))
         references, macs = [], set()
         for name in virsh("list", "--all", "--name").splitlines():
+            if not name.strip():
+                continue
             for args in [("dumpxml", name), ("dumpxml", name, "--inactive")]:
                 items = interfaces(virsh(*args))
                 macs.update(item["mac"] for item in items)
