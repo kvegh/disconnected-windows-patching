@@ -90,8 +90,10 @@ class RegionalResourceTests(unittest.TestCase):
         self.assertEqual(self.render(resource_task['loop'],
                                      dict(base, ad_aap_resuming_resources=False)), RESOURCE_SETS)
         inspection = next(task for task in block if task['name'].startswith('Inspect owned objects'))
-        self.assertIn("'require_migrated': ad_aap_resuming_resources | bool",
+        self.assertIn("'require_migrated': false",
                       inspection['ansible.builtin.command']['stdin'])
+        final = next(task for task in block if task['name'].startswith('Reinspect references'))
+        self.assertIn("'require_migrated': true", final['ansible.builtin.command']['stdin'])
 
     def test_grant_and_authentication_retries_are_bounded(self):
         authentication = yaml.safe_load((ROOT / 'tasks/configure_aap_ad_authentication.yml').read_text())
@@ -198,7 +200,8 @@ class RegionalResourceTests(unittest.TestCase):
                 self.assertIs(template.get(flag), False)
 
     def test_mock_jobs_have_an_enabled_local_host_and_only_controller_side_inert_tasks(self):
-        host = next(task['ansible.controller.host'] for task in self.tasks if 'ansible.controller.host' in task)
+        host_block = next(task for task in self.tasks if task['name'] == 'Keep the inert local inventory host enabled')
+        host = host_block['block'][0]['ansible.controller.host']
         self.assertEqual(host['name'], 'localhost')
         self.assertIs(host['enabled'], True)
         self.assertEqual(host['variables']['ansible_connection'], 'local')
@@ -206,6 +209,27 @@ class RegionalResourceTests(unittest.TestCase):
         self.assertIs(self.mock['gather_facts'], False)
         modules = {key for task in self.mock['tasks'] for key in task if key.startswith('ansible.')}
         self.assertEqual(modules, {'ansible.builtin.assert', 'ansible.builtin.debug'})
+
+    def test_inventory_host_failure_reports_only_status_and_timeout(self):
+        from ansible.parsing.dataloader import DataLoader
+        from ansible.template import Templar
+
+        block = next(task for task in self.tasks if task['name'] == 'Keep the inert local inventory host enabled')
+        report = block['rescue'][0]
+        for message, expected in [
+            ('Request to /private/fixture-secret failed with status 503 after retries.', '503'),
+            ('A private fixture-secret connection timed out.', 'unavailable'),
+        ]:
+            context = {'ansible_failed_result': {'msg': message}, 'ad_aap_request_timeout': 60}
+            templar = Templar(loader=DataLoader(), variables=context)
+            for key, value in report['vars'].items():
+                context[key] = templar.template(value)
+                templar.available_variables = context
+            rendered = templar.template(report['ansible.builtin.fail']['msg'])
+            self.assertIn('HTTP status=' + expected, rendered)
+            self.assertIn('60 seconds', rendered)
+            self.assertNotIn('fixture-secret', rendered)
+            self.assertNotIn('/private/', rendered)
 
     def test_ldap_maps_revoke_stale_membership_and_assign_only_membership_roles(self):
         tasks = yaml.safe_load((ROOT / 'tasks/configure_aap_ad_authentication.yml').read_text())

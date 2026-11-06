@@ -96,6 +96,10 @@ activation rerun also passed its licensed skip and original DNS/routes checks.
 The existing workflow still runs basics before activation; a fresh expired
 evaluation can therefore stop at the early license guard. That ordering remains
 under review, and unattended fresh selected-instance acceptance is pending.
+The AD resource-stage resume accepts an incomplete initial creation plan while
+retaining ownership/source/link checks. The final strict completeness check
+still precedes retirement and authentication. A failed native inventory-host
+request reports only its numeric HTTP status and timeout metadata.
 
 ## Review release
 

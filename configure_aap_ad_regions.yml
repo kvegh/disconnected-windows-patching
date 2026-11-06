@@ -125,6 +125,7 @@
             - not (ad_aap_resuming_resources | bool)
 
         - name: Inspect owned objects before renaming or retiring the previous model
+          # Missing children are valid in this plan; final completeness is required below.
           # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
           ansible.builtin.command:
             argv: [python3, "{{ playbook_dir }}/assets/inspect-aap-ad-migration.py"]
@@ -132,7 +133,7 @@
               {{ {'url': ad_target_api_url, 'ca': ad_target_api_ca,
                   'admin_username': 'admin', 'admin_password': ad_target_admin_password,
                   'prefix': active_directory.prefix, 'authenticator_name': ad_authenticator,
-                  'require_migrated': ad_aap_resuming_resources | bool} | to_json }}
+                  'require_migrated': false} | to_json }}
           register: ad_migration_inspection
           changed_when: false
           failed_when: false

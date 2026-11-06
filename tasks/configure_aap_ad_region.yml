@@ -14,14 +14,30 @@
   no_log: true
 
 - name: Keep the inert local inventory host enabled
-  ansible.controller.host:
-    name: localhost
-    inventory: "{{ ad_resource_set.key }} Inventory"
-    enabled: true
-    variables:
-      ansible_connection: local
-  environment: *ad_controller_tls
-  no_log: true
+  block:
+    - name: Apply the declared local inventory host through the native API module
+      ansible.controller.host:
+        name: localhost
+        inventory: "{{ ad_resource_set.key }} Inventory"
+        enabled: true
+        variables:
+          ansible_connection: local
+      environment: *ad_controller_tls
+      no_log: true
+  rescue:
+    - name: Report only the failed request status and timeout metadata
+      # Keep response bodies, URLs, arguments and credentials protected.
+      ansible.builtin.fail:
+        msg: >-
+          The selected demo inventory host request failed.
+          HTTP status={{ reported_status if reported_status | string is match('^[45][0-9]{2}$') else 'unavailable' }};
+          configured request timeout={{ ad_aap_request_timeout | default(60) | int }} seconds;
+          timeout reported={{ 'timeout' in error_message | lower or 'timed out' in error_message | lower }}.
+      vars:
+        error_message: "{{ ansible_failed_result.msg | default('') | string }}"
+        error_statuses: "{{ error_message | regex_findall('(?:HTTP +|status +|a +)([45][0-9]{2})(?:[ ):]|$)') }}"
+        reported_status: "{{ ansible_failed_result.response.status_code | default(error_statuses | first | default('unavailable')) }}"
+      no_log: false
 
 - name: Create or rename a synthetic credential for this resource set
   ansible.controller.credential:

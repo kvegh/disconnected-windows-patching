@@ -118,6 +118,19 @@ class ActiveDirectoryMigrationTests(unittest.TestCase):
         self.assertTrue(all(value.isdigit() for resource in plan['resources'].values()
                             for value in resource.values()))
 
+    def test_partial_creation_is_planned_but_cannot_pass_final_completeness(self):
+        data = fixture(migrated=True, keep_old_project=False)
+        for endpoint in ('inventories', 'credentials', 'job_templates'):
+            data[endpoint] = [item for item in data[endpoint]
+                              if not item['name'].startswith(('NOEUapproved ', 'NZlocal '))
+                              and item['name'] != 'DKEUapproved Simulate Change']
+        plan = self.inspect(data)
+        self.assertTrue(plan['resources']['DKlocal']['inventory'].isdigit())
+        self.assertEqual(plan['resources']['DKEUapproved']['simulate_change'], 'DKEUapproved Simulate Change')
+        self.assertEqual(plan['resources']['NZlocal']['inventory'], 'NZlocal Inventory')
+        with self.assertRaisesRegex(AssertionError, 'missing or still uses its legacy name'):
+            self.inspect(data, require_migrated=True)
+
     def test_missing_organization_returns_only_desired_new_names(self):
         data = fixture()
         data['organizations'] = []
