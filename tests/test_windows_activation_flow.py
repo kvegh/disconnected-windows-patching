@@ -14,6 +14,7 @@ import tempfile
 import unittest
 
 import yaml
+from jinja2 import Environment, StrictUndefined
 
 
 ROOT = Path(__file__).parents[1]
@@ -68,6 +69,25 @@ class ActionModule(ActionBase):
             elif 'detach-interface' in argv:
                 events.append('detach')
                 state['temporary'] = False
+            elif argv[0] == '/bin/sh':
+                assert argv[2] == state['guard_argv'][state['guard_argv'].index('-c') + 1]
+                if state['temporary']:
+                    events.append('detach')
+                state['temporary'] = False
+                state['rules'] = False
+                state['network'] = False
+                events.append('cleanup')
+            elif argv[0] == 'nft':
+                if '--check' in argv:
+                    events.append('validate_rules')
+                else:
+                    assert state['timer']
+                    events.append('apply_rules')
+                    state['rules'] = True
+            elif 'net-start' in argv:
+                assert state['timer'] and state['rules']
+                events.append('start_network')
+                state['network'] = True
             elif argv[0] == 'python3':
                 snapshot = dict(task_vars['test_baseline'])
                 if state['temporary']:
@@ -118,7 +138,20 @@ def substitute_remote_actions(tasks):
 
 @unittest.skipUnless(shutil.which('ansible-playbook'), 'Ansible is required for control-flow tests')
 class ActivationFlowTests(unittest.TestCase):
-    def run_flow(self, failure='', licensed=False, connected=False, managed=True, source=None, approved_connected=None):
+    def test_normal_and_deadline_cleanup_scripts_parse_for_both_paths(self):
+        tasks = yaml.safe_load((ROOT / 'tasks/activate_windows_evaluation.yml').read_text())
+        script = next(task['ansible.builtin.set_fact']['windows_activation_cleanup_script']
+                      for task in tasks if 'windows_activation_cleanup_script' in task.get('ansible.builtin.set_fact', {}))
+        for selected in (False, True):
+            with self.subTest(selected=selected):
+                variables = {'windows_runtime_settings_vault': 'mock ciphertext'} if selected else {}
+                rendered = Environment(undefined=StrictUndefined).from_string(script).render(**variables)
+                result = subprocess.run(['/bin/sh', '-n'], input=rendered, text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                if selected:
+                    self.assertLess(rendered.index('domif-setlink'), rendered.index('/usr/sbin/nft'))
+
+    def run_flow(self, failure='', licensed=False, connected=False, managed=True, source=None, approved_connected=None, selected=False):
         with tempfile.TemporaryDirectory(prefix='windows-activation-flow-') as temporary:
             directory = Path(temporary)
             actions = directory / 'collections/ansible_collections/activation/test/plugins/action'
@@ -135,6 +168,9 @@ class ActivationFlowTests(unittest.TestCase):
             main = yaml.safe_load((ROOT / 'activate_windows_evaluations.yml').read_text())
             include = next(task for task in main[1]['tasks'] if 'ansible.builtin.include_tasks' in task)
             baseline = {'live': [{'mac': '52:54:00:11:22:33'}], 'persistent': [{'mac': '52:54:00:11:22:33'}]}
+            if selected:
+                baseline.update(uuid='00000000-0000-0000-0000-000000000001', all_macs=['52:54:00:11:22:33'],
+                                activation_network={'active': False, 'bridge': 'virbr-example', 'gateway': '192.0.2.1'})
             fixture = [{
                 'name': 'Exercise activation cleanup without remote connections',
                 'hosts': 'guest', 'gather_facts': False,
@@ -150,6 +186,9 @@ class ActivationFlowTests(unittest.TestCase):
                 },
                 'tasks': [include],
             }]
+            if selected:
+                fixture[0]['vars'].update(windows_runtime_settings_vault='mock ciphertext',
+                                          windows_runtime_hypervisor={'machine_id': '0' * 32})
             approved_connected = connected if approved_connected is None else approved_connected
             fixture[0]['vars']['windows_activation_settings']['libvirt_interfaces'] = [
                 {'mac': '52:54:00:11:22:33', 'network': 'example-activation' if approved_connected else 'example-isolated'}]
@@ -162,6 +201,7 @@ class ActivationFlowTests(unittest.TestCase):
             statefile = directory / 'state.json'
             policy = {} if source is None else {'WUServer': source, 'WUStatusServer': source}
             statefile.write_text(json.dumps({'events': [], 'temporary': False, 'timer': False,
+                                            'rules': False, 'network': False,
                                             'licensed': licensed, 'failure': failure, 'policy': policy}))
             env = dict(os.environ, ANSIBLE_LOCAL_TEMP=str(directory / 'tmp'),
                        ANSIBLE_COLLECTIONS_PATH=str(directory / 'collections'),
@@ -238,6 +278,23 @@ class ActivationFlowTests(unittest.TestCase):
         self.assertEqual(code, 0, output)
         self.assertIn('attach', state['events'])
         self.assert_restored(state)
+
+    def test_selected_activation_arms_before_rules_and_cleans_network_before_timer(self):
+        code, state, output = self.run_flow(selected=True)
+        self.assertEqual(code, 0, output)
+        self.assert_restored(state)
+        self.assertFalse(state['rules'])
+        self.assertFalse(state['network'])
+        for first, second in [('arm_timer', 'apply_rules'), ('apply_rules', 'start_network'),
+                              ('start_network', 'attach'), ('cleanup', 'stop_timer')]:
+            self.assertLess(state['events'].index(first), state['events'].index(second))
+
+    def test_selected_license_failure_removes_its_rules_and_network(self):
+        code, state, output = self.run_flow(selected=True, failure='licensing')
+        self.assertNotEqual(code, 0, output)
+        self.assert_restored(state)
+        self.assertFalse(state['rules'])
+        self.assertFalse(state['network'])
 
 
 @unittest.skipUnless(shutil.which('ansible-playbook'), 'Ansible is required for inventory preflight tests')

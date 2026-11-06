@@ -4,6 +4,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 
 PATH = Path(__file__).parents[1] / 'assets' / 'inspect-activation-domain.py'
@@ -21,6 +22,27 @@ EXTRA = '''<interface type="network"><mac address="52:54:00:44:55:66"/>
 
 
 class ActivationDomainTests(unittest.TestCase):
+    def test_selected_network_reports_foreign_references_and_all_macs(self):
+        network = '<network><name>activation-example</name><forward mode="nat"/><bridge name="virbr-example"/><ip address="192.0.2.1"/></network>'
+
+        def run(argv, text):
+            if 'net-dumpxml' in argv:
+                return network
+            if 'net-list' in argv:
+                return ''
+            if 'list' in argv:
+                return 'demo-clone\nforeign-clone\n'
+            if 'foreign-clone' in argv:
+                return XML.format(extra=EXTRA)
+            return XML.format(extra='')
+
+        with patch.object(DOMAIN.Path, 'read_text', return_value='0' * 32):
+            result = DOMAIN.inspect('demo-clone', run, network='activation-example')
+        self.assertFalse(result['activation_network']['active'])
+        self.assertEqual(result['activation_network']['domain_references'], ['foreign-clone'])
+        self.assertEqual(len(result['all_macs']), 2)
+        self.assertEqual(result['activation_network']['gateway'], '192.0.2.1')
+
     def test_temporary_live_nic_is_not_confused_with_persistent_topology(self):
         calls = []
 

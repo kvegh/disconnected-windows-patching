@@ -74,6 +74,15 @@ their existing clock handling.
 A live normal run corrected all four selected regular guest clocks; one
 evaluation remained expired. Activation and complete end-to-end verification
 are still separate acceptance steps.
+For an approved activation in a prepared environment, the existing activation
+job verifies the exact clone and uses an unused IPv4 NAT network. Its generated
+temporary MAC receives only public HTTP/HTTPS and DNS to that network's gateway;
+the existing private/production deny set and IPv6 block remain enforced.
+The normal cleanup and existing 15-minute deadline share the same cleanup:
+isolate/remove that adapter, remove only its tagged MAC rules, then stop a network
+that was initially inactive only if no adapter references it. Legacy deployments
+retain their existing connected-network path. See the
+[activation instructions](docs/windows-evaluation-activation.md#prepared-environments).
 
 ## Review release
 

@@ -98,12 +98,35 @@
     - name: Read live and persistent libvirt topology before any activation connectivity
       # Platform/API reason: [rationale](docs/supporting-code.md#windows-networking-and-activation).
       ansible.builtin.command:
-        argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/inspect-activation-domain.py') }}", "{{ windows_activation_settings.vm_name }}"]
+        argv: >-
+          {{ ['python3', '-c', lookup('ansible.builtin.file', 'assets/inspect-activation-domain.py'), windows_activation_settings.vm_name]
+             + ([windows_activation_connected_network] if windows_runtime_settings_vault is defined else []) }}
       delegate_to: "{{ windows_activation_hypervisor }}"
       become: true
       register: windows_activation_domain_before
       changed_when: false
       check_mode: false
+      no_log: true
+
+    - name: Require the selected clone identity and an unused isolated activation network
+      ansible.builtin.assert:
+        that:
+          - domain.hypervisor_machine_id == windows_runtime_hypervisor.machine_id
+          - domain.uuid | lower == windows_activation_before.result.computer_uuid | lower
+          - domain.title == windows_runtime_expected_instance ~ ':' ~ windows_activation_settings.vm_name
+          - domain.disks == ['/opt/vms/win-' ~ windows_activation_settings.vm_name ~ '-clone.disk.qcow2']
+          - domain.activation_network.forward == 'nat'
+          - not domain.activation_network.ipv6
+          - domain.activation_network.domain_references | length == 0
+          - domain.activation_network.bridge is match('^[A-Za-z0-9_.:-]{1,15}$')
+          - domain.activation_network.bridge in windows_runtime_recovery_pin.isolation_bridges
+        quiet: true
+        fail_msg: Refusing activation outside the selected clone or on a shared activation network.
+      vars:
+        domain: "{{ windows_activation_domain_before.stdout | from_json }}"
+      when:
+        - windows_runtime_settings_vault is defined
+        - not windows_activation_before.result.licensed | bool
       no_log: true
 
     - name: Require the exact demo-owned clone and unchanged permanent interface topology

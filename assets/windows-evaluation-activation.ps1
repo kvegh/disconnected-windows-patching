@@ -84,6 +84,7 @@ if ($Mode -eq 'Activate' -and [int]$license.LicenseStatus -ne 1 -and -not $Ansib
     $license = Get-InstalledWindowsLicense
 }
 $Ansible.Result = @{
+    computer_uuid = (Get-CimInstance Win32_ComputerSystemProduct).UUID.ToLowerInvariant()
     licensed = [int]$license.LicenseStatus -eq 1
     evaluation = [bool]$evaluation
     license_status = [int]$license.LicenseStatus

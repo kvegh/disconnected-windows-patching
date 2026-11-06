@@ -79,10 +79,16 @@ directory and actual task completion/exit code are checked by Ansible. See the
 
 `windows-evaluation-activation.ps1` uses the installed evaluation's licensing CIM
 method and checks network state. The Ansible playbook bounds temporary exposure
-and cleanup; a hypervisor systemd timer invokes two narrowly scoped `virsh`
-operations as a fallback when the controller cannot finish cleanup. The shell
-receives the validated domain and this operation's generated MAC as positional
-arguments. It must preserve every original interface. See the
+and cleanup. Certified content does not expose live-only libvirt NIC attachment
+or nftables rule handles. The existing hypervisor timer and normal cleanup
+therefore share one bounded shell command, receiving the validated domain and
+generated MAC as positional arguments. In prepared instances it also removes
+only matching MAC/comment rules and restores an initially inactive unused NAT
+network. It isolates the NIC before firewall cleanup, preserves every original
+interface, and refuses to stop a network with domain references. Dependencies
+are the existing `virsh`, `nft`, `jq`, systemd and Python tools. Focused native
+Ansible tests cover success/failure cleanup and shell syntax for both paths;
+the normal AAP job must still prove actual activation and restoration. See the
 [activation safeguards](windows-evaluation-activation.md).
 
 `configure-winrm-https.ps1` is a manual image-preparation utility for a host that

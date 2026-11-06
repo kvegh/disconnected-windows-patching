@@ -82,12 +82,81 @@
   register: windows_activation_network_info
   changed_when: false
   failed_when: windows_activation_network_info.rc != 0 or windows_activation_network_info.stdout is not search('Active:\s+yes')
-  when: windows_activation_needs_nic | bool
+  when:
+    - windows_activation_needs_nic | bool
+    - windows_runtime_settings_vault is not defined
   no_log: true
 
 - name: Verify the new NIC MAC is unused on this domain
   ansible.builtin.assert:
-    that: windows_activation_temporary_mac not in (windows_activation_domain_before.stdout | from_json).live | map(attribute='mac') | list
+    that: >-
+      windows_activation_temporary_mac not in
+      ((windows_activation_domain_before.stdout | from_json).all_macs | default(
+        (windows_activation_domain_before.stdout | from_json).live | map(attribute='mac') | list))
+  when: windows_activation_needs_nic | bool
+  no_log: true
+
+- name: Prepare the same exact cleanup for the normal path and existing deadline
+  # No certified module manages live-only libvirt NICs or nft rule handles.
+  # Justification: [activation bounds](../docs/supporting-code.md#windows-networking-and-activation).
+  ansible.builtin.set_fact:
+    windows_activation_cleanup_script: |
+      set -eu
+      domain=$1
+      mac=$2
+      {% if windows_runtime_settings_vault is defined %}
+      tag=$3
+      network=$4
+      restore_network=$5
+      expected_uuid=$6
+      expected_machine=$7
+      test "$(cat /etc/machine-id)" = "$expected_machine"
+      test "$(/usr/bin/virsh --connect qemu:///system domuuid "$domain")" = "$expected_uuid"
+      {% endif %}
+      interfaces=$(/usr/bin/virsh --connect qemu:///system domiflist "$domain")
+      if printf '%s\n' "$interfaces" | /usr/bin/awk -v mac="$mac" '$5 == mac {found=1} END {exit !found}'; then
+        /usr/bin/virsh --connect qemu:///system domif-setlink "$domain" "$mac" down --live
+        /usr/bin/virsh --connect qemu:///system detach-interface "$domain" network --mac "$mac" --live
+      fi
+      {% if windows_runtime_settings_vault is defined %}
+      rules=$(/usr/sbin/nft --json --handle list table inet hactar_recovery)
+      deletions=$(printf '%s' "$rules" | /usr/bin/jq -r --arg tag "$tag" --arg mac "$mac" '
+        .nftables[] | select(.rule) | .rule |
+        select(.comment == $tag and (.chain == "guest_forward" or .chain == "guest_host")) |
+        select(.expr | any(.match.left.payload.protocol == "ether" and
+                          .match.left.payload.field == "saddr" and .match.right == $mac)) |
+        "delete rule inet hactar_recovery \(.chain) handle \(.handle)"')
+      if [ -n "$deletions" ]; then
+        printf '%s\n' "$deletions" | /usr/sbin/nft --file -
+      fi
+      if [ "$restore_network" = yes ]; then
+        domains=$(/usr/bin/virsh --connect qemu:///system list --all --name)
+        for guest in $domains; do
+          for mode in live inactive; do
+            if [ "$mode" = inactive ]; then
+              interfaces=$(/usr/bin/virsh --connect qemu:///system domiflist "$guest" --inactive)
+            else
+              interfaces=$(/usr/bin/virsh --connect qemu:///system domiflist "$guest")
+            fi
+            if printf '%s\n' "$interfaces" | /usr/bin/awk -v net="$network" '$2 == "network" && $3 == net {found=1} END {exit !found}'; then
+              echo 'Refusing to stop an activation network now referenced by another adapter.' >&2
+              exit 1
+            fi
+          done
+        done
+        active=$(/usr/bin/virsh --connect qemu:///system net-list --name)
+        if printf '%s\n' "$active" | /usr/bin/awk -v net="$network" '$0 == net {found=1} END {exit !found}'; then
+          /usr/bin/virsh --connect qemu:///system net-destroy "$network"
+        fi
+      fi
+      {% endif %}
+    windows_activation_cleanup_arguments: >-
+      {{ [windows_activation_settings.vm_name, windows_activation_temporary_mac]
+         + ([windows_activation_guard_unit, windows_activation_connected_network,
+             'no' if domain.activation_network.active else 'yes', domain.uuid,
+             windows_runtime_hypervisor.machine_id] if windows_runtime_settings_vault is defined else []) }}
+  vars:
+    domain: "{{ windows_activation_domain_before.stdout | from_json }}"
   when: windows_activation_needs_nic | bool
   no_log: true
 
@@ -96,25 +165,68 @@
     - name: Arm a hypervisor deadline before exposing the temporary adapter
       # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
       ansible.builtin.command:
-        argv:
-          - systemd-run
-          - '--unit={{ windows_activation_guard_unit }}'
-          - --on-active=900s
-          - --timer-property=AccuracySec=1s
-          - --property=Type=oneshot
-          - --property=TimeoutStartSec=60s
-          - /bin/sh
-          - -c
-          - >-
-            /usr/bin/virsh --connect qemu:///system domif-setlink "$1" "$2" down --live;
-            /usr/bin/virsh --connect qemu:///system detach-interface "$1" network --mac "$2" --live
-          - --
-          - "{{ windows_activation_settings.vm_name }}"
-          - "{{ windows_activation_temporary_mac }}"
+        argv: >-
+          {{ ['systemd-run', '--unit=' ~ windows_activation_guard_unit, '--on-active=900s',
+              '--timer-property=AccuracySec=1s', '--property=Type=oneshot', '--property=TimeoutStartSec=60s',
+              '/bin/sh', '-c', windows_activation_cleanup_script, '--'] + windows_activation_cleanup_arguments }}
       delegate_to: "{{ windows_activation_hypervisor }}"
       become: true
       changed_when: true
       when: windows_activation_needs_nic | bool
+      no_log: true
+
+    - name: Prepare only MAC-specific public HTTP HTTPS and gateway DNS rules
+      ansible.builtin.set_fact:
+        windows_activation_temporary_rules: |
+          insert rule inet hactar_recovery guest_forward iifname "{{ network.bridge }}" \
+            ether saddr {{ windows_activation_temporary_mac }} oifname != @guest_bridges \
+            ip daddr != @installation_denied_v4 tcp dport { 80, 443 } accept comment "{{ windows_activation_guard_unit }}"
+          insert rule inet hactar_recovery guest_forward iifname "{{ network.bridge }}" \
+            ether saddr {{ windows_activation_temporary_mac }} ip daddr @installation_denied_v4 drop comment "{{ windows_activation_guard_unit }}"
+          insert rule inet hactar_recovery guest_forward iifname "{{ network.bridge }}" \
+            ether saddr {{ windows_activation_temporary_mac }} meta nfproto ipv6 drop comment "{{ windows_activation_guard_unit }}"
+          insert rule inet hactar_recovery guest_host iifname "{{ network.bridge }}" \
+            ether saddr {{ windows_activation_temporary_mac }} ip daddr {{ network.gateway }} udp dport 53 accept comment "{{ windows_activation_guard_unit }}"
+          insert rule inet hactar_recovery guest_host iifname "{{ network.bridge }}" \
+            ether saddr {{ windows_activation_temporary_mac }} ip daddr {{ network.gateway }} tcp dport 53 accept comment "{{ windows_activation_guard_unit }}"
+      vars:
+        network: "{{ (windows_activation_domain_before.stdout | from_json).activation_network }}"
+      when: windows_runtime_settings_vault is defined
+      no_log: true
+
+    - name: Validate the temporary rules without applying permissions
+      # Rule insertion has no suitable certified module; preserve the existing deny sets.
+      # Justification: [activation bounds](../docs/supporting-code.md#windows-networking-and-activation).
+      ansible.builtin.command:
+        argv: [nft, --check, --file, '-']
+        stdin: "{{ windows_activation_temporary_rules }}"
+      delegate_to: "{{ windows_activation_hypervisor }}"
+      become: true
+      changed_when: false
+      when: windows_runtime_settings_vault is defined
+      no_log: true
+
+    - name: Apply only the temporary MAC rules under the armed deadline
+      # Justification: [activation bounds](../docs/supporting-code.md#windows-networking-and-activation).
+      ansible.builtin.command:
+        argv: [nft, --file, '-']
+        stdin: "{{ windows_activation_temporary_rules }}"
+      delegate_to: "{{ windows_activation_hypervisor }}"
+      become: true
+      changed_when: true
+      when: windows_runtime_settings_vault is defined
+      no_log: true
+
+    - name: Start only the inspected unused activation network when initially inactive
+      # Justification: [activation bounds](../docs/supporting-code.md#windows-networking-and-activation).
+      ansible.builtin.command:
+        argv: [virsh, --connect, 'qemu:///system', net-start, "{{ windows_activation_connected_network }}"]
+      delegate_to: "{{ windows_activation_hypervisor }}"
+      become: true
+      changed_when: true
+      when:
+        - windows_runtime_settings_vault is defined
+        - not (windows_activation_domain_before.stdout | from_json).activation_network.active | bool
       no_log: true
 
     - name: Attach only a live e1000e activation NIC while retaining every original adapter
@@ -219,25 +331,14 @@
       changed_when: false
       no_log: true
 
-    - name: Remove only this operation's temporary live NIC
+    - name: Remove this operation's NIC rules and unused network with the same deadline cleanup
       # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
       ansible.builtin.command:
-        argv:
-          - virsh
-          - --connect
-          - qemu:///system
-          - detach-interface
-          - "{{ windows_activation_settings.vm_name }}"
-          - network
-          - --mac
-          - "{{ windows_activation_temporary_mac }}"
-          - --live
+        argv: "{{ ['/bin/sh', '-c', windows_activation_cleanup_script, '--'] + windows_activation_cleanup_arguments }}"
       delegate_to: "{{ windows_activation_hypervisor }}"
       become: true
       changed_when: true
-      when:
-        - windows_activation_needs_nic | bool
-        - windows_activation_temporary_mac in (windows_activation_cleanup_before.stdout | from_json).live | map(attribute='mac') | list
+      when: windows_activation_needs_nic | bool
       no_log: true
 
     - name: Verify detachment completed and every original persistent and live NIC was preserved
@@ -253,16 +354,6 @@
         - (windows_activation_cleanup_after.stdout | from_json).persistent == (windows_activation_domain_before.stdout | from_json).persistent
       retries: 12
       delay: 5
-      no_log: true
-
-    - name: Disarm the deadline only after original libvirt topology is verified
-      ansible.builtin.systemd_service:
-        name: "{{ windows_activation_guard_unit }}.timer"
-        state: stopped
-      delegate_to: "{{ windows_activation_hypervisor }}"
-      become: true
-      when: windows_activation_needs_nic | bool
-      failed_when: false
       no_log: true
 
     - name: Verify original Windows addresses DNS and routes even when licensing failed
@@ -286,4 +377,13 @@
         that:
           - not windows_activation_guest_restored.unreachable | default(false)
           - windows_activation_guest_restored.result.original_topology_verified | default(false)
+      no_log: true
+
+    - name: Disarm the deadline only after original hypervisor and Windows topology is verified
+      ansible.builtin.systemd_service:
+        name: "{{ windows_activation_guard_unit }}.timer"
+        state: stopped
+      delegate_to: "{{ windows_activation_hypervisor }}"
+      become: true
+      when: windows_activation_needs_nic | bool
       no_log: true

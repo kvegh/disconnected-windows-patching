@@ -60,9 +60,9 @@ temporary adapter or cleanup timer. A normal run on an unlicensed evaluation:
 
 The hypervisor timer first lowers the temporary link and then detaches that
 specific adapter if execution is canceled or the controller disappears. Normal
-cleanup stops the timer only after libvirt confirms removal. The connected
-network must already provide working DHCP, DNS and Microsoft activation access;
-the playbook does not create networks, firewall exceptions or proxies. It
+cleanup stops the timer only after original libvirt and Windows topology are
+verified. In the legacy path, the connected network must already provide DHCP,
+DNS and Microsoft activation access; that path creates no firewall exception. It
 requires `systemd-run`/`systemctl` on the libvirt hypervisor as well as the existing
 `virsh` and Python 3 tools. A host power loss already removes a live-only adapter
 from the next startup, since the persistent definition is never changed.
@@ -72,6 +72,38 @@ does not authorize edition conversion, installation of a different product key,
 resetting grace timers, disabling licensing services, or accepting license
 terms. Check mode inspects the existing state without activation, policy writes
 or NIC changes. Check mode is not proof that an unlicensed clone can activate.
+
+## Prepared environments
+
+For an explicitly approved prepared instance, the same playbook additionally
+matches the hypervisor's pinned machine identity, Windows/native UUID, clone
+title and disk path. The encrypted activation network must be an existing IPv4
+NAT network with no live or persistent domain references, an approved isolation
+bridge and no IPv6 network. A shared bridge is refused because routed firewall
+rules alone do not establish isolation between guests on that bridge.
+
+The generated MAC must be unused across all domains. Under the existing
+900-second deadline, the job validates and adds five temporary nftables rules:
+public IPv4 TCP 80/443, the existing private/production destination deny set,
+an IPv6 forward block, and gateway-only UDP/TCP DNS. Existing DHCP permission is
+reused. This is public HTTP/HTTPS access, not a Microsoft hostname filter.
+The job starts an initially inactive network without enabling autostart and
+attaches only the live temporary adapter. It creates no new network or service.
+
+Both normal cleanup and the same existing deadline execute one cleanup command.
+They check machine/UUID, lower and detach the exact temporary MAC first, then
+remove only rules matching both its unique operation comment and MAC. They stop
+an initially inactive network only after checking every domain's live and
+persistent references. Cleanup failures remain failures and leave the deadline
+armed; it is stopped only after successful original-topology checks.
+
+The private CaC enables the existing activation template's host-limit prompt
+only for a prepared instance. For one already-created guest, include both the
+`hypervisor` group and its exact inventory name in the limit, for example
+`hypervisor:example-windows-clone`. Keep the encrypted target list unchanged.
+The current expired guest can be activated after its clock repair and before
+retrying the stopped baseline. This does not claim that activation has succeeded;
+read back the actual installed license and original topology before continuing.
 
 ## Credentials and protected configuration
 

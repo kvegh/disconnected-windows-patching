@@ -31,6 +31,7 @@ function Reset-TestState {
 function Get-CimInstance([string]$ClassName, [string]$Filter) {
     if ($ClassName -eq 'Win32_OperatingSystem') { return [pscustomobject]@{ Caption = "Microsoft Windows Server $script:version Datacenter Evaluation"; ProductType = 3 } }
     if ($ClassName -eq 'SoftwareLicensingProduct') { return $script:licenses }
+    if ($ClassName -eq 'Win32_ComputerSystemProduct') { return [pscustomobject]@{ UUID = '00000000-0000-0000-0000-000000000001' } }
     throw 'Unexpected CIM call.'
 }
 function Invoke-CimMethod($InputObject, [string]$MethodName) {
