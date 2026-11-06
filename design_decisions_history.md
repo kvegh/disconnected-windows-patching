@@ -1,5 +1,28 @@
 # Design decisions history
 
+## Continue creation of missing owned AD resources — 2026-11-06
+
+Implementation: `1838a4c` (version 1.1.3).
+
+The current platform held two complete country sets and three unfinished sets.
+The existing focused resume demanded complete child resources before allowing
+their creation. Its initial plan now uses the existing normal ownership,
+approved-source and relationship checks, which permit missing desired children.
+The final all-migrated check remains mandatory before retirement/authentication;
+completed country sets need not be repeated. No new resume flag or helper was
+introduced.
+
+A repeated Controller outage masked the native inventory-host task's exact
+failure. Its protected result now exposes only numeric HTTP status and timeout
+metadata on failure. This does not claim to fix the underlying Controller
+watchdog stall, alter authentication or restart services.
+
+Thirty-one focused tests passed, covering partial-plan/final-completeness
+behavior, ownership refusals and sanitized native templating. Scoped strict
+production lint passed. Local Ansible 2.16 on Python 3.12 emitted its existing
+vendor `crypt` import deprecation; no runtime dependency was changed. The actual
+focused continuation and final access verification remain pending.
+
 ## Record verified activation and all regular baselines — 2026-11-06
 
 Relevant implementations: `e04fe12`, `bc4f5c2`, `34accc1` (current version 1.1.2).
