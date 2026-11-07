@@ -1,5 +1,27 @@
 # Design decisions history
 
+## Remove captured users before the LDAP authenticator — 2026-11-07
+
+Implementation: `1d2f3c4` (1.1.9).
+
+Normal trust-removal job 410 removed the owned maps but the gateway returned
+HTTP 409 for authenticator deletion because associated users remained. A bounded
+pinned gateway-log read confirmed the dependency; the authenticator's twelve
+users exactly matched the saved cleanup IDs/names and had no global privileges.
+
+Keep the same jobs and overall order. The existing trust-removal play reuses the
+ownership reader, refuses unknown authenticator users, verifies captured IDs and
+names plus original-baseline exclusion, then uses the certified user module's
+numeric-ID deletion before removing the authenticator and CA. The existing
+regional cleanup accepts those users already being absent. Preserve all foreign,
+custom-role, membership and privilege guards. Do not force deletion, migrate
+users to local authentication or change the capture format.
+
+Twelve focused reset tests passed, including partial-user retries and native
+assertion refusals for changed/foreign/pre-existing identities. Strict production
+lint passed fifteen discovered files. Retry only the failed trust-removal job
+with the saved artifacts before continuing the authorized Windows-only reset.
+
 ## Recognize native membership assignments during cleanup planning — 2026-11-07
 
 Implementation: `cbea849` (1.1.8).
