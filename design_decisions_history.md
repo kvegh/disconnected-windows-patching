@@ -15,6 +15,10 @@ Ten focused reset tests passed, including eight negative grant variants and a
 normal membership case before/after LDAP removal. Python compilation and strict
 production lint for thirteen discovered files passed. Retry only the existing
 capture with the original baseline; no destructive step is released by this fix.
+Normal retry 404 then passed in 63.410 seconds on `ac0b04c`. Its actual artifacts
+retain the original baseline fields/hash, four core guests and two golden-image
+records, adding exactly five distinct clone UUID/disk identities and owned AD
+object IDs. No removal job ran for this preview checkpoint.
 
 ## Complete the selected live package demonstration — 2026-11-07
 

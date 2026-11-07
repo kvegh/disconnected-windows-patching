@@ -1242,6 +1242,11 @@ operations use the selected hypervisor's pinned SSH identity. Keep artifacts
 outside plaintext Git. Golden-image verification compares metadata, not complete
 disk-content checksums. Offline validation is complete; normal live reset still
 requires its serialized acceptance run.
+Read-only append capture 404 passed on 2026-11-07, retaining the original core
+snapshot and two golden-image records exactly while adding five distinct clone
+UUID/disk identities and the dedicated AD cleanup IDs. This verifies the preview,
+not deletion: trust/resource removal, guest retirement and final NIC cleanup
+remain separate guarded steps.
 
 `inspect_windows_network.yml` provides a read-only diagnostic JT for the saved
 network result, scheduled-task status, current adapters, addresses and routes.
