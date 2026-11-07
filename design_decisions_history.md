@@ -1,5 +1,19 @@
 # Design decisions history
 
+## Protect the approved scoped Nexus change — 2026-11-07
+
+Implementation: `cc621a2` (version 1.1.6).
+
+The user approved adding the selected AAP primary address to the existing
+external repository's TCP 8081 allowlist. Use the existing focused firewall tag;
+keep all other rule fields, sources and services unchanged. Explicitly protect
+the rule task's rendered addresses in job output. No installer, new credential,
+network framework or activation-order change is introduced.
+
+Scoped strict production lint passed for nine discovered files. Live application
+and the remaining package synchronization/deployment tests are still underway;
+publication alone does not establish their success.
+
 ## Record the live Windows functional checkpoint — 2026-11-06
 
 Tested executable revision: `2dfb9c0` (version 1.1.5).
