@@ -1,5 +1,21 @@
 # Design decisions history
 
+## Recognize native membership assignments during cleanup planning — 2026-11-07
+
+Implementation: `cbea849` (1.1.8).
+
+Read-only capture 401 passed native preservation checks but refused AAP's direct
+membership records. Actual API inspection showed only managed Organization
+Member and Team Member roles on already-owned organization/team memberships.
+Permit only those exact built-ins, content types, permissions, user IDs and
+verified membership IDs. Continue to refuse custom, elevated, direct resource
+and foreign assignments. Do not change any AAP grant or fabricate ownership.
+
+Ten focused reset tests passed, including eight negative grant variants and a
+normal membership case before/after LDAP removal. Python compilation and strict
+production lint for thirteen discovered files passed. Retry only the existing
+capture with the original baseline; no destructive step is released by this fix.
+
 ## Complete the selected live package demonstration — 2026-11-07
 
 Public implementation: `e2e5770` (1.1.7); tested package/proof revision: `e17cfd7`.
