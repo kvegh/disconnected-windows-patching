@@ -69,8 +69,11 @@ retains two managed-WSUS entries on Server 2025 and none on Server 2022; do not
 present missing history as proof of source. The actual successful managed patch
 jobs 378 and 380 separately verify their installed updates and exact ceiling.
 The desktop reporter and its native evidence tests ran during application
-deployment; an interactive desktop click was not tested. Fresh unattended
-workflow and teardown acceptance remain separate.
+deployment; an interactive desktop click was not tested. The selected Windows
+guests were subsequently retired after this proof; final teardown verification
+435 passed while preserving core guests and golden images. These application
+results describe the retained historical test, not currently running Windows
+guests. Fresh unattended full-workflow acceptance remains separate.
 
 Live validation on 2026-10-23 returned the following actual state:
 

@@ -31,8 +31,8 @@ connection after all five test clones and disks are absent. Exact selected clone
 inputs and cheap read-only destination/image checks precede this preparation,
 so an obsolete or invalid VM request cannot change AAP networking. No extra job or
 wrapper is introduced. The same guide describes this transaction and the guarded
-LDAP/CA cleanup component; complete Windows decommission and live functional
-acceptance remain separate required checks.
+LDAP/CA cleanup component. Selected live functional acceptance and Windows-only
+teardown have passed; a fresh unattended full workflow remains unverified.
 The common VM network default stays at play-variable precedence, so the AD
 entrypoint’s explicit network is preserved. OS SSH requires at least one recorded
 guest host key pinned at its private address and rejects any unregistered key
@@ -84,7 +84,9 @@ rule unchanged. The four-package synchronization/export/import path, baseline
 application installation and upgrade passed. The combined live report verifies
 both current applications and their baseline-to-upgrade history on both managed
 servers, alongside their exact April builds and correct WSUS policy.
-Complete fresh workflow and teardown acceptance remain open.
+Selected Windows-only teardown subsequently passed, preserving the four core
+guests and two golden images. A fresh unattended complete workflow remains
+unverified; the proposed future basics/activation ordering change is not approved.
 For an approved activation in a prepared environment, the existing activation
 job verifies the exact clone and uses an unused IPv4 NAT network. Its generated
 temporary MAC receives only public HTTP/HTTPS and DNS to that network's gateway;
@@ -1247,18 +1249,24 @@ credential for its read-only API snapshot. Existing Machine and distinct Vault
 credentials retain their identities. All API calls validate HTTPS and native
 operations use the selected hypervisor's pinned SSH identity. Keep artifacts
 outside plaintext Git. Golden-image verification compares metadata, not complete
-disk-content checksums. Offline validation is complete; normal live reset still
-requires its serialized acceptance run.
-Read-only append capture 404 passed on 2026-11-07, retaining the original core
-snapshot and two golden-image records exactly while adding five distinct clone
-UUID/disk identities and the dedicated AD cleanup IDs. This verifies the preview,
-not deletion: trust/resource removal, guest retirement and final NIC cleanup
-remain separate guarded steps.
-The later native run verified LDAP/user/CA removal and regional-resource absence.
-Its first guest retirement undefined that guest, then Python 3.9 rejected the
-old post-undefine stat call before disk unlink. The compatible non-following call
-is fixed; the existing orphan-disk refusal remains intact. The retained file and
-remaining guest retirements stay on hold for a specific user recovery decision.
+disk-content checksums.
+
+The selected live reset passed on 2026-11-07 using the original baseline and
+append capture 404. Trust cleanup 412 and regional cleanup 417 passed. Guest
+retirements 425/427/429/431/433 completed, and final verification 435 passed in
+98.979 seconds on `b4305b5` (1.1.11): all five clone domains/disks, reservations,
+managed ownership, permissions and dedicated AD objects were absent. The four
+core guest definitions/states and two golden-image metadata records were
+preserved; only the owned supplemental AAP NIC and OS connection were removed.
+Reusable Windows inventories/groups, CaC and Job Templates remain available.
+
+This was a repaired, staged reset. First retirement 420 undefined its guest
+before the Python 3.9 stat error; the user separately approved one guarded unlink
+of that exact leftover disk before normal continuation. Job 422 later stopped
+after reservation deletion; its precise initiating exception was not recovered.
+Normal continuation 425 and all four fresh subsequent retirements passed.
+The orphan refusal remains intact. Do not present this result as an unattended
+first-run reset or proof of a fresh complete provisioning workflow.
 
 `inspect_windows_network.yml` provides a read-only diagnostic JT for the saved
 network result, scheduled-task status, current adapters, addresses and routes.

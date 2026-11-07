@@ -139,8 +139,11 @@ record; this component does not stop or delete the AAP VM.
 The selected live test has created all five guests and completed the four regular
 baselines, AD preparation and real LDAP permission verification. WSUS content and
 the April ceiling passed. Both managed Windows versions reached their exact April
-baselines without remaining approved updates or reboot. Nexus package deployment
-and complete scoped decommission are still incomplete.
+baselines without remaining approved updates or reboot. Nexus package
+synchronization/export/import, baseline installation and upgrades also passed.
+The subsequent selected Windows-only teardown passed final verification 435,
+preserving four core guests and two golden images. A fresh unattended full
+workflow remains unverified.
 Successful CaC import alone does not establish those runtime outcomes.
 
 ## Migrating the selected workflow graph
@@ -228,15 +231,18 @@ absent` for a selected private instance. It requires the exact five-clone
 `windows_decommission_preview` and a Boolean `windows_decommission_apply` flag.
 The default `false` collects protected LDAP/CA ownership evidence without
 removing anything. An approved `true` run uses native platform collection modules
-to remove only the exact test authenticator and its recognized maps, verifies
-built-in and unrelated authentication IDs remain, then removes only the matching
-CA anchor and exact marked block from the gateway bundle. The AAP guest's SSH
-keys and libvirt product UUID are verified first. Changed, shared or ambiguous
+to remove the owned maps, then captured LDAP-exclusive test users, then their
+authenticator. Captured IDs/names, original-baseline exclusion and absence of
+foreign or elevated grants are required; unknown provider users stop removal.
+It verifies built-in and unrelated authentication IDs remain, then removes only
+the matching CA anchor and exact marked block from the gateway bundle. The AAP
+guest's SSH keys and libvirt product UUID are verified first. Changed, shared or ambiguous
 ownership fails closed.
 
-This component is prepared for the full decommission sequence. Its live use and
-the connection to VM, network, inventory and shared lifecycle retirement remain
-unfinished. It does not add another Job Template or automatically enable cleanup.
+Trust-removal job 412 and regional-resource removal 417 passed. The existing
+per-guest destroy jobs subsequently verified five retirements, and final job 435
+verified all owned resource absences before removing the recorded supplemental
+AAP connection. No additional Job Template or automatic cleanup trigger is added.
 
 ## Verification and remaining acceptance
 
@@ -247,9 +253,12 @@ tests accept `ignore` with no CA and require a CA for `validate`. Syntax checks 
 runtime playbook. Private capture checks render the selected resources and reject
 unprepared destinations while preserving literal credential injectors.
 
-These checks do not prove a live Windows deployment. Provisioning, authenticated
-WinRM connectivity, approved network access, patching/application/AD acceptance and complete scoped
-decommission must be verified in the serialized test window. The existing
-baseline, guarded clone removal and post-removal verification jobs remain the
-starting point for decommission; their current implementation does not by itself
-remove instance-specific network, inventory, LDAP or shared lifecycle resources.
+The selected live run separately proved authenticated WinRM, approved network
+access, patching, application upgrades and real LDAP permissions. The existing
+baseline, trust/resource removal, guarded clone removal and final verification
+jobs also completed the selected reset, including owned inventory, reservations,
+permissions and supplemental AAP networking. The first guest required a
+separately user-approved exact orphan-disk unlink after an interrupted deletion;
+later normal retirements and final verification passed. This staged acceptance
+does not prove an unattended fresh full workflow, and the proposed future
+basics/activation ordering change remains unapproved.

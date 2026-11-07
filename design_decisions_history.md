@@ -1,5 +1,30 @@
 # Design decisions history
 
+## Verify the selected Windows-only reset — 2026-11-07
+
+Tested implementation: `b4305b5` (1.1.11), including compatibility fix `6c32d3f`,
+LDAP dependency fix `1d2f3c4` and credential-removal fix `b40af73`.
+
+The user approved removal of the exact leftover Windows disk after the first
+retirement had undefined its guest and failed before unlink. One guarded unlink
+used the captured ownership, fresh target/file checks and existing lock; no XML
+was recreated and the normal orphan refusal was not changed. Normal continuation
+422 then stopped after reservation deletion, before policy publication. Its
+precise initiating exception was not recovered. Read-only current-state checks
+passed; normal continuation 425 and four fresh retirements 427/429/431/433 passed.
+
+Final existing verification job 435 passed in 98.979 seconds: all five Windows
+domains/disks and their reservations, managed records, permissions and dedicated
+AD objects were absent. Four core guest definitions/states and two golden-image
+metadata records matched the retained baseline. The owned supplemental AAP NIC
+and OS connection were removed last. Reusable CaC, inventories/groups and Job
+Templates remain. No new helper, recovery flag, shared dependency pin or runtime
+configuration was introduced for the continuation.
+
+Record this as a repaired, staged reset. It does not prove a fresh unattended
+full workflow; future basics/activation ordering remains a separate unapproved
+proposal. This checkpoint updates documentation only and keeps version 1.1.11.
+
 ## Preserve the disk guard on native RHEL 9 Python — 2026-11-07
 
 Implementation: `6c32d3f` (1.1.11).
