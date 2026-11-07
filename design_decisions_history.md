@@ -1,5 +1,26 @@
 # Design decisions history
 
+## Preserve the disk guard on native RHEL 9 Python — 2026-11-07
+
+Implementation: `6c32d3f` (1.1.11).
+
+LDAP/user/CA cleanup 412 and regional-resource cleanup 417 passed. First guest
+retirement 420 undefined its exact owned domain, then stopped before disk unlink:
+native Python 3.9.25 does not accept `Path.stat(follow_symlinks=False)`. Use
+`Path.lstat()` with the same non-following device/inode/link comparison. A
+read-only check on that native interpreter verified equivalent identity metadata.
+The original orphan-storage refusal is unchanged; no recovery flag, helper,
+schema, recreated domain or automatic orphan deletion is added.
+
+Thirteen focused reset tests passed; the actual post-undefine guard also refuses
+replacement inodes and symlinks. Strict production lint passed nine discovered
+files. The first disk remains while its domain is absent; other guest retirements
+and policy/source cleanup are held for the user's specific recovery decision.
+Retained ownership evidence includes captured UUID/disk/NIC and authenticated
+Windows identity, but the reviewed artifacts provide no original disk inode or
+complete original Windows XML. Do not substitute current metadata for that
+missing original evidence or claim complete live reset acceptance.
+
 ## Supply the required type when deleting synthetic credentials — 2026-11-07
 
 Implementation: `b40af73` (1.1.10).
