@@ -1034,7 +1034,8 @@ Windows firewall rule. The existing runtime selection, input checks and Windows
 connection wait still run; installer copies, onboarding and feed creation do not.
 Include the AAP execution host's actual routed source address, which can differ
 from its secondary Windows-network address. This tag does not broaden the saved
-allowlist or change hypervisor policy.
+allowlist or change hypervisor policy. The rule task protects its rendered source
+addresses in job output.
 
 The clients have only an isolated NIC. AAP needs an execution node on that
 network or a restricted management route. Internal WSUS's second NIC does not

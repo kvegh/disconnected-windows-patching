@@ -192,6 +192,7 @@
         profiles: domain,private,public
         enabled: true
         state: present
+      no_log: true
 
     - name: Wait for Nexus API readiness
       ansible.windows.win_uri:
