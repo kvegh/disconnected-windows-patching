@@ -169,6 +169,13 @@ permissions and matching already-verified owned memberships. Custom, elevated,
 resource or foreign assignments still refuse cleanup. The existing reset tests
 cover the real membership representation, absent retries and those refusals;
 normal capture/reset jobs supply live validation.
+The gateway refuses authenticator deletion while associated users exist. The
+existing trust-removal play reuses this reader, checks every remaining user's
+captured ID/name and original-baseline exclusion, and removes only those users
+through `ansible.platform.user` before the authenticator. It checks the complete
+authenticator-user list to refuse unknown associations. Regional cleanup then
+accepts those owned users already being absent. No forced delete or local-user
+migration is used.
 
 The gateway trust checks run Python's normal SSL context inside the actual
 existing gateway container so they verify that runtime's CA bundle and LDAPS

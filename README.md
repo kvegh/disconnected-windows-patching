@@ -1211,10 +1211,13 @@ Use the existing jobs; no cleanup workflow or additional job is required.
    `teardown_baseline` and `windows_decommission_preview`.
 3. Run **Configure AD Gateway Trust** with those artifacts,
    `ad_trust_state: absent` and Boolean `windows_decommission_apply: true`.
-   This removes the owned LDAP maps/authenticator and AD CA first.
+   This removes the owned LDAP maps, then only the captured LDAP-exclusive test
+   users, then their authenticator and AD CA. The API requires user removal
+   before authenticator deletion; unknown users, foreign grants and original
+   baseline identities stop cleanup. No user is moved to local authentication.
 4. Run **Configure AD AAP Regions** with those artifacts,
    `ad_aap_state: absent` and Boolean `windows_decommission_apply: true`.
-   It removes only the captured dedicated mock resources, test users, teams and
+   It removes only the captured dedicated mock resources, any remaining test users, teams and
    reader roles. Pre-existing objects, foreign memberships/grants, shared PAH
    credentials and reusable deployment Job Templates are preserved or cause refusal.
    The ownership reader accepts AAP's managed Organization Member/Team Member

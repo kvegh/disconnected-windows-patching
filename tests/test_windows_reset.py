@@ -139,6 +139,43 @@ class WindowsResetTests(unittest.TestCase):
             with self.subTest(fault=fault), self.assertRaisesRegex(AssertionError, 'direct grants'):
                 cleanup.snapshot(p, API(d))
 
+    def test_regional_cleanup_accepts_users_already_removed_before_authenticator(self):
+        p, d = ad_fixture(with_memberships=True)
+        saved = cleanup.snapshot(p, API(d))
+        before = {key: [] for key in saved if key != 'prefix'}
+        before['prefix'] = p['prefix']
+        d['authenticators'] = []
+        for count in (5, 0):
+            d['users'] = copy.deepcopy(ad_fixture()[1]['users'][:count])
+            current = cleanup.snapshot(dict(p, saved=saved), API(d))
+            self.assertEqual(cleanup.remaining(current, saved, before)['users'], saved['users'][:count])
+            self.assertEqual(current['projects'], saved['projects'])
+
+    def test_early_user_removal_requires_captured_id_name_and_original_baseline_exclusion(self):
+        tasks = yaml.safe_load((ROOT / 'tasks/windows_remove_ldap.yml').read_text())[0]['block']
+        block = next(row['block'] for row in tasks if row['name'].startswith('Remove only captured LDAP-exclusive users'))
+        guard = next(row['ansible.builtin.assert']['that'] for row in block
+                     if row['name'].startswith('Require every remaining user in the captured plan'))
+        captured = [{'id': 500, 'username': 'example-reader'}, {'id': 501, 'username': 'example-executor'}]
+        for fault in ('normal', 'partial-retry', 'foreign-id', 'changed-name', 'original-user', 'wrong-provider-name'):
+            item = copy.deepcopy(captured[1 if fault == 'partial-retry' else 0])
+            original = []
+            provider = [copy.deepcopy(item)]
+            if fault == 'foreign-id': item['id'] = 9999
+            if fault == 'changed-name': item['username'] = 'foreign-reader'
+            if fault == 'original-user': original = [copy.deepcopy(item)]
+            if fault == 'wrong-provider-name': provider[0]['username'] = 'foreign-reader'
+            values = {'item': item, 'teardown_baseline': {'ad_cleanup': {'users': captured},
+                      'ad_before': {'users': original}}, 'windows_ldap_authenticator_users': {'json': {'results': provider}}}
+            templar = Templar(loader=DataLoader(), variables=values)
+            allowed = all(templar.template('{{ ' + expression + ' }}') for expression in guard)
+            with self.subTest(fault=fault):
+                self.assertEqual(allowed, fault in ('normal', 'partial-retry'))
+        removal = next(row for row in block if 'ansible.platform.user' in row)
+        self.assertEqual(removal['ansible.platform.user']['state'], 'absent')
+        self.assertEqual(removal['ansible.platform.user']['username'], '{{ item.id | string }}')
+        self.assertIn('windows_decommission_apply', removal['when'])
+
     def test_changed_or_shared_demo_objects_are_refused(self):
         for fault in ('source', 'playbook', 'superuser', 'foreign-grant', 'foreign-membership'):
             p, d = ad_fixture()
