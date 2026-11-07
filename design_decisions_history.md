@@ -1,5 +1,18 @@
 # Design decisions history
 
+## Load private settings in the focused Nexus run — 2026-11-07
+
+Implementation: `e2e5770` (version 1.1.7).
+
+The first focused firewall job stopped at input validation without changing a
+rule: its dynamic include was selected, but the include's untagged child tasks
+were skipped. Apply the existing `always` tag to those runtime-loader children
+in this playbook. Keep the selected-instance checks, encrypted settings and
+protected output; do not rerun installation or broaden the access rule.
+
+Strict production lint passed for nine discovered files. The focused live retry
+and the remaining package branch determine runtime completion.
+
 ## Protect the approved scoped Nexus change — 2026-11-07
 
 Implementation: `cc621a2` (version 1.1.6).
