@@ -1220,6 +1220,8 @@ Use the existing jobs; no cleanup workflow or additional job is required.
    It removes only the captured dedicated mock resources, any remaining test users, teams and
    reader roles. Pre-existing objects, foreign memberships/grants, shared PAH
    credentials and reusable deployment Job Templates are preserved or cause refusal.
+   Synthetic credential deletion supplies the native module's required
+   `credential_type: Machine` as well as its captured ID and owned organization.
    The ownership reader accepts AAP's managed Organization Member/Team Member
    assignments only when their exact built-in permissions and already-verified
    owned membership IDs match. Direct resource, custom, elevated or foreign
