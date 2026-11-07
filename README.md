@@ -1217,6 +1217,10 @@ Use the existing jobs; no cleanup workflow or additional job is required.
    It removes only the captured dedicated mock resources, test users, teams and
    reader roles. Pre-existing objects, foreign memberships/grants, shared PAH
    credentials and reusable deployment Job Templates are preserved or cause refusal.
+   The ownership reader accepts AAP's managed Organization Member/Team Member
+   assignments only when their exact built-in permissions and already-verified
+   owned membership IDs match. Direct resource, custom, elevated or foreign
+   assignments still stop cleanup.
 5. Run **Destroy VM** once per selected guest, including AD, passing
    `windows_decommission_preview` and choosing the exact `vm_name` in its survey.
    Registered guests use the existing typed Windows retirement role to remove

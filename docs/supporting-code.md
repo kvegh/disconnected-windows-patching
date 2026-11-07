@@ -160,6 +160,16 @@ handler chain with synthetic responses and verifies that only one request is
 issued. This is transport-policy evidence, not a live certificate or LDAP test.
 Native AAP modules continue to create and update the declared platform objects.
 
+`windows-ad-cleanup.py` reuses the read-only clients to collect exact owned IDs
+and reject foreign references before native AAP modules remove anything. The
+deletion modules do not provide this combined ownership preview. AAP 2.7 exposes
+ordinary organization/team memberships as direct user assignments: accept only
+managed Organization Member/Team Member definitions with exact built-in
+permissions and matching already-verified owned memberships. Custom, elevated,
+resource or foreign assignments still refuse cleanup. The existing reset tests
+cover the real membership representation, absent retries and those refusals;
+normal capture/reset jobs supply live validation.
+
 The gateway trust checks run Python's normal SSL context inside the actual
 existing gateway container so they verify that runtime's CA bundle and LDAPS
 hostname/chain checks. Ansible obtains the expected container/mount metadata and

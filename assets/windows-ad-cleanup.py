@@ -97,13 +97,30 @@ def snapshot(p, api):
             if authenticators:
                 require(isinstance(associations, dict) and set(associations) == {str(authenticators[0]['id'])},
                         'A demo user is not owned exclusively by the selected LDAP authenticator.')
+            owned_memberships = {}
             for endpoint, allowed in (('teams', {str(team['id']) for team in plan['teams']}),
                                       ('organizations', {org} if org else set())):
                 memberships = api.listing('/api/gateway/v1/users/' + str(row['id']) + '/' + endpoint + '/')
                 require(all(str(value['id']) in allowed for value in memberships),
                         'A demo identity belongs to unrelated organizations or teams.')
-            require(not api.listing('/api/gateway/v1/role_user_assignments/?user=' + str(row['id'])),
-                    'A demo identity has direct grants outside its LDAP team model.')
+                owned_memberships['shared.' + endpoint.removesuffix('s')] = {str(value['id']) for value in memberships}
+            # AAP 2.7 exposes ordinary membership as direct assignments too.
+            # Keep only those exact built-ins; [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
+            membership_roles = {
+                'shared.organization': ('Organization Member', {'shared.member_organization', 'shared.view_organization', 'shared.view_team'}),
+                'shared.team': ('Team Member', {'shared.member_team', 'shared.view_team'}),
+            }
+            for grant in api.listing('/api/gateway/v1/role_user_assignments/?user=' + str(row['id'])):
+                definition = definitions_by_id.get(str(grant['role_definition']), {})
+                content_type = definition.get('content_type')
+                expected_name, expected_permissions = membership_roles.get(content_type, (None, set()))
+                require(expected_name is not None and definition.get('managed') is True
+                        and definition.get('name') == expected_name
+                        and set(definition.get('permissions', [])) == expected_permissions
+                        and grant.get('content_type') == content_type
+                        and str(grant.get('user')) == str(row['id'])
+                        and str(grant.get('object_id')) in owned_memberships.get(content_type, set()),
+                        'A demo identity has direct grants outside its LDAP team model.')
             plan['users'].append({'id': row['id'], 'username': row['username']})
     for row in definitions:
         for kind in verification.ENDPOINTS:

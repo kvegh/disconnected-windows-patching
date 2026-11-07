@@ -26,15 +26,20 @@ class API(FixtureAPI):
         parts = urlsplit(path).path.strip('/').split('/')
         endpoint = parts[3]
         if endpoint in ('role_team_assignments', 'role_user_assignments', 'role_definitions'):
-            return copy.deepcopy(self.data.get(endpoint, []))
+            rows = self.data.get(endpoint, [])
+            if endpoint == 'role_user_assignments':
+                for key, values in parse_qs(urlsplit(path).query).items():
+                    rows = [row for row in rows if str(row.get(key)) == values[0]]
+            return copy.deepcopy(rows)
         if len(parts) == 6 and endpoint == 'teams':
             return copy.deepcopy(self.data['users'])
         if len(parts) == 6 and endpoint == 'users':
-            return copy.deepcopy(self.data.get('foreign_membership', []))
+            memberships = self.data.get('user_memberships', {}).get(parts[4], {})
+            return copy.deepcopy(memberships.get(parts[5], self.data.get('foreign_membership', [])))
         return super().listing(path)
 
 
-def ad_fixture():
+def ad_fixture(with_memberships=False):
     p = FakeAAP().profile
     p['verify_logins'] = False
     p['prefix'] = 'Example'
@@ -49,6 +54,17 @@ def ad_fixture():
     d['role_definitions'] = [dict(id=700 + i, name='Example ' + kind + ' Reader',
                                   content_type='awx.' + kind, permissions=['awx.view_' + kind])
                              for i, kind in enumerate(cleanup.verification.ENDPOINTS)]
+    if with_memberships:
+        d['role_definitions'] += [
+            dict(id=800, name='Organization Member', managed=True, content_type='shared.organization',
+                 permissions=['shared.member_organization', 'shared.view_organization', 'shared.view_team']),
+            dict(id=801, name='Team Member', managed=True, content_type='shared.team',
+                 permissions=['shared.member_team', 'shared.view_team']),
+        ]
+        d['user_memberships'] = {'500': {'organizations': [d['organizations'][0]], 'teams': d['teams'][:2]}}
+        d['role_user_assignments'] = [dict(user=500, role_definition=800, object_id='1', content_type='shared.organization')]
+        d['role_user_assignments'] += [dict(user=500, role_definition=801, object_id=str(team['id']), content_type='shared.team')
+                                       for team in d['teams'][:2]]
     return p, d
 
 
@@ -95,6 +111,33 @@ class WindowsResetTests(unittest.TestCase):
         p, d = ad_fixture()
         with self.assertRaisesRegex(AssertionError, 'LDAP'):
             cleanup.snapshot(dict(p, saved={}), API(d))
+
+    def test_native_managed_membership_assignments_match_verified_owned_memberships(self):
+        p, d = ad_fixture(with_memberships=True)
+        saved = cleanup.snapshot(p, API(d))
+        self.assertEqual(len(saved['users']), 12)
+        self.assertEqual(len(saved['role_definitions']), 4)
+        self.assertNotIn(800, [row['id'] for row in saved['role_definitions']])
+        d['authenticators'] = []
+        self.assertEqual(cleanup.snapshot(dict(p, saved=saved), API(d)), saved)
+
+    def test_direct_foreign_custom_elevated_or_resource_assignments_are_refused(self):
+        for fault in ('foreign-object', 'unheld-team', 'custom-role', 'admin-role',
+                      'extra-permission', 'resource-role', 'wrong-content-type', 'unknown-role'):
+            p, d = ad_fixture(with_memberships=True)
+            grant = d['role_user_assignments'][0]
+            definition = next(row for row in d['role_definitions'] if row['id'] == 800)
+            if fault == 'foreign-object': grant['object_id'] = '9999'
+            if fault == 'unheld-team':
+                grant.update(role_definition=801, content_type='shared.team', object_id=str(d['teams'][2]['id']))
+            if fault == 'custom-role': definition['managed'] = False
+            if fault == 'admin-role': definition['name'] = 'Organization Admin'
+            if fault == 'extra-permission': definition['permissions'].append('shared.change_organization')
+            if fault == 'resource-role': grant['role_definition'] = 700
+            if fault == 'wrong-content-type': grant['content_type'] = 'awx.project'
+            if fault == 'unknown-role': grant['role_definition'] = 9999
+            with self.subTest(fault=fault), self.assertRaisesRegex(AssertionError, 'direct grants'):
+                cleanup.snapshot(p, API(d))
 
     def test_changed_or_shared_demo_objects_are_refused(self):
         for fault in ('source', 'playbook', 'superuser', 'foreign-grant', 'foreign-membership'):
