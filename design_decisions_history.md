@@ -11,7 +11,9 @@ in this playbook. Keep the selected-instance checks, encrypted settings and
 protected output; do not rerun installation or broaden the access rule.
 
 Strict production lint passed for nine discovered files. The focused live retry
-and the remaining package branch determine runtime completion.
+385 then succeeded on `a5f21cf`: only the external firewall rule changed, while
+the internal rule was unchanged and installation/feed creation were not selected.
+The remaining package branch determines runtime completion.
 
 ## Protect the approved scoped Nexus change — 2026-11-07
 

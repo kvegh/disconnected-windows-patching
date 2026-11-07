@@ -78,8 +78,10 @@ All four regular guest baselines are now verified. AD integration and real LDAP
 permission tests passed. WSUS synchronization, export/import and the April ceiling
 also passed. Windows Server 2022 reached build 20348.5020 and Windows Server 2025
 reached 26100.32690, both exactly at their April baselines with no remaining
-approved updates or reboot. Nexus package tests await explicit source-access
-approval. Complete fresh workflow and teardown acceptance remain open.
+approved updates or reboot. The approved single-source Nexus firewall change is
+applied: the focused run changed only the external rule and left the internal
+rule unchanged. Package synchronization and deployment tests are underway.
+Complete fresh workflow and teardown acceptance remain open.
 For an approved activation in a prepared environment, the existing activation
 job verifies the exact clone and uses an unused IPv4 NAT network. Its generated
 temporary MAC receives only public HTTP/HTTPS and DNS to that network's gateway;
