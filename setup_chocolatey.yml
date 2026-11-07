@@ -9,7 +9,10 @@
     - vars/wsus_environment_vault.yml
   pre_tasks:
     - name: Load the explicitly selected private Windows runtime profile
-      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      ansible.builtin.include_tasks:
+        file: tasks/windows_runtime_settings.yml
+        apply:
+          tags: always
       when: windows_runtime_settings_vault is defined
       tags: always
 
@@ -87,7 +90,10 @@
       chocolatey_current_feed_name] }}
   pre_tasks:
     - name: Load the explicitly selected private Windows runtime profile
-      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      ansible.builtin.include_tasks:
+        file: tasks/windows_runtime_settings.yml
+        apply:
+          tags: always
       when: windows_runtime_settings_vault is defined
       tags: always
 

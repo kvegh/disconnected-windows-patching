@@ -1036,6 +1036,9 @@ Include the AAP execution host's actual routed source address, which can differ
 from its secondary Windows-network address. This tag does not broaden the saved
 allowlist or change hypervisor policy. The rule task protects its rendered source
 addresses in job output.
+The runtime include applies its `always` tag to its child tasks as well, so a
+tagged run decrypts and validates the selected private profile before checking
+repository inputs. A failed input check stops before any rule change.
 
 The clients have only an isolated NIC. AAP needs an execution node on that
 network or a restricted management route. Internal WSUS's second NIC does not
