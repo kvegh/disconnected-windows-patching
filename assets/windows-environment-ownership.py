@@ -122,7 +122,7 @@ def main():
                 raise ValueError('Only a standalone qcow2 clone can be removed.')
             subprocess.run(['virsh', 'undefine', name] + (['--nvram'] if result['nvram'] else []),
                            check=True, capture_output=True)
-            after = disk.stat(follow_symlinks=False)
+            after = disk.lstat()
             if (after.st_dev, after.st_ino, after.st_nlink) != (identity.st_dev, identity.st_ino, 1):
                 raise ValueError('The clone disk identity changed during removal; storage was preserved.')
             disk.unlink()

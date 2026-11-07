@@ -1,9 +1,12 @@
 """Check normal reset planning and important wrong-target refusals offline."""
+import ast
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
 import ssl
+import tempfile
 import unittest
 from urllib.error import URLError
 from urllib.parse import parse_qs, urlsplit
@@ -222,6 +225,34 @@ class WindowsResetTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(ValueError):
                 ownership.unconfigured_permissions(guest, {field: [{'ipv4': '192.0.2.10',
                     'mac': '52:54:00:00:00:01', 'bridge': 'example'}]})
+
+    def test_post_undefine_inode_guard_accepts_the_same_file_and_refuses_replacement(self):
+        # Exercise the actual storage guard without a VM or executing its unlink.
+        tree = ast.parse(Path(ownership.__file__).read_text())
+        after = next(node for node in ast.walk(tree) if isinstance(node, ast.Assign)
+                     and any(isinstance(target, ast.Name) and target.id == 'after' for target in node.targets))
+        guard = next(node for node in ast.walk(tree) if isinstance(node, ast.If)
+                     and any(isinstance(child, ast.Raise)
+                             and any(isinstance(value, ast.Constant) and isinstance(value.value, str)
+                                     and value.value.startswith('The clone disk identity changed') for value in ast.walk(child))
+                             for child in node.body))
+        code = compile(ast.Module(body=[after, guard], type_ignores=[]), 'actual-native-storage-guard', 'exec')
+        with tempfile.TemporaryDirectory() as directory:
+            disk = Path(directory) / 'owned-clone.qcow2'
+            disk.write_bytes(b'synthetic owned file')
+            identity = disk.stat()
+            exec(code, {'disk': disk, 'identity': identity})
+            replacement = Path(directory) / 'replacement'
+            replacement.write_bytes(b'unrelated file')
+            os.replace(replacement, disk)
+            with self.assertRaisesRegex(ValueError, 'identity changed'):
+                exec(code, {'disk': disk, 'identity': identity})
+            identity = disk.stat()
+            held_file = Path(directory) / 'held-original'
+            os.replace(disk, held_file)
+            disk.symlink_to(held_file)
+            with self.assertRaisesRegex(ValueError, 'identity changed'):
+                exec(code, {'disk': disk, 'identity': identity})
 
 
 if __name__ == '__main__':

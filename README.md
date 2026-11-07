@@ -1233,6 +1233,8 @@ Use the existing jobs; no cleanup workflow or additional job is required.
    unconfigured clone requires absent managed records/permissions and exact
    native ownership. Fully absent retries are allowed; an orphan disk without its
    owned domain stops for investigation. No Windows computer identity is invented.
+   The post-undefine inode/link guard uses `Path.lstat()` for the hypervisor's
+   Python 3.9, preserving non-following metadata checks before unlink.
 6. Run **Verify Windows Teardown** with both artifacts. It checks core/image
    preservation, all five domain/disk absences, reservations, managed ownership,
    permissions and dedicated AD cleanup, then removes the owned AAP NIC and RHEL
@@ -1252,6 +1254,11 @@ snapshot and two golden-image records exactly while adding five distinct clone
 UUID/disk identities and the dedicated AD cleanup IDs. This verifies the preview,
 not deletion: trust/resource removal, guest retirement and final NIC cleanup
 remain separate guarded steps.
+The later native run verified LDAP/user/CA removal and regional-resource absence.
+Its first guest retirement undefined that guest, then Python 3.9 rejected the
+old post-undefine stat call before disk unlink. The compatible non-following call
+is fixed; the existing orphan-disk refusal remains intact. The retained file and
+remaining guest retirements stay on hold for a specific user recovery decision.
 
 `inspect_windows_network.yml` provides a read-only diagnostic JT for the saved
 network result, scheduled-task status, current adapters, addresses and routes.
