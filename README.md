@@ -80,7 +80,10 @@ also passed. Windows Server 2022 reached build 20348.5020 and Windows Server 202
 reached 26100.32690, both exactly at their April baselines with no remaining
 approved updates or reboot. The approved single-source Nexus firewall change is
 applied: the focused run changed only the external rule and left the internal
-rule unchanged. Package synchronization and deployment tests are underway.
+rule unchanged. The four-package synchronization/export/import path, baseline
+application installation and upgrade passed. The combined live report verifies
+both current applications and their baseline-to-upgrade history on both managed
+servers, alongside their exact April builds and correct WSUS policy.
 Complete fresh workflow and teardown acceptance remain open.
 For an approved activation in a prepared environment, the existing activation
 job verifies the exact clone and uses an unused IPv4 NAT network. Its generated

@@ -49,6 +49,29 @@ OS build, a pending reboot, baseline-only state or missing historical evidence.
 unexpected installed version. Current package versions alone do not prove that
 the baseline was previously installed. Missing history is reported explicitly.
 
+Selected replacement-environment validation on 2026-11-07 passed through normal
+AAP jobs: package synchronization 388, export 390, internal import 393, baseline
+installation 395, upgrade 397 and combined live query 399.
+
+| Live check | Server 2022 | Server 2025 |
+| --- | --- | --- |
+| Internal WSUS policy and reachable service | PASS | PASS |
+| Exact April build and cumulative KB | `20348.5020`, PASS | `26100.32690`, PASS |
+| Pending servicing reboot | No | No |
+| 7-Zip baseline then upgrade | `26.3.0` → `26.4.0`, PASS | Same |
+| Git baseline then upgrade | `2.55.0.5` → `2.56.0.2`, PASS | Same |
+| Queried executable versions | `26.04`; `2.56.0.windows.2` | Same |
+| Query errors | None | None |
+
+Both application histories are proven by the normal installation/upgrade runs
+and their machine-bound receipts. The filtered Windows Update Agent history
+retains two managed-WSUS entries on Server 2025 and none on Server 2022; do not
+present missing history as proof of source. The actual successful managed patch
+jobs 378 and 380 separately verify their installed updates and exact ceiling.
+The desktop reporter and its native evidence tests ran during application
+deployment; an interactive desktop click was not tested. Fresh unattended
+workflow and teardown acceptance remain separate.
+
 Live validation on 2026-10-23 returned the following actual state:
 
 | Check | Server 2022 | Server 2025 |

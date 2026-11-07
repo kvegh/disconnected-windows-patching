@@ -1,5 +1,25 @@
 # Design decisions history
 
+## Complete the selected live package demonstration — 2026-11-07
+
+Public implementation: `e2e5770` (1.1.7); tested package/proof revision: `e17cfd7`.
+Approved encrypted source data: `3973a04` in the private companion repository.
+
+Continue the existing jobs with their real upstream artifacts instead of
+reinstalling repositories or repeating completed OS/AD/WSUS stages. Normal jobs
+388/390/393 verified four synchronized, exported and imported packages; jobs
+395/397 installed each baseline then upgraded both managed servers. Read-only
+job 399 independently queried both exact April builds, correct WSUS policy,
+current application binaries and successful baseline-to-upgrade histories. All
+reported checks passed, with no pending reboot or query error.
+
+Retained filtered managed-WSUS history is absent on Server 2022; its actual
+successful patch job remains the installation proof. Do not fabricate missing
+history or claim an interactive desktop click. Fresh workflow ordering and
+teardown remain unverified; the separate proposed activation-order change was
+not included. No new helper, job template, credential type or network framework
+was needed for this continuation.
+
 ## Load private settings in the focused Nexus run — 2026-11-07
 
 Implementation: `e2e5770` (version 1.1.7).
