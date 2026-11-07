@@ -1,5 +1,17 @@
 # Design decisions history
 
+## Supply the required type when deleting synthetic credentials — 2026-11-07
+
+Implementation: `b40af73` (1.1.10).
+
+Regional cleanup 415 removed the captured mock templates, projects and
+inventories, then failed at credential deletion. The installed native credential
+module requires `credential_type` even for absence. Add only `Machine`, matching
+the five remaining captured credential IDs/names and their actual API type.
+Preserve the existing organization/ownership checks and retry this phase only;
+do not recreate removed objects. Scoped strict production lint passed twelve
+discovered files. LDAP/user/CA cleanup 412 remains successful.
+
 ## Remove captured users before the LDAP authenticator — 2026-11-07
 
 Implementation: `1d2f3c4` (1.1.9).
