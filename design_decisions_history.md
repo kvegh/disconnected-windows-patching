@@ -1,5 +1,21 @@
 # Design decisions history
 
+## Verify fresh AAP configuration after preparing PAH content — 2026-11-07
+
+Runtime implementation: `847f0b5` (1.1.12); imported public revision: `c2a0711`.
+
+The first fresh standalone import stopped during project synchronization because
+the declared `ansible.windows:3.8.0` collection had not been prepared in PAH.
+No code change was needed. The existing selected-use-case launcher ran only the
+Windows prerequisite and importer: prerequisite 13, importer 15 and parent 11
+all succeeded. Document that normal entrypoint for fresh instances.
+
+Independent API readback verified thirty-five labelled templates, twenty-nine
+workflow nodes, two inventories, six hosts, four groups, six existing activation
+credentials and the exact selected-instance ciphertext. Prior source/target
+identities and API authentication were preserved. This verifies configuration
+reproduction; no Windows guest or fresh runtime workflow was run.
+
 ## Complete regular guests after evaluation activation — 2026-11-07
 
 Implementation: `847f0b5` (1.1.12).

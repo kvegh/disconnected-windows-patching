@@ -95,6 +95,12 @@ unverified. Version 1.1.12 moves regular-guest completion checks and release to
 the existing activation stage while preserving the basics → activation workflow
 edge. This correction has local control-flow coverage; its fresh live run remains
 unverified.
+Configuration reproduction itself has passed on a fresh AAP: the existing
+selected-use-case job prepared PAH content and installed thirty-five templates,
+the twenty-nine-node workflow and six existing activation credentials, with all
+saved runtime settings bound to that instance. A standalone importer requires
+the PAH preparation first; see the [selected-instance guide](docs/selected-instance-runtime.md).
+This metadata verification did not create or run Windows guests.
 For an approved activation in a prepared environment, the existing activation
 job verifies the exact clone and uses an unused IPv4 NAT network. Its generated
 temporary MAC receives only public HTTP/HTTPS and DNS to that network's gateway;

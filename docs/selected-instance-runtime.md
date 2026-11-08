@@ -5,6 +5,12 @@ prepared AAP instance. The CaC importer resolves the selected inventory entry to
 its existing verified physical instance identity. Importing an instance without a
 prepared Windows profile fails before any resources are changed.
 
+On a fresh AAP, use **Configure Selected AAP Use Cases**, select the inventory
+entry and only `disconnected-windows-patching`, and retain the default catalog.
+It prepares the declared PAH collections before running the existing Windows CaC
+importer. The standalone importer assumes those prerequisites already exist.
+This installs AAP definitions; it does not provision Windows guests.
+
 The profile binds five Windows computer names, their image versions, unique MACs,
 permanent addresses, libvirt networks, the independent AD forest and certificates,
 repository settings, activation settings and exact teardown scope. Computer names
