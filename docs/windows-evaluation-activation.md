@@ -123,6 +123,33 @@ read back the actual installed license and original topology before continuing.
 
 ## Credentials and protected configuration
 
+### Selected AD preparation
+
+The implementation shares `tasks/activate_windows_guest.yml` between the
+regular activation play and selected AD preparation. It retains the existing
+PowerShell, UUID/title/disk/marker/NIC/NAT checks, 900-second deadline and inner
+activation/always-cleanup tasks. Selected native operations use the already
+pinned recovery address, strict temporary SSH known-host data and the existing
+Machine credential through task-scoped SSH variables. Guest tasks retain WinRM;
+legacy native operations keep their original connection context.
+
+Only an invalid current AD license enters this sequence after clock correction.
+Its expected permanent mapping uses existing `active_directory.mac`, `ipv4`,
+`prefix_length`, `libvirt_network` and `gateway`; pre-promotion IPv4 DNS is exactly
+`[active_directory.gateway]`, verified against saved authenticated inspection.
+An invalid promoted guest whose DNS has changed is refused before temporary
+access. Licensed AD reruns do not acquire these pre-promotion topology checks.
+Initial prerequisite artifacts remain unchanged; only successful final activation
+`Verify` supplies fresh licensing evidence to the gate. AD's existing release
+stays later, after hostname and public-update-source cleanup. The four regular
+targets, AD inventory, attached credentials and 29-node workflow are unchanged.
+
+Twenty-four activation flow/inventory tests and twelve existing domain, AD policy
+and workflow checks pass, along with syntax and scoped strict production lint.
+These offline results do not establish fresh AD activation or complete live
+workflow acceptance. Use the existing preparation job with its approved encrypted
+runtime, then inspect actual license, cleanup and update results.
+
 The activation Job Template uses the existing **Hypervisor SSH Machine** and
 **Vault** credentials. Its first play builds an in-memory Windows inventory with
 explicit WinRM settings and existing Windows credentials from

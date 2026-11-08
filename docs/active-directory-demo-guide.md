@@ -534,6 +534,15 @@ usernames for presentation.
    | 7 | Configure AD AAP Regions | [`configure_aap_ad_regions.yml`](../configure_aap_ad_regions.yml) | `ad_aap_configure_authentication: true` and `ad_require_target_credential: true`; all scoped resources and ordered LDAP maps configured. |
    | 8 | Verify AD AAP Access | [`verify_aap_ad_regions.yml`](../verify_aap_ad_regions.yml) | `ad_verify_ldap_logins: true` and `ad_require_target_credential: true`; full positive/negative access verification passes. |
 
+   Stage 3 reuses the existing complete guarded
+   activation sequence when the selected evaluation license is invalid, before
+   its existing license gate. Licensed/promoted reruns retain their current path.
+   Activation requires the verified pre-promotion NIC, address, gateway and
+   gateway-DNS topology, preserves the same temporary NAT/900-second cleanup and
+   workflow graph, and keeps release after hostname/source cleanup. Fresh AD
+   activation has not yet been verified through live AAP; see the
+   [activation details](windows-evaluation-activation.md#selected-ad-preparation).
+
 5. The trust stages publish `ad_ldaps_ready` and `ad_gateway_trust_ready` for
    later workflow stages. When retrying LDAP configuration separately, supply
    these readiness flags only after checking successful trust results. If the

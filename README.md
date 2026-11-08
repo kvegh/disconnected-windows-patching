@@ -12,6 +12,14 @@ The [supporting-code guide](docs/supporting-code.md) explains the retained Pytho
 PowerShell and command usage; the [test guide](tests/README.md) states what the
 offline suites prove and what still needs live AAP validation.
 
+Selected AD preparation reuses the complete guarded evaluation-activation tasks
+before its license gate when the installed evaluation license is invalid. The
+four regular activation targets and workflow graph stay unchanged.
+Licensed AD reruns keep their current path; invalid guests must match the exact
+pre-promotion NIC/address/gateway/DNS topology before temporary access. This
+path has focused offline coverage; fresh AD activation and complete workflow
+acceptance still require verification through normal AAP jobs.
+
 For prepared versioned environments, read the
 [selected-instance runtime contract](docs/selected-instance-runtime.md). Its
 private encrypted profiles pin the hypervisor, guest names and network mapping;

@@ -21,7 +21,7 @@ ROOT = Path(__file__).parents[1]
 REMOTE_ACTIONS = {
     'ansible.builtin.command', 'ansible.builtin.systemd_service',
     'ansible.windows.win_powershell', 'ansible.windows.win_regedit',
-    'ansible.windows.win_reg_stat',
+    'ansible.windows.win_reg_stat', 'ansible.builtin.wait_for_connection',
 }
 
 ACTION = r'''
@@ -39,6 +39,11 @@ class ActionModule(ActionBase):
         operation = args['operation']
         parameters = args['arguments']
         result = {'changed': False}
+        if (operation.endswith('command') or operation.endswith('systemd_service')) and 'windows_runtime_settings_vault' in task_vars:
+            assert self._templar.template(task_vars['ansible_connection']) == 'ssh'
+            assert self._templar.template(task_vars['ansible_user']) == task_vars['windows_runtime_recovery_pin']['user']
+            assert self._templar.template(task_vars['ansible_password']) == ''
+            assert self._templar.template(task_vars['ansible_shell_type']) == 'sh'
         if operation == 'verified_release':
             assert state['licensed']
             assert not any(state[key] for key in ('temporary', 'rules', 'network', 'timer'))
@@ -98,6 +103,8 @@ class ActionModule(ActionBase):
                 state['network'] = True
             elif argv[0] == 'python3':
                 snapshot = dict(task_vars['test_baseline'])
+                if state['failure'] == 'ownership':
+                    snapshot['marker'] = 'foreign-domain'
                 if state['temporary']:
                     snapshot['live'] = snapshot['live'] + [{'mac': task_vars['windows_activation_temporary_mac']}]
                 result['stdout'] = json.dumps(snapshot)
@@ -108,6 +115,10 @@ class ActionModule(ActionBase):
                 raise AssertionError('Unexpected mocked command')
             result.setdefault('rc', 0)
         elif operation.endswith('win_powershell'):
+            if task_vars.get('test_ad'):
+                assert task_vars['ansible_connection'] == 'local'
+                assert task_vars['ansible_user'] == 'example-windows-admin'
+                assert task_vars['ansible_password'] == 'example-guest-password'
             mode = parameters['parameters']['Mode']
             events.append(mode)
             if mode == 'Activate' and state['failure'] == 'licensing':
@@ -121,7 +132,9 @@ class ActionModule(ActionBase):
                     state['licensed'] = True
                 result['result'] = {'licensed': state['licensed'], 'grace_minutes': 259200,
                                     'license_status': 1 if state['licensed'] else 5, 'evaluation': True,
-                                    'original_topology_verified': not state['temporary']}
+                                    'original_topology_verified': not state['temporary'],
+                                    'computer_uuid': task_vars['test_baseline'].get('uuid'),
+                                    'existing_connected_access': False}
         path.write_text(json.dumps(state))
         return result
 '''
@@ -163,7 +176,7 @@ class ActivationFlowTests(unittest.TestCase):
                     self.assertLess(rendered.index('domif-setlink'), rendered.index('/usr/sbin/nft'))
 
     def run_flow(self, failure='', licensed=False, connected=False, managed=True, source=None, approved_connected=None, selected=False,
-                 complete=False):
+                 complete=False, ad=False, full_guarded=False):
         with tempfile.TemporaryDirectory(prefix='windows-activation-flow-') as temporary:
             directory = Path(temporary)
             actions = directory / 'collections/ansible_collections/activation/test/plugins/action'
@@ -177,14 +190,17 @@ class ActivationFlowTests(unittest.TestCase):
             tasks_dir.mkdir()
             production = yaml.safe_load((ROOT / 'tasks/activate_windows_evaluation.yml').read_text())
             (tasks_dir / 'activate_windows_evaluation.yml').write_text(yaml.safe_dump(substitute_remote_actions(production), sort_keys=False))
+            guarded = yaml.safe_load((ROOT / 'tasks/activate_windows_guest.yml').read_text())
+            (tasks_dir / 'activate_windows_guest.yml').write_text(yaml.safe_dump(substitute_remote_actions(guarded), sort_keys=False))
             main = yaml.safe_load((ROOT / 'activate_windows_evaluations.yml').read_text())
-            include = next(task for task in main[1]['tasks'] if 'ansible.builtin.include_tasks' in task)
+            guarded_tasks = next(task['block'] for task in guarded if task['name'] == 'Inspect activate and verify the same exact guest')
+            include = next(task for task in guarded_tasks if task.get('ansible.builtin.include_tasks') == 'tasks/activate_windows_evaluation.yml')
             completion = []
             if complete:
                 # Keep the actual completion gate and first release-input guard.
                 # Remote provenance/publication has its own existing tests.
                 release_guard = yaml.safe_load((ROOT / 'tasks/windows_verified_guest_release.yml').read_text())[0]
-                for task in main[1]['tasks'][main[1]['tasks'].index(include) + 1:]:
+                for task in guarded_tasks[guarded_tasks.index(include) + 1:] + main[1]['tasks'][1:]:
                     if task.get('ansible.builtin.include_tasks') == 'tasks/windows_verified_guest_release.yml':
                         completion.extend([release_guard, {'name': 'Observe the verified release boundary',
                                                           'activation.test.operation': {'operation': 'verified_release', 'arguments': {}}}])
@@ -211,23 +227,65 @@ class ActivationFlowTests(unittest.TestCase):
             }]
             if selected:
                 fixture[0]['vars'].update(windows_runtime_settings_vault='mock ciphertext',
-                                          windows_runtime_hypervisor={'machine_id': '0' * 32})
+                                          windows_runtime_hypervisor={'machine_id': '0' * 32},
+                                          windows_runtime_recovery_pin={'machine_id': '0' * 32, 'address': '192.0.2.1',
+                                                                        'user': 'example', 'port': 22},
+                                          windows_activation_hypervisor_trust={'path': '/tmp/example-pinned-trust'})
             if complete:
-                pin = {'machine_id': '0' * 32, 'address': '192.0.2.1', 'port': 22}
+                pin = {'machine_id': '0' * 32, 'address': '192.0.2.1', 'port': 22, 'user': 'example'}
                 fixture[0]['vars'].update(ansible_connection='winrm', ansible_port=5986,
                                           ansible_winrm_scheme='https', ansible_winrm_transport='ntlm',
                                           ansible_winrm_server_cert_validation='ignore',
                                           windows_runtime_hypervisor=pin, windows_runtime_recovery_pin=pin,
                                           windows_runtime_guests={'guest': {}}, windows_hostname='guest',
                                           active_directory={'hostname': 'example-ad'})
+            if ad:
+                baseline.update(name='guest', marker='aap-disconnected-windows-clone', running=True,
+                                hypervisor_machine_id='0' * 32, title='example-instance:guest',
+                                disks=['/opt/vms/win-guest-clone.disk.qcow2'])
+                baseline['live'] = baseline['persistent'] = [
+                    {'mac': '52:54:00:11:22:33', 'type': 'network', 'source': {'network': 'example-isolated'}, 'link': 'up'}]
+                baseline['activation_network'].update(forward='nat', ipv6=False, domain_references=[])
+                pin = {'machine_id': '0' * 32, 'address': '192.0.2.1', 'port': 22,
+                       'known_hosts': '192.0.2.1 ssh-ed25519 example'}
+                fixture[0]['vars'].update(
+                    test_ad=True, ansible_user='example-windows-admin', ansible_password='example-guest-password',
+                    windows_activation_approved=True, windows_activation_network='example-activation',
+                    windows_runtime_expected_instance='example-instance', windows_runtime_hypervisor=pin,
+                    windows_runtime_recovery_pin={**pin, 'user': 'example', 'isolation_bridges': ['virbr-example']},
+                    windows_runtime_guests={'guest': {'role': 'ad', 'version': '2025', 'interfaces': [
+                        {'mac': '52:54:00:11:22:33', 'address': '192.0.2.10', 'network': 'example-isolated'}]}},
+                    active_directory={'hostname': 'guest', 'mac': '52:54:00:11:22:33', 'ipv4': '192.0.2.10',
+                                      'prefix_length': 24, 'gateway': '192.0.2.1', 'libvirt_network': 'example-isolated'},
+                    ad_windows_prerequisites={'result': {'LicenseStatus': 1 if licensed else 5,
+                                                        'Evaluation': True, 'GraceMinutes': 259200 if licensed else 0}})
+                ad_tasks = yaml.safe_load((ROOT / 'prepare_active_directory_guest.yml').read_text())[0]['tasks']
+                start = next(i for i, task in enumerate(ad_tasks) if task['name'].startswith('Retain the current license evidence'))
+                end = next(i for i, task in enumerate(ad_tasks) if task['name'].startswith('Require a valid installed Windows license'))
+                fixture[0]['tasks'] = ad_tasks[start:end + 1] + [{
+                    'name': 'Preserve the actual initial prerequisite evidence',
+                    'ansible.builtin.assert': {'that': [
+                        'ad_windows_prerequisites.result.LicenseStatus == ' + ('1' if licensed else '5')]}}]
             approved_connected = connected if approved_connected is None else approved_connected
             fixture[0]['vars']['windows_activation_settings']['libvirt_interfaces'] = [
                 {'mac': '52:54:00:11:22:33', 'network': 'example-activation' if approved_connected else 'example-isolated'}]
+            if full_guarded:
+                baseline.update(name='example-clone', uuid='00000000-0000-0000-0000-000000000001',
+                                marker='aap-disconnected-windows-clone', running=True)
+                baseline['live'] = baseline['persistent'] = [{
+                    'mac': '52:54:00:11:22:33', 'type': 'network',
+                    'source': {'network': 'example-isolated'}, 'link': 'up'}]
+                fixture[0]['vars']['windows_activation_settings']['interfaces'] = [{'mac': '52:54:00:11:22:33'}]
+                fixture[0]['vars']['windows_activation_approved'] = True
+                fixture[0]['tasks'] = [{'ansible.builtin.include_tasks': 'tasks/activate_windows_guest.yml'}]
             playbook = directory / 'fixture.yml'
             playbook.write_text(yaml.safe_dump(fixture, sort_keys=False))
             inventory = directory / 'inventory.yml'
+            guest_variables = {key: fixture[0]['vars'][key]
+                               for key in ('windows_runtime_recovery_pin', 'windows_activation_hypervisor_trust')
+                               if key in fixture[0]['vars']}
             inventory.write_text(yaml.safe_dump({'all': {
-                'hosts': {'guest': {}, 'hypervisor': {'ansible_connection': 'local'}},
+                'hosts': {'guest': guest_variables, 'hypervisor': {'ansible_connection': 'local'}},
                 'children': {'windows_managed': {'hosts': {'guest': {}} if managed else {}}}}}))
             statefile = directory / 'state.json'
             policy = {} if source is None else {'WUServer': source, 'WUStatusServer': source}
@@ -344,6 +402,40 @@ class ActivationFlowTests(unittest.TestCase):
                 code, state, output = self.run_flow(selected=True, complete=True, failure=failure)
                 self.assertNotEqual(code, 0, output)
                 self.assertNotIn('release', state['events'])
+
+    def test_ad_invalid_evaluation_uses_complete_guards_and_preserves_initial_evidence(self):
+        code, state, output = self.run_flow(selected=True, managed=False, ad=True)
+        self.assertEqual(code, 0, output)
+        self.assertTrue(state['licensed'])
+        self.assertLess(state['events'].index('inspect_libvirt'), state['events'].index('arm_timer'))
+        self.assertLess(state['events'].index('stop_timer'), state['events'].index('Verify'))
+        self.assertNotIn('release', state['events'])
+
+    def test_licensed_ad_keeps_existing_path_without_pre_promotion_topology_checks(self):
+        code, state, output = self.run_flow(selected=True, managed=False, ad=True, licensed=True)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(state['events'], [])
+
+    def test_ad_activation_failure_keeps_license_gate_closed_and_cleans_exact_resources(self):
+        code, state, output = self.run_flow(selected=True, managed=False, ad=True, failure='licensing')
+        self.assertNotEqual(code, 0, output)
+        self.assert_restored(state)
+        self.assertFalse(state['rules'])
+        self.assertFalse(state['network'])
+
+    def test_complete_legacy_path_retains_its_native_evidence_and_connection_context(self):
+        code, state, output = self.run_flow(full_guarded=True)
+        self.assertEqual(code, 0, output)
+        self.assert_restored(state)
+        self.assertIn('Verify', state['events'])
+
+    def test_ad_foreign_native_marker_stops_before_policy_or_temporary_network_writes(self):
+        code, state, output = self.run_flow(selected=True, managed=False, ad=True, failure='ownership')
+        self.assertNotEqual(code, 0, output)
+        self.assertEqual(state['events'], ['Inspect', 'inspect_libvirt'])
+        self.assertFalse(state['temporary'])
+        self.assertFalse(state['rules'])
+        self.assertFalse(state['timer'])
 
 
 @unittest.skipUnless(shutil.which('ansible-playbook'), 'Ansible is required for inventory preflight tests')

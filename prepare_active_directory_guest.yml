@@ -85,13 +85,69 @@
         aggregate: false
       no_log: true
 
+    - name: Retain the current license evidence without changing initial prerequisites
+      ansible.builtin.set_fact:
+        ad_windows_license: "{{ ad_windows_prerequisites.result }}"
+      no_log: true
+
+    - name: Activate an invalid selected AD evaluation before its existing license gate
+      when:
+        - windows_runtime_settings_vault is defined
+        - not ansible_check_mode
+        - >-
+          ad_windows_prerequisites.result.LicenseStatus != 1 or
+          (ad_windows_prerequisites.result.Evaluation and ad_windows_prerequisites.result.GraceMinutes <= 0)
+      no_log: true
+      block:
+        - name: Require the exact selected AD role and permanent interface mapping
+          ansible.builtin.assert:
+            that:
+              - ad_windows_prerequisites.result.Evaluation is sameas true
+              - inventory_hostname == active_directory.hostname
+              - windows_runtime_guests[inventory_hostname].role == 'ad'
+              - windows_runtime_guests[inventory_hostname].version | string == '2025'
+              - windows_runtime_guests[inventory_hostname].interfaces | length == 1
+              - windows_runtime_guests[inventory_hostname].interfaces[0].mac == active_directory.mac
+              - windows_runtime_guests[inventory_hostname].interfaces[0].address == active_directory.ipv4
+              - windows_runtime_guests[inventory_hostname].interfaces[0].network == active_directory.libvirt_network
+            quiet: true
+
+        - name: Bind only this AD guest's verified pre-promotion activation topology
+          # DHCP supplies gateway DNS before promotion; later AD promotion selects
+          # its own address. Inspect must reject a different topology before NAT.
+          ansible.builtin.set_fact:
+            windows_activation_connected_network: "{{ windows_activation_network }}"
+            windows_activation_settings:
+              inventory_host: "{{ inventory_hostname }}"
+              vm_name: "{{ active_directory.hostname }}"
+              windows_version: '2025'
+              interfaces:
+                - mac: "{{ active_directory.mac }}"
+                  ipv4_address: "{{ active_directory.ipv4 }}"
+                  prefix_length: "{{ active_directory.prefix_length }}"
+                  dns_servers: ["{{ active_directory.gateway }}"]
+                  gateway: "{{ active_directory.gateway }}"
+              libvirt_interfaces:
+                - mac: "{{ active_directory.mac }}"
+                  network: "{{ active_directory.libvirt_network }}"
+
+        - name: Reuse the complete guarded activation and original-topology verification
+          ansible.builtin.include_tasks: tasks/activate_windows_guest.yml
+
+        - name: Retain fresh final licensing evidence only after successful activation cleanup
+          ansible.builtin.set_fact:
+            ad_windows_license: >-
+              {{ {'LicenseStatus': windows_activation_final.result.license_status,
+                  'Evaluation': windows_activation_final.result.evaluation,
+                  'GraceMinutes': windows_activation_final.result.grace_minutes} }}
+
     - name: Require a valid installed Windows license before the update run
       ansible.builtin.assert:
         that:
-          - ad_windows_prerequisites.result.LicenseStatus == 1
-          - not ad_windows_prerequisites.result.Evaluation or ad_windows_prerequisites.result.GraceMinutes > 0
+          - ad_windows_license.LicenseStatus == 1
+          - not ad_windows_license.Evaluation or ad_windows_license.GraceMinutes > 0
         quiet: true
-        fail_msg: Windows licensing is not valid for updates; run the existing AD inspection job. No licensing change was made.
+        fail_msg: Windows licensing is not valid for updates; inspect the protected prerequisite and activation results.
 
     - name: Set the dedicated guest hostname
       ansible.windows.win_hostname:
