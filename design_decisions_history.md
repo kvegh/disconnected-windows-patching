@@ -1,5 +1,26 @@
 # Design decisions history
 
+## Align selected AD UTC before checking its license — 2026-11-08
+
+Implementation: `3edeed3` (version 1.1.13).
+
+The fresh AD guest inherited Pacific time while its VM hardware used UTC. Its
+authenticated read-only inspection measured roughly eight hours of UTC drift
+and an invalid evaluation state; updates correctly stopped before installation.
+Apply the existing UTC convention before the prerequisite license read: use the
+native time-zone module, correct drift greater than two minutes against automation
+UTC and stop if it remains inaccurate. Preserve legacy clock behavior when no
+selected runtime is supplied. No host clock, NTP, licensing key or activation
+command changes are introduced.
+
+Retain the actual prerequisite clock/license artifact before the unchanged
+licensing gate, so an invalid license remains a visible failure after time repair.
+Three existing AD policy/workflow checks, strict production lint and syntax
+passed using the existing supported-core/Windows collection cache. Production's
+tested source pin was independently read through its existing AAP MCP connection.
+The selected AD retry supplies live verification; license repair and complete
+fresh workflow acceptance are not inferred from source publication.
+
 ## Verify fresh AAP configuration after preparing PAH content — 2026-11-07
 
 Runtime implementation: `847f0b5` (1.1.12); imported public revision: `c2a0711`.
