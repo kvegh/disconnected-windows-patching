@@ -1,5 +1,30 @@
 # Design decisions history
 
+## Complete regular guests after evaluation activation — 2026-11-07
+
+Implementation: `847f0b5` (1.1.12).
+
+Normal basics job 238 corrected UTC but stopped an evaluation at license status
+5 with zero grace before configuring permanent networking or hostname. Existing
+activation later produced licensed status; focused basics then passed. A fresh
+workflow must reach that existing activation stage without releasing an
+unlicensed guest first.
+
+Keep the basics → activation graph. Basics retains UTC/network/hostname checks
+and isolation. Move licensing completion and the existing verified-guest release
+to activation after successful native final verification and cleanup, including
+licensed skips. The release include obtains fresh authenticated Windows/native
+ownership evidence; it does not borrow prior job facts. Its four existing
+publisher credential references must also be attached through CaC. AD and legacy
+release behavior, pins, activation bounds and failure cleanup stay unchanged.
+
+Nineteen native activation tests and eleven existing provenance tests passed,
+covering success/skip, licensing/cleanup/final-verification failures and retained
+inventory baseline inputs. Scoped strict production lint and both playbook
+syntax checks passed. Source-instance CaC import 471 first aligned the six
+existing activation credentials and verified preservation before publication.
+No fresh live Windows workflow has tested this correction yet.
+
 ## Verify the selected Windows-only reset — 2026-11-07
 
 Tested implementation: `b4305b5` (1.1.11), including compatibility fix `6c32d3f`,
