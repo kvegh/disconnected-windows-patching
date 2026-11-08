@@ -519,6 +519,13 @@ UTC time, the Windows time zone, time source and time-service status are also
 read so domain-controller clock health can be assessed independently of local
 timestamp formatting.
 
+For a selected recovery instance, AD preparation pairs the VM's UTC hardware
+clock with the Windows UTC time zone and corrects drift greater than two minutes
+against automation UTC before reading its license. Its protected prerequisite
+artifact retains the actual clock and license result even when licensing stops
+the job. This does not activate Windows or accept terms; an invalid license still
+prevents updates. Legacy runs without the selected runtime keep their clock setup.
+
 During a long update run, the inspector also reads free system disk space,
 servicing-process counters, available download counters and the latest servicing
 log metadata. It does not start a second update run or change servicing state.

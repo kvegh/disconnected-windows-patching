@@ -527,7 +527,7 @@ usernames for presentation.
    | --- | --- | --- | --- |
    | 1 | Reserve AD Address | [`configure_active_directory_address.yml`](../configure_active_directory_address.yml) | Unambiguous DHCP reservation and matching LDAPS DNS name, with `ad_address_reservation_before_create: true`. |
    | 2 | Create AD VM | [`create_active_directory_vm.yml`](../create_active_directory_vm.yml) | A new, independent Server 2025 VM; an existing VM/disk is refused. |
-   | 3 | Prepare and Update AD Guest | [`prepare_active_directory_guest.yml`](../prepare_active_directory_guest.yml) | `ad_direct_microsoft_updates_approved: true`; zero remaining applicable Server updates and no pending reboot. |
+   | 3 | Prepare and Update AD Guest | [`prepare_active_directory_guest.yml`](../prepare_active_directory_guest.yml) | `ad_direct_microsoft_updates_approved: true`; selected guests first align UTC, then require a valid license; zero remaining applicable Server updates and no pending reboot. |
    | 4 | Deploy Active Directory | [`deploy_active_directory.yml`](../deploy_active_directory.yml) | AD DS/DNS ready, synchronized domain clock, 12 users and 24 role groups with verified nesting. |
    | 5 | Configure AD LDAPS | [`configure_active_directory_ldaps.yml`](../configure_active_directory_ldaps.yml) | Correct certificate, hostname/chain verification and completed required restart. |
    | 6 | Configure AD Gateway Trust | [`configure_aap_ad_trust.yml`](../configure_aap_ad_trust.yml) | `ad_trust_verify_ldaps: true` and `ad_require_target_credential: true`; actual gateway-runtime LDAPS validation passes. |

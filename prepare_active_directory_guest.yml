@@ -29,11 +29,32 @@
     - name: Connect using the valid protected identity before or after promotion
       ansible.builtin.include_tasks: tasks/connect_active_directory_guest.yml
 
+    - name: Use UTC to match the selected AD guest's virtual hardware clock
+      ansible.windows.win_timezone:
+        timezone: UTC
+      when: windows_runtime_settings_vault is defined
+
     - name: Verify Windows Server 2025, disk space and installed license state
       # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
+        parameters:
+          ReferenceUtc: "{{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') if windows_runtime_settings_vault is defined else '' }}"
         script: |
           # Language choice: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
+          # win_timezone does not repair UTC drift; [clock handling](docs/supporting-code.md#windows-networking-and-activation).
+          param([string]$ReferenceUtc)
+          $clockChanged = $false
+          $offset = $null
+          if ($ReferenceUtc) {
+              $reference = [DateTime]::Parse($ReferenceUtc).ToUniversalTime()
+              $offset = [Math]::Abs(([DateTime]::UtcNow - $reference).TotalSeconds)
+              $clockChanged = $offset -gt 120
+              if ($clockChanged) { Set-Date -Date $reference -ErrorAction Stop | Out-Null }
+              $offset = [Math]::Abs(([DateTime]::UtcNow - $reference).TotalSeconds)
+              if ($offset -gt 120) {
+                  throw 'The AD guest clock still differs from automation UTC by more than two minutes.'
+              }
+          }
           $os = Get-CimInstance Win32_OperatingSystem
           $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$($env:SystemDrive)'"
           if ($os.BuildNumber -ne '26100' -or $os.ProductType -eq 1) {
@@ -46,13 +67,22 @@
           if ($licenses.Count -ne 1) { throw 'Expected exactly one installed Windows operating system license.' }
           $license = $licenses[0]
           $evaluation = $license.Description -match 'TIMEBASED_EVAL' -or $license.Name -match 'Eval'
-          $Ansible.Changed = $false
+          $Ansible.Changed = $clockChanged
           $Ansible.Result = @{
               Build = $os.BuildNumber; FreeBytes = $disk.FreeSpace;
               LicenseStatus = [int]$license.LicenseStatus;
-              Evaluation = [bool]$evaluation; GraceMinutes = [int]$license.GracePeriodRemaining
+              Evaluation = [bool]$evaluation; GraceMinutes = [int]$license.GracePeriodRemaining;
+              ClockUtc = [DateTime]::UtcNow.ToString('o'); TimeZone = (Get-TimeZone).Id;
+              ClockOffsetSeconds = $offset
           }
       register: ad_windows_prerequisites
+      no_log: true
+
+    - name: Retain the actual prerequisite result before its licensing gate
+      ansible.builtin.set_stats:
+        data:
+          active_directory_prerequisites: "{{ ad_windows_prerequisites.result }}"
+        aggregate: false
       no_log: true
 
     - name: Require a valid installed Windows license before the update run
