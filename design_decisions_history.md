@@ -1,5 +1,36 @@
 # Design decisions history
 
+## Activate an invalid AD evaluation before its update gate — 2026-11-08
+
+Implementation: `d768210` (version 1.1.14).
+
+The fresh AD preparation retry proved that UTC was accurate after the clock
+repair, but the installed evaluation still had license status 5 and zero grace.
+The original license gate correctly prevented updates. The regular activation
+job covered four other guests, leaving the AD branch without its required
+activation step.
+
+Reuse the complete existing guarded per-guest procedure in AD preparation before
+that gate. One ordinary included task file shares its preflight and final
+verification with the regular activation play. Preserve the existing PowerShell,
+native inspection, temporary firewall rules, 900-second deadline and unconditional
+cleanup. Selected native commands use the existing independently pinned SSH
+route; legacy native connection behavior is retained. No new credential, store,
+Job Template, runtime field or workflow node is introduced.
+
+Only an invalid selected evaluation enters the new call. Its permanent topology
+must match the authenticated pre-promotion inspection, including gateway DNS.
+Licensed or promoted-and-licensed reruns keep their existing path. Retain the
+initial prerequisite evidence and use fresh final license verification at the
+gate. AD release remains after hostname and update-source cleanup.
+
+Twenty-four native Ansible activation flow/inventory tests and twelve existing
+domain, AD policy and workflow checks passed. Both playbooks passed syntax;
+scoped strict production lint passed with zero failures or warnings. The tested
+production source pin was independently confirmed through AAP MCP before
+publication. These checks do not establish fresh AD activation or full workflow
+acceptance; those results must come from the normal live jobs.
+
 ## Align selected AD UTC before checking its license — 2026-11-08
 
 Implementation: `3edeed3` (version 1.1.13).
