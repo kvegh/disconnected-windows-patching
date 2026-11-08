@@ -1,5 +1,40 @@
 # Design decisions history
 
+## Bound the existing release lock and record staged verification — 2026-11-08
+
+Implementation: `a11695c` (Windows 1.1.15); shared functional implementation:
+`e0a96b1c13c756faf7cef3ca7ca3fe2dcc3b1e2e` (AutoDeploy 0.48.20).
+
+An isolated reproduction confirmed that a busy shared policy lock raised an
+immediate error before native inspection or mutation, while the CLI hid its
+reason. Reuse the sibling helper's five-second bounded acquisition wait and a
+fixed safe busy diagnostic. Update the existing default and three caller guards
+to that reviewed implementation, retaining exact target, ownership and policy
+checks. Retirement behavior is unchanged. The original live creation exception
+was not retained, so its precise cause remains unproved.
+
+Seventy-three focused native provenance, management-network, initial-run and
+reset tests passed, including rejection of the superseded pin. Four entrypoints
+passed syntax checks; scoped strict production lint passed across six files.
+Production's tested source pin was independently read through its existing MCP
+connection before publication and remained unchanged. These are focused repair
+checks, not a completed formal project review.
+
+Fresh staged functional verification on `c54d4d4` (1.1.14) passed regular and AD
+activation cleanup, AD promotion/LDAPS and all 12 LDAP logins, 75 scoped grants,
+360 permission checks and 36 inert localhost executions. WSUS and both exact
+April OS builds passed with no remaining updates or reboot. Baseline applications,
+upgrades and the combined live versions/source/history report passed on both
+managed servers.
+
+Normal cleanup on `a11695c` then passed LDAP/CA and regional removal, all five
+guest retirements and final verification. Original core definitions/states and
+golden images were preserved, and the Windows-owned AAP secondary connection was
+removed last. No manual orphan recovery was required. This exercises the normal
+reset with the new dependency; no live contention was injected. The initial
+combined workflow failed and was continued through retained normal stage inputs,
+so an unattended fresh full-workflow pass remains unverified.
+
 ## Activate an invalid AD evaluation before its update gate — 2026-11-08
 
 Implementation: `d768210` (version 1.1.14).

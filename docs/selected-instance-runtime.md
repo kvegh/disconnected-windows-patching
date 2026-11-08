@@ -290,6 +290,10 @@ activation cleanup, promotion, LDAPS and the full real regional-access verifier
 have subsequently passed through normal jobs. The fresh managed branch also
 passed both exact April OS builds, baseline applications, upgrades and the
 combined live history/source report, with no remaining updates or reboot.
-These staged functional results used `c54d4d4` (1.1.14). The updated dependency's
-normal cleanup remains the next verification step; an unattended fresh full
-workflow remains unverified.
+These staged functional results used `c54d4d4` (1.1.14). Normal cleanup on
+`a11695c` (1.1.15), using the updated dependency, subsequently passed all five
+guarded retirements and final verification. Clone disks, reservations,
+source/canonical ownership and permissions, captured AD resources and the owned
+AAP secondary connection were absent; original core definitions/states and golden
+images were preserved. This run required no manual orphan recovery. No live lock
+contention was injected, and an unattended fresh full workflow remains unverified.

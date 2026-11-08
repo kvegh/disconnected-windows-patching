@@ -104,11 +104,15 @@ internal package source on both servers, with no report errors.
 
 The first combined workflow attempt failed and was continued through only its
 failed or downstream normal jobs using retained inputs. This proves the staged
-demo result; an unattended fresh full workflow remains unverified. The earlier
-selected run also passed Windows-only teardown while preserving its core guests
-and golden images. Cleanup of the current run with the updated dependency is
-the next verification step. Version 1.1.12's existing basics → activation graph
+demo result; an unattended fresh full workflow remains unverified. Normal reset
+on `a11695c` (1.1.15) then passed all five guest retirements and final verification:
+clone disks, static reservations, published ownership/policy and captured AD
+resources were absent, and the owned AAP secondary connection was removed last.
+Original core guests and golden images were preserved. No manual orphan cleanup
+was needed. This verifies ordinary cleanup with the updated dependency; no live
+lock contention was injected. Version 1.1.12's existing basics → activation graph
 and completion/release correction have now passed with fresh guests.
+
 Configuration reproduction itself has passed on a fresh AAP: the existing
 selected-use-case job prepared PAH content and installed thirty-five templates,
 the twenty-nine-node workflow and six existing activation credentials, with all
