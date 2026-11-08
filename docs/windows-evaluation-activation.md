@@ -10,7 +10,11 @@ Windows Server 2022 and 2025 share `01-win-vm-setup.yml`, selected by
 
 The activation stage runs after Windows basics because Ansible must already be
 able to reach the guest over its permanent management address. It does not edit
-the base image. The `hypervisor` inventory target may be a host alias or a group;
+the base image. For prepared instances, basics records licensing without stopping
+an expired evaluation before activation; it retains guest isolation. The
+activation job checks licensing and restored topology before the existing release
+include obtains fresh Windows/native ownership evidence and publishes permissions.
+The `hypervisor` inventory target may be a host alias or a group;
 the play validates the resolved host count rather than requiring a named group.
 Microsoft's evaluation requires Internet activation within ten
 days to avoid automatic shutdown, and Sysprep generalization normally resets
@@ -28,8 +32,10 @@ live `portid` and resolved `bridge` source attributes. Network identity, other
 source attributes, MAC, interface type, model and link state remain checked;
 bridge-type adapters retain their source bridge identity.
 
-Already-licensed clones remain read-only: no licensing call, policy write,
-temporary adapter or cleanup timer. A normal run on an unlicensed evaluation:
+Already-licensed clones skip licensing calls, Windows update-policy changes,
+temporary adapters and cleanup timers. Prepared instances still verify the
+original topology and pass the existing ownership/release transaction. A normal
+run on an unlicensed evaluation:
 
 1. Disables automatic Windows updates with `NoAutoUpdate=1`. For managed
    endnodes it first rejects any conflicting explicitly configured WSUS URL,
@@ -96,6 +102,16 @@ remove only rules matching both its unique operation comment and MAC. They stop
 an initially inactive network only after checking every domain's live and
 persistent references. Cleanup failures remain failures and leave the deadline
 armed; it is stopped only after successful original-topology checks.
+
+Only after this include returns successfully does the play run native `Verify`,
+require licensed status and positive evaluation grace, then invoke the existing
+verified-guest release tasks. A failed activation, cleanup or final verification
+cannot reach release. Licensed skips use that same verification/release endpoint.
+The CaC template must attach the same existing source CA, source API reader,
+central Git writer and central CaC Vault credentials used by the baseline
+publisher, in addition to its existing Machine and Windows Vault credentials.
+This reuses the existing Job Template and workflow graph, updates its credential
+assignments and creates no new Job Template or credential type.
 
 The private CaC enables the existing activation template's host-limit prompt
 only for a prepared instance. For one already-created guest, include both the
@@ -175,7 +191,9 @@ repository connectivity, licensing errors and expired evaluations. Python tests
 verify live/persistent topology evidence and the activation task cleanup paths,
 fresh managed source establishment before exposure, conflicting-source refusal,
 preservation of matching URLs, and rejection of an arbitrary default route as
-evidence of connected-network access.
+evidence of connected-network access. Native completion tests also check release
+after cleanup and final verification, licensed skips, no release after failures,
+and preservation of baseline inventory variables by the existing `add_host` task.
 Source validation does not substitute for a controlled fresh-clone workflow run.
 
 Selected-instance recovery subsequently verified actual activation and cleanup.
@@ -187,8 +205,9 @@ the initially inactive network. Independent native checks confirmed those
 results. Normal job 293 then passed the already-licensed skip, including original
 addresses, DNS and routes; only after those checks was the original deadline
 disarmed. The focused remaining baseline, job 296, also succeeded. Earlier three
-baseline successes were preserved. Full selected-instance AD/content workflow and
-fresh-clone ordering acceptance remain pending.
+baseline successes were preserved. The staged selected AD/content tests and
+Windows-only teardown subsequently passed. The corrected completion placement
+still requires its own fresh-clone live workflow test.
 
 Live controller configuration on 2026-10-20 created activation Job Template 82
 and routed the existing Windows basics success edge through activation to

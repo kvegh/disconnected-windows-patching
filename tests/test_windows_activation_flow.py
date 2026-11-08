@@ -39,7 +39,11 @@ class ActionModule(ActionBase):
         operation = args['operation']
         parameters = args['arguments']
         result = {'changed': False}
-        if operation.endswith('win_regedit'):
+        if operation == 'verified_release':
+            assert state['licensed']
+            assert not any(state[key] for key in ('temporary', 'rules', 'network', 'timer'))
+            events.append('release')
+        elif operation.endswith('win_regedit'):
             events.append(parameters['name'])
             state['policy'][parameters['name']] = parameters['data']
             result['changed'] = True
@@ -71,6 +75,10 @@ class ActionModule(ActionBase):
                 state['temporary'] = False
             elif argv[0] == '/bin/sh':
                 assert argv[2] == state['guard_argv'][state['guard_argv'].index('-c') + 1]
+                if state['failure'] == 'cleanup':
+                    result.update(failed=True, msg='Mocked cleanup failure')
+                    path.write_text(json.dumps(state))
+                    return result
                 if state['temporary']:
                     events.append('detach')
                 state['temporary'] = False
@@ -106,10 +114,13 @@ class ActionModule(ActionBase):
                 result.update(failed=True, msg='Mocked activation failure')
             elif mode == 'Activate' and state['failure'] == 'unreachable':
                 result.update(unreachable=True, msg='Mocked transient WinRM failure')
+            elif mode == 'Verify' and state['failure'] == 'verify':
+                result.update(failed=True, msg='Mocked final license/topology failure')
             else:
                 if mode == 'Activate':
                     state['licensed'] = True
                 result['result'] = {'licensed': state['licensed'], 'grace_minutes': 259200,
+                                    'license_status': 1 if state['licensed'] else 5, 'evaluation': True,
                                     'original_topology_verified': not state['temporary']}
         path.write_text(json.dumps(state))
         return result
@@ -151,7 +162,8 @@ class ActivationFlowTests(unittest.TestCase):
                 if selected:
                     self.assertLess(rendered.index('domif-setlink'), rendered.index('/usr/sbin/nft'))
 
-    def run_flow(self, failure='', licensed=False, connected=False, managed=True, source=None, approved_connected=None, selected=False):
+    def run_flow(self, failure='', licensed=False, connected=False, managed=True, source=None, approved_connected=None, selected=False,
+                 complete=False):
         with tempfile.TemporaryDirectory(prefix='windows-activation-flow-') as temporary:
             directory = Path(temporary)
             actions = directory / 'collections/ansible_collections/activation/test/plugins/action'
@@ -167,6 +179,17 @@ class ActivationFlowTests(unittest.TestCase):
             (tasks_dir / 'activate_windows_evaluation.yml').write_text(yaml.safe_dump(substitute_remote_actions(production), sort_keys=False))
             main = yaml.safe_load((ROOT / 'activate_windows_evaluations.yml').read_text())
             include = next(task for task in main[1]['tasks'] if 'ansible.builtin.include_tasks' in task)
+            completion = []
+            if complete:
+                # Keep the actual completion gate and first release-input guard.
+                # Remote provenance/publication has its own existing tests.
+                release_guard = yaml.safe_load((ROOT / 'tasks/windows_verified_guest_release.yml').read_text())[0]
+                for task in main[1]['tasks'][main[1]['tasks'].index(include) + 1:]:
+                    if task.get('ansible.builtin.include_tasks') == 'tasks/windows_verified_guest_release.yml':
+                        completion.extend([release_guard, {'name': 'Observe the verified release boundary',
+                                                          'activation.test.operation': {'operation': 'verified_release', 'arguments': {}}}])
+                    elif 'ansible.builtin.debug' not in task:
+                        completion.extend(substitute_remote_actions([task]))
             baseline = {'live': [{'mac': '52:54:00:11:22:33'}], 'persistent': [{'mac': '52:54:00:11:22:33'}]}
             if selected:
                 baseline.update(uuid='00000000-0000-0000-0000-000000000001', all_macs=['52:54:00:11:22:33'],
@@ -184,11 +207,19 @@ class ActivationFlowTests(unittest.TestCase):
                     'windows_activation_domain_before': {'stdout': json.dumps(baseline)},
                     'test_baseline': baseline,
                 },
-                'tasks': [include],
+                'tasks': [include, *completion],
             }]
             if selected:
                 fixture[0]['vars'].update(windows_runtime_settings_vault='mock ciphertext',
                                           windows_runtime_hypervisor={'machine_id': '0' * 32})
+            if complete:
+                pin = {'machine_id': '0' * 32, 'address': '192.0.2.1', 'port': 22}
+                fixture[0]['vars'].update(ansible_connection='winrm', ansible_port=5986,
+                                          ansible_winrm_scheme='https', ansible_winrm_transport='ntlm',
+                                          ansible_winrm_server_cert_validation='ignore',
+                                          windows_runtime_hypervisor=pin, windows_runtime_recovery_pin=pin,
+                                          windows_runtime_guests={'guest': {}}, windows_hostname='guest',
+                                          active_directory={'hostname': 'example-ad'})
             approved_connected = connected if approved_connected is None else approved_connected
             fixture[0]['vars']['windows_activation_settings']['libvirt_interfaces'] = [
                 {'mac': '52:54:00:11:22:33', 'network': 'example-activation' if approved_connected else 'example-isolated'}]
@@ -296,9 +327,63 @@ class ActivationFlowTests(unittest.TestCase):
         self.assertFalse(state['rules'])
         self.assertFalse(state['network'])
 
+    def test_completed_activation_releases_only_after_cleanup_and_final_verification(self):
+        code, state, output = self.run_flow(selected=True, complete=True)
+        self.assertEqual(code, 0, output)
+        self.assertLess(state['events'].index('stop_timer'), state['events'].index('Verify'))
+        self.assertLess(state['events'].index('Verify'), state['events'].index('release'))
+
+    def test_licensed_skip_still_verifies_and_releases_without_activation_changes(self):
+        code, state, output = self.run_flow(selected=True, complete=True, licensed=True)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(state['events'], ['Verify', 'release'])
+
+    def test_licensing_cleanup_or_final_verification_failure_never_releases(self):
+        for failure in ('licensing', 'cleanup', 'verify'):
+            with self.subTest(failure=failure):
+                code, state, output = self.run_flow(selected=True, complete=True, failure=failure)
+                self.assertNotEqual(code, 0, output)
+                self.assertNotIn('release', state['events'])
+
 
 @unittest.skipUnless(shutil.which('ansible-playbook'), 'Ansible is required for inventory preflight tests')
 class ActivationInventoryTests(unittest.TestCase):
+    def test_activation_connection_preserves_existing_guest_baseline_variables(self):
+        with tempfile.TemporaryDirectory(prefix='windows-activation-host-binding-') as temporary:
+            directory = Path(temporary)
+            production = yaml.safe_load((ROOT / 'activate_windows_evaluations.yml').read_text())[0]
+            add_host = next(task for task in production['tasks'] if 'ansible.builtin.add_host' in task)
+            nic = {'mac': '52:54:00:11:22:33', 'ipv4_address': '192.0.2.10'}
+            inventory = {'all': {'hosts': {'hypervisor': {'ansible_connection': 'local'},
+                                           'example-guest': {'windows_hostname': 'example-guest',
+                                                             'windows_connection_address': '192.0.2.10',
+                                                             'windows_network_interfaces': [nic]}}}}
+            play = [{'name': 'Bind the existing guest without a remote connection',
+                     'hosts': 'hypervisor', 'gather_facts': False,
+                     'vars': {'windows_activation_username': 'example-login',
+                              'windows_activation_password': 'example-secret',
+                              'windows_activation_network': 'example-network',
+                              'windows_activation_targets': [{'inventory_host': 'example-guest',
+                                                              'connection': {'address': '192.0.2.10', 'port': 5986,
+                                                                             'scheme': 'https', 'transport': 'ntlm',
+                                                                             'server_cert_validation': 'ignore'}}]},
+                     'tasks': [add_host]},
+                    {'name': 'Check that activation retains baseline inputs for fresh provenance',
+                     'hosts': 'windows_activation_guests', 'gather_facts': False,
+                     'tasks': [{'name': 'Require preserved baseline identity and network settings',
+                                'ansible.builtin.assert': {'that': ["windows_hostname == 'example-guest'",
+                                                                  "windows_connection_address == '192.0.2.10'",
+                                                                  'windows_network_interfaces == expected_nics',
+                                                                  "windows_activation_hypervisor == 'hypervisor'"]},
+                                'vars': {'expected_nics': [nic]}, 'no_log': True}]}]
+            (directory / 'inventory.yml').write_text(yaml.safe_dump(inventory))
+            (directory / 'fixture.yml').write_text(yaml.safe_dump(play))
+            result = subprocess.run(['ansible-playbook', '-i', str(directory / 'inventory.yml'),
+                                     str(directory / 'fixture.yml')], cwd=directory, text=True,
+                                    capture_output=True, timeout=20,
+                                    env=dict(os.environ, ANSIBLE_LOCAL_TEMP=str(directory / 'tmp')))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def run_preflight(self, inventory, approved=True):
         with tempfile.TemporaryDirectory(prefix='windows-activation-inventory-') as temporary:
             directory = Path(temporary)

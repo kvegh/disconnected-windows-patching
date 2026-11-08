@@ -125,15 +125,6 @@
       no_log: true
       when: windows_runtime_settings_vault is defined
 
-    - name: Require valid licensing after correcting the selected Windows clock
-      ansible.builtin.assert:
-        that:
-          - windows_clock_readiness.result.LicenseStatus == 1
-          - not windows_clock_readiness.result.Evaluation or windows_clock_readiness.result.GraceMinutes > 0
-        quiet: true
-        fail_msg: Windows licensing remains invalid after clock correction; inspect the selected guest before continuing. No activation was attempted.
-      when: windows_runtime_settings_vault is defined
-
     - name: Remove an earlier network task before preparing this run
       community.windows.win_scheduled_task:
         name: "{{ windows_network_task_name }}"
@@ -316,7 +307,3 @@
       ansible.windows.win_reboot:
         reboot_timeout: 900
       when: hostname_result.reboot_required | default(false)
-
-    - name: Release a fully configured selected Windows guest before content downloads
-      ansible.builtin.include_tasks: tasks/windows_verified_guest_release.yml
-      when: windows_runtime_settings_vault is defined and not ansible_check_mode

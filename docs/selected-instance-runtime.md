@@ -167,10 +167,13 @@ identities and review evidence stay in protected records.
 
 ## Release after verified per-VM configuration
 
-The server-basics job checks Windows identity after its permanent networking,
-scheduled network-task result, hostname and required reboot have succeeded.
-The AD preparation job performs the same check after its hostname and explicit
-update-source configuration, before public update downloads. Release is limited
+The server-basics job corrects UTC and completes permanent networking, the
+scheduled network-task result, hostname and required reboot while retaining
+isolation. The existing activation job then verifies licensing and original
+topology, after its unconditional temporary-network cleanup or a licensed skip.
+Only then does it read fresh Windows and native ownership and release the guest.
+The AD preparation job retains its check after hostname and explicit update-source
+configuration, before public update downloads. Release is limited
 to complete, unskipped normal runs. Later patch, application and directory
 functional tests remain separate acceptance steps.
 
@@ -212,10 +215,16 @@ typed Windows retirement or the strict unconfigured-clone path. Missing records
 remain null in both templating modes. See the [run/reset sequence](../README.md#teardown-verification)
 for the original core baseline, LDAP-before-regional cleanup and final NIC removal.
 
-These two jobs use the existing hypervisor Machine credential for pinned SSH.
-Server-basics binds only its guest connection to the already-encrypted bootstrap
-login; AD preparation retains its existing protected initial login and subsequent
-domain authentication logic. Other runtime jobs are unchanged. The existing
+Activation and AD preparation use the existing hypervisor Machine credential for
+pinned SSH. The activation connection preserves the inventory's baseline
+hostname, permanent address and network variables; the release include checks
+them and obtains its own authenticated/native evidence instead of reusing a
+previous job's facts. Server-basics uses the encrypted bootstrap login; AD
+preparation retains its existing protected initial login and domain authentication.
+The activation template needs the same four existing source CA/API reader,
+central Git writer and central CaC Vault references as the earlier basics
+publisher. Align these through normal CaC before running the new activation code.
+The existing
 source API reader, source CA, central Git writer, central CaC Vault and Windows
 Playbook Vault support the same publisher. Their existing distinct Vault
 identities and passwords are preserved; native supported-EE checks prove both
@@ -260,5 +269,7 @@ jobs also completed the selected reset, including owned inventory, reservations,
 permissions and supplemental AAP networking. The first guest required a
 separately user-approved exact orphan-disk unlink after an interrupted deletion;
 later normal retirements and final verification passed. This staged acceptance
-does not prove an unattended fresh full workflow, and the proposed future
-basics/activation ordering change remains unapproved.
+does not prove an unattended fresh full workflow. The completion-check correction
+keeps the existing workflow graph; local tests cover successful activation,
+licensed skips and refusal to release after licensing, cleanup or final
+verification failure. Fresh live execution remains unverified.

@@ -174,6 +174,24 @@
       when: not ansible_check_mode
       no_log: true
 
+    - name: Require licensed Windows and restored isolation before completing the selected baseline
+      ansible.builtin.assert:
+        that:
+          - windows_activation_final.result.licensed is sameas true
+          - windows_activation_final.result.license_status == 1
+          - not windows_activation_final.result.evaluation or windows_activation_final.result.grace_minutes > 0
+          - windows_activation_final.result.original_topology_verified is sameas true
+        quiet: true
+        fail_msg: Windows licensing or restored isolation is not verified; keep the selected guest isolated.
+      when: windows_runtime_settings_vault is defined and not ansible_check_mode
+      no_log: true
+
+    - name: Verify guest ownership and release only after licensing and activation cleanup succeed
+      # The activation include completes its always-cleanup before native Verify above.
+      # The existing release tasks read fresh Windows and hypervisor provenance here.
+      ansible.builtin.include_tasks: tasks/windows_verified_guest_release.yml
+      when: windows_runtime_settings_vault is defined and not ansible_check_mode
+
     - name: Report licensing and topology verification without environment details
       ansible.builtin.debug:
         msg:

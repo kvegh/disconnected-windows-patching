@@ -19,8 +19,10 @@ the selected demo retains its existing HTTPS/5986 and NTLM WinRM policy, includi
 the owner-approved `ignore` certificate-validation setting. Normal authenticated
 connection tests remain required; no extra certificate or image-inspection gate
 is added. AAP HTTPS and hypervisor SSH validation are unchanged.
-The two completed per-VM baseline stages prepare genuine Windows/native identity
-and invoke the same existing AutoDeploy release role before content downloads.
+Regular guests finish their baseline in Windows basics and retain isolation.
+The following evaluation-activation job verifies licensing and restored topology,
+then reads fresh Windows/native identity and invokes the existing AutoDeploy
+release role before content downloads. AD preparation retains its own verified release.
 They reuse existing credentials and report the actual Windows certificate policy. Offline
 checks do not establish a live guest deployment or successful release.
 The existing Windows infrastructure job also prepares the selected AAP VM's
@@ -56,8 +58,9 @@ Windows/native provenance failures expose only their controlled validation reaso
 the actual computer, disk and network evidence stays protected.
 The native PowerShell query preserves nested NIC address arrays with explicit
 serialization depth; strict address comparisons continue to use their real list values.
-The existing Windows-basics play completes each guest’s baseline and isolation
-publication before moving to the next guest, preserving each policy preflight.
+Windows basics configures guests serially without releasing isolation. Activation
+also runs serially, completing verification and release for one guest before the
+next, preserving each policy preflight.
 The read-only AD inspection records recent System shutdown events alongside
 license status, so an interrupted update can be diagnosed before changing configuration.
 The existing Windows network inspection provides the same bounded shutdown and
@@ -68,8 +71,10 @@ an evaluation before updates; a fully licensed non-evaluation edition needs no
 evaluation grace. This check does not activate, rearm or change licensing.
 Selected regular Windows guests use UTC in both their virtual hardware and
 guest timezone. The normal basics job corrects drift over two minutes from the
-automation runtime, then rereads licensing and stops clearly if it is still
-invalid. It does not activate or rearm the guest. The AD and legacy paths retain
+automation runtime, then records licensing. An expired evaluation can therefore
+finish permanent networking and hostname setup before the existing activation
+stage. Licensing must pass there before isolation is released. Basics does not
+activate or rearm the guest. The AD and legacy paths retain
 their existing clock handling.
 A live normal run corrected all four selected regular guest clocks. The three
 initially licensed guests completed their baselines first; the remaining
@@ -86,7 +91,10 @@ both current applications and their baseline-to-upgrade history on both managed
 servers, alongside their exact April builds and correct WSUS policy.
 Selected Windows-only teardown subsequently passed, preserving the four core
 guests and two golden images. A fresh unattended complete workflow remains
-unverified; the proposed future basics/activation ordering change is not approved.
+unverified. Version 1.1.12 moves regular-guest completion checks and release to
+the existing activation stage while preserving the basics → activation workflow
+edge. This correction has local control-flow coverage; its fresh live run remains
+unverified.
 For an approved activation in a prepared environment, the existing activation
 job verifies the exact clone and uses an unused IPv4 NAT network. Its generated
 temporary MAC receives only public HTTP/HTTPS and DNS to that network's gateway;
