@@ -179,7 +179,8 @@ class WindowsProducerGuardsTests(unittest.TestCase):
             windows_runtime_release_trust={'path': '/tmp/windows-release-known-hosts-fixture'})
         expressions = guard['ansible.builtin.assert']['that']
         self.assertTrue(self.evaluate(expressions, values))
-        for revision in ['ae9cfdbdbf29fe0471b71a0163cd557f607d7d8c',
+        for revision in ['3f5c7e253133d9b25e7a213cdb45bebdabca3f17',
+                         'ae9cfdbdbf29fe0471b71a0163cd557f607d7d8c',
                          '6de45e0a10a4119d596e1ed65c22c6ee48360e4a', '0' * 40, 'main']:
             with self.subTest(revision=revision):
                 self.assertFalse(self.evaluate(expressions, dict(values, windows_recovery_release_revision=revision)))

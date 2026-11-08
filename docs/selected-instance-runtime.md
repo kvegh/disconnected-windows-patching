@@ -205,8 +205,8 @@ checkout and temporary hypervisor trust file are removed on success or failure.
 There is no second publisher, extra orchestration job or Windows bootstrap
 HTTPS exception.
 
-The current pin is AutoDeploy 0.45.3 implementation
-`3f5c7e253133d9b25e7a213cdb45bebdabca3f17`. Its existing Windows branch accepts
+The current pin is AutoDeploy 0.48.20 implementation
+`e0a96b1c13c756faf7cef3ca7ca3fe2dcc3b1e2e`. Its existing Windows branch accepts
 the genuine Boolean certificate result under the owner's lab policy while
 retaining every successful identity, ownership and source/policy check. It also
 retains the canonical Controller SSH-port representation fix; different or
@@ -214,6 +214,13 @@ malformed ports still fail. The same reviewed implementation supplies the plan
 entrypoint and exact supplemental-interface ownership transaction, preserves
 existing primary identities, and resolves action support code from the current
 checked-out role when one job invokes it repeatedly.
+
+Release waits up to five seconds for the existing shared hypervisor policy lock,
+then reports a fixed safe busy message if another transaction still holds it.
+The verified target, ownership and policy checks are unchanged; retirement keeps
+its existing lock behavior. Isolated regression tests reproduce the former
+immediate lock-busy failure. The precise cause of the earlier live deployment
+failure remains unproved because its native exception was not retained.
 
 The existing reset jobs use the same retirement role. Its `tasks_from: plan`
 entry point reads actual canonical/source ownership before the destroy job selects
@@ -278,4 +285,11 @@ later normal retirements and final verification passed. This staged acceptance
 does not prove an unattended fresh full workflow. The completion-check correction
 keeps the existing workflow graph; local tests cover successful activation,
 licensed skips and refusal to release after licensing, cleanup or final
-verification failure. Fresh live execution remains unverified.
+verification failure. Fresh regular basics/activation and AD preparation,
+activation cleanup, promotion, LDAPS and the full real regional-access verifier
+have subsequently passed through normal jobs. The fresh managed branch also
+passed both exact April OS builds, baseline applications, upgrades and the
+combined live history/source report, with no remaining updates or reboot.
+These staged functional results used `c54d4d4` (1.1.14). The updated dependency's
+normal cleanup remains the next verification step; an unattended fresh full
+workflow remains unverified.

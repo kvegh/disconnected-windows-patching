@@ -17,8 +17,16 @@ before its license gate when the installed evaluation license is invalid. The
 four regular activation targets and workflow graph stay unchanged.
 Licensed AD reruns keep their current path; invalid guests must match the exact
 pre-promotion NIC/address/gateway/DNS topology before temporary access. This
-path has focused offline coverage; fresh AD activation and complete workflow
-acceptance still require verification through normal AAP jobs.
+path has focused offline coverage and has passed normal AAP preparation,
+activation cleanup, promotion, LDAPS and real regional-access verification.
+A fresh unattended full workflow remains unverified.
+
+The shared lifecycle dependency is pinned to the reviewed bounded-lock fix.
+Release waits up to five seconds for the existing policy lock and reports a
+fixed safe busy reason if it remains held, preserving target and ownership
+checks. Isolated tests reproduced the former immediate lock-busy failure; the
+precise cause of the earlier live deployment failure remains unproved. See the
+[dependency details](docs/selected-instance-runtime.md#release-after-verified-per-vm-configuration).
 
 For prepared versioned environments, read the
 [selected-instance runtime contract](docs/selected-instance-runtime.md). Its
@@ -82,33 +90,31 @@ guest timezone. The normal basics job corrects drift over two minutes from the
 automation runtime, then records licensing. An expired evaluation can therefore
 finish permanent networking and hostname setup before the existing activation
 stage. Licensing must pass there before isolation is released. Basics does not
-activate or rearm the guest. The AD and legacy paths retain
-their existing clock handling.
-A live normal run corrected all four selected regular guest clocks. The three
-initially licensed guests completed their baselines first; the remaining
-evaluation was then activated and completed its focused baseline and release.
-All four regular guest baselines are now verified. AD integration and real LDAP
-permission tests passed. WSUS synchronization, export/import and the April ceiling
-also passed. Windows Server 2022 reached build 20348.5020 and Windows Server 2025
-reached 26100.32690, both exactly at their April baselines with no remaining
-approved updates or reboot. The approved single-source Nexus firewall change is
-applied: the focused run changed only the external rule and left the internal
-rule unchanged. The four-package synchronization/export/import path, baseline
-application installation and upgrade passed. The combined live report verifies
-both current applications and their baseline-to-upgrade history on both managed
-servers, alongside their exact April builds and correct WSUS policy.
-Selected Windows-only teardown subsequently passed, preserving the four core
-guests and two golden images. A fresh unattended complete workflow remains
-unverified. Version 1.1.12 moves regular-guest completion checks and release to
-the existing activation stage while preserving the basics → activation workflow
-edge. This correction has local control-flow coverage; its fresh live run remains
-unverified.
+activate or rearm the guest. Selected AD preparation also corrects UTC before
+reading licensing; legacy runs retain their existing clock handling.
+Fresh staged functional verification passed on `c54d4d4` (1.1.14): regular
+basics/activation, AD preparation/promotion/LDAPS, 12 real LDAP logins,
+75 scoped grants and 360 permission checks. WSUS synchronization, export/import
+and the April ceiling passed. Server 2022 reached exactly 20348.5020 / KB5082142;
+Server 2025 reached exactly 26100.32690 / KB5082063. Both have no remaining
+approved updates or pending reboot. The four-package synchronization/export/import
+path, baseline installation and upgrades passed. The combined live report confirms
+7-Zip 26.04 and Git 2.56.0.windows.2, baseline-to-upgrade history and one enabled
+internal package source on both servers, with no report errors.
+
+The first combined workflow attempt failed and was continued through only its
+failed or downstream normal jobs using retained inputs. This proves the staged
+demo result; an unattended fresh full workflow remains unverified. The earlier
+selected run also passed Windows-only teardown while preserving its core guests
+and golden images. Cleanup of the current run with the updated dependency is
+the next verification step. Version 1.1.12's existing basics → activation graph
+and completion/release correction have now passed with fresh guests.
 Configuration reproduction itself has passed on a fresh AAP: the existing
 selected-use-case job prepared PAH content and installed thirty-five templates,
 the twenty-nine-node workflow and six existing activation credentials, with all
 saved runtime settings bound to that instance. A standalone importer requires
 the PAH preparation first; see the [selected-instance guide](docs/selected-instance-runtime.md).
-This metadata verification did not create or run Windows guests.
+The metadata import itself does not create or run Windows guests.
 For an approved activation in a prepared environment, the existing activation
 job verifies the exact clone and uses an unused IPv4 NAT network. Its generated
 temporary MAC receives only public HTTP/HTTPS and DNS to that network's gateway;
@@ -126,9 +132,10 @@ A live readback confirmed licensed status with about 180 days remaining. Native
 checks verified original NICs, no temporary rules, an inactive unused activation
 network and the original cleanup deadline disarmed after verification. The normal
 activation rerun also passed its licensed skip and original DNS/routes checks.
-The existing workflow still runs basics before activation; a fresh expired
-evaluation can therefore stop at the early license guard. That ordering remains
-under review, and unattended fresh selected-instance acceptance is pending.
+The existing workflow runs basics before activation. Basics finishes permanent
+networking while retaining isolation; activation verifies licensing and restored
+topology before release. These fresh-guest stages have passed. Unattended full
+workflow acceptance remains pending.
 The AD resource-stage resume accepts an incomplete initial creation plan while
 retaining ownership/source/link checks. The final strict completeness check
 still precedes retirement and authentication. A failed native inventory-host

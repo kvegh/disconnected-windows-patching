@@ -540,7 +540,9 @@ usernames for presentation.
    Activation requires the verified pre-promotion NIC, address, gateway and
    gateway-DNS topology, preserves the same temporary NAT/900-second cleanup and
    workflow graph, and keeps release after hostname/source cleanup. Fresh AD
-   activation has not yet been verified through live AAP; see the
+   preparation, activation cleanup, promotion, LDAPS and all 12 LDAP logins,
+   75 scoped grants and 360 permission checks have passed through normal AAP
+   jobs. This is staged verification, not an unattended full workflow; see the
    [activation details](windows-evaluation-activation.md#selected-ad-preparation).
 
 5. The trust stages publish `ad_ldaps_ready` and `ad_gateway_trust_ready` for

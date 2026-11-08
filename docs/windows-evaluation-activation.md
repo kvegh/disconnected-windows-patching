@@ -146,9 +146,13 @@ targets, AD inventory, attached credentials and 29-node workflow are unchanged.
 
 Twenty-four activation flow/inventory tests and twelve existing domain, AD policy
 and workflow checks pass, along with syntax and scoped strict production lint.
-These offline results do not establish fresh AD activation or complete live
-workflow acceptance. Use the existing preparation job with its approved encrypted
-runtime, then inspect actual license, cleanup and update results.
+Normal fresh AD preparation subsequently passed with a valid evaluation license,
+restored permanent topology, no temporary NIC/rules and an inactive cleanup
+deadline. Its final scan found zero remaining applicable updates or pending
+reboot. Promotion, LDAPS and real
+regional-access verification also passed. The four regular guests passed their
+separate activation/release stage. A fresh unattended full workflow remains
+unverified; use the normal jobs and inspect their actual results.
 
 The activation Job Template uses the existing **Hypervisor SSH Machine** and
 **Vault** credentials. Its first play builds an in-memory Windows inventory with
