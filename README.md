@@ -25,8 +25,15 @@ Neither path reads host JSON or invokes the retired isolation helper. UUID,
 storage, NIC, source-image and production boundaries remain mandatory. This
 consumer migration has offline checks; a fresh complete AAP workflow remains
 required after source-pin and protected-input integration.
-Source version 1.1.18 documents implementation `6f9479d` (1.1.17); it does not
-claim that saved AAP jobs have imported or executed this migration.
+The private Hactar task checkout also requires `hactar_source_git_token` in the
+existing encrypted selected-instance runtime profile. The normal native Vault
+loader binds that one reviewed setting without changing guest provenance or
+adding credentials. It uses the existing source-only reader; the allocation
+writer's `CAC_GIT_TOKEN` is preserved. Never put this secret in ordinary launch
+variables or saved plaintext defaults.
+Source version 1.1.19 adds the encrypted source-reader setting and selects the
+corrected shared private checkout. The original native migration is implemented
+by `6f9479d` (1.1.17); saved AAP imports and fresh execution remain unverified.
 
 Selected AD preparation reuses the complete guarded evaluation-activation tasks
 before its license gate when the installed evaluation license is invalid. The
@@ -38,7 +45,7 @@ activation cleanup, promotion, LDAPS and real regional-access verification.
 A fresh unattended full workflow remains unverified.
 
 The shared lifecycle dependency is pinned to native-firewall implementation
-`90edda0546fe149d317846d8d257fefe7abf6319` (AutoDeploy 0.49.0). Firewall policy
+`b1587dc7e76df7320815fc8199be1a98144e2fe5` (AutoDeploy 0.49.10). Firewall policy
 comes from existing encrypted CaC and is applied through native Hactar Ansible;
 temporary Python validators retain only their VM/resource checks. A bounded
 native transaction lock serializes the operation. The precise cause of the

@@ -8,6 +8,7 @@ from ansible.errors import AnsibleFilterError
 
 
 PROFILE_KEYS = {
+    'hactar_source_git_token',
     'active_directory', 'wsus_client_sources', 'wsus_internal_url',
     'wsus_transfer_bind_address', 'wsus_transfer_allowed_sources',
     'wsus_transfer_base_url', 'nexus_server_settings',

@@ -74,6 +74,7 @@ class WindowsRuntimeTests(unittest.TestCase):
 
     def test_approved_profile_is_bound_to_one_exact_instance(self):
         document = profile()
+        document['windows_runtime']['settings']['hactar_source_git_token'] = 'synthetic-source-reader'
         self.assertEqual(runtime.selected_settings(document, 'example-instance'),
                          document['windows_runtime']['settings'])
         with self.assertRaises(AnsibleFilterError):
