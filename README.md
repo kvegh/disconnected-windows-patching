@@ -25,6 +25,8 @@ Neither path reads host JSON or invokes the retired isolation helper. UUID,
 storage, NIC, source-image and production boundaries remain mandatory. This
 consumer migration has offline checks; a fresh complete AAP workflow remains
 required after source-pin and protected-input integration.
+Source version 1.1.18 documents implementation `6f9479d` (1.1.17); it does not
+claim that saved AAP jobs have imported or executed this migration.
 
 Selected AD preparation reuses the complete guarded evaluation-activation tasks
 before its license gate when the installed evaluation license is invalid. The

@@ -1,5 +1,37 @@
 # Design decisions history
 
+## Use the native Ansible firewall lifecycle from Windows — 2026-11-09
+
+Implementation: `6f9479d702a3eb69358a47821c728fa4eae8697c` (Windows 1.1.17).
+Shared functional source: AutoDeploy `90edda0546fe149d317846d8d257fefe7abf6319`
+(0.49.0); its Hactar source input is supplied separately through existing
+protected CaC. This source-history checkpoint is Windows 1.1.18.
+
+Replace the two Windows-owned host-JSON policy reads and the legacy isolation
+helper check with the shared native Ansible prepare/readback/finish path. Stop
+on policy drift before disk work; do not reconcile firewall state implicitly.
+Keep the existing public checkout until guarded cloning finishes. VM validators
+retain their UUID, disk, NIC, source-image and ownership checks, using the
+authenticated policy in memory under the native transaction. Add the exact
+certified firewall collection requirement and refuse superseded shared pins.
+No runtime schema, credential, Job Template or workflow is added.
+
+Bounded activation now verifies both existing deny sets, including the
+independently protected production address, before arming temporary access. Its
+allow excludes both sets and both drops precede it. MAC scope, ports, IPv6 deny,
+900-second deadline and cleanup remain unchanged.
+
+The 112 focused Windows cases passed, including native Ansible drift refusal,
+cleanup, identity/provenance, reset and activation behavior. Refreshed final-pin
+checks passed; strict production lint passed across eight files, entrypoint
+syntax and Python compilation/whitespace checks passed. Isolated kernel fixtures
+also verified all six temporary rules and exact cleanup against base/released
+policies. These are source/control-flow and isolated-kernel checks, not a fresh
+AAP workflow pass. Existing local Ansible `crypt` deprecation and syntax-only
+empty-inventory notices remain visible. Production's tested project pin was
+read independently and remained unchanged; no live configuration or private
+data changed. The original censored creation exception remains unproved.
+
 ## Bound the existing release lock and record staged verification — 2026-11-08
 
 Implementation: `a11695c` (Windows 1.1.15); shared functional implementation:
