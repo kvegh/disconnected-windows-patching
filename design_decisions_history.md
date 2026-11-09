@@ -1,5 +1,34 @@
 # Design decisions history
 
+## Select the shared reader for firewall configuration inside the Zabbix VM — 2026-11-09
+
+Implementation: `e29a060ec4dd41cd34412f683cfde26f45f4ba7c` (Windows 1.1.21).
+Shared functional source: AutoDeploy `bdda318620ae30ebea455376442dc509ec7fb583`
+(0.50.0). This source-history checkpoint is Windows 1.1.22.
+
+Update the one existing default and three exact caller guards together. The
+shared reader now requires AIOps permissions inside the existing Zabbix VM's
+`configuration.firewall` section and refuses the former parallel instance-level
+section. Its existing release and retirement role interfaces are unchanged;
+Windows adds no runtime field, credential, helper, store or Job Template.
+All four runtime files contain only the exact dependency-pin replacement.
+
+Coordinate source deployment with the protected data migration: stop older
+callers before nesting the data, and make the migrated capture available before
+the new caller runs. A configuration-only Zabbix section may have empty grants
+without invented ownership. A source update alone performs no migration or
+firewall application; production and unrelated instance boundaries remain.
+
+Eleven focused native guard tests passed, including explicit refusal of the
+superseded pin on release, retirement and the AAP network transaction. Setup,
+activation and retirement entrypoint syntax checks, test compilation and
+whitespace checks passed. Strict production lint passed six discovered files;
+its existing profile-filter mock notice, local Ansible `crypt` deprecation and
+syntax-only empty-host notices remain visible. These are source checks, not a
+formal review or fresh AAP runtime acceptance. No private capture, live object
+or production setting changed. The original censored deployment cause remains
+unproved.
+
 ## Use the native Ansible firewall lifecycle from Windows — 2026-11-09
 
 Implementation: `6f9479d702a3eb69358a47821c728fa4eae8697c` (Windows 1.1.17).
