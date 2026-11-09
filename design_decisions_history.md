@@ -2669,3 +2669,19 @@ the corresponding Git changes; they summarize the history rather than every fix.
 - `57f35d8`: reconnect after temporary WinRM interruption while polling scheduled
   completion, with bounded waits and explicit result validation. This prevents
   a successful network change from being misreported as a permanent failure.
+
+## Authenticate the private native task source — 2026-11-09
+
+Implementation: `5191b5463fedfad2f5811fdfbba8099c60573da3` (1.1.19).
+
+The Hactar task repository requires authentication. Reuse its approved read-only
+reader through the existing encrypted Windows runtime profile and Playbook Vault;
+accept that one setting without changing strict guest/network provenance. The
+four existing dependency references now select AutoDeploy `b1587dc` (0.49.10),
+whose fixed-repository Git header is process-local and leaves the allocation
+writer token unchanged. No additional credential type or saved plaintext secret
+is introduced.
+
+The 22 runtime/safety tests, strict production lint of the six-file affected
+closure and four normal playbook syntax checks pass. Encrypted profile/capture
+publication and fresh live AAP execution remain separate acceptance steps.
