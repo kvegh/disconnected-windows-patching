@@ -160,6 +160,53 @@
   when: windows_activation_needs_nic | bool
   no_log: true
 
+- name: Read both existing native deny sets before arming activation access
+  ansible.builtin.command:
+    argv: [nft, --json, --numeric, list, set, inet, hactar_recovery, '{{ item }}']
+  loop: [installation_denied_v4, protected_destinations_v4]
+  register: windows_activation_deny_sets
+  delegate_to: '{{ windows_activation_hypervisor }}'
+  become: true
+  vars: &activation_pinned_ssh
+    ansible_connection: ssh
+    ansible_shell_type: sh
+    ansible_host: "{{ hostvars[inventory_hostname].windows_runtime_recovery_pin.address }}"
+    ansible_user: "{{ hostvars[inventory_hostname].windows_runtime_recovery_pin.user }}"
+    ansible_port: "{{ hostvars[inventory_hostname].windows_runtime_recovery_pin.port }}"
+    ansible_password: ''
+    ansible_ssh_pass: ''
+    ansible_become_password: ''
+    ansible_ssh_common_args: >-
+      -o BatchMode=yes -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no
+      -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null
+      -o UserKnownHostsFile={{ hostvars[inventory_hostname].windows_activation_hypervisor_trust.path | quote }}
+    ansible_host_key_checking: true
+    ansible_ssh_host_key_checking: true
+  changed_when: false
+  when: windows_runtime_settings_vault is defined
+  no_log: true
+
+- name: Require both deny sets and the independently protected production destination
+  ansible.builtin.assert:
+    that:
+      - hactar_source_public_ip is defined
+      - hactar_source_public_ip is string
+      - hactar_source_public_ip != windows_runtime_recovery_pin.address
+      - installation_sets | length == 1
+      - protected_sets | length == 1
+      - hactar_source_public_ip in protected_sets[0].elem | default([])
+    quiet: true
+    fail_msg: Activation requires the native private-range and independent production deny sets before temporary access.
+  vars:
+    installation_sets: >-
+      {{ (windows_activation_deny_sets.results[0].stdout | from_json).nftables |
+         selectattr('set', 'defined') | map(attribute='set') | selectattr('name', 'equalto', 'installation_denied_v4') | list }}
+    protected_sets: >-
+      {{ (windows_activation_deny_sets.results[1].stdout | from_json).nftables |
+         selectattr('set', 'defined') | map(attribute='set') | selectattr('name', 'equalto', 'protected_destinations_v4') | list }}
+  when: windows_runtime_settings_vault is defined
+  no_log: true
+
 - name: Perform the bounded activation exception with unconditional hypervisor cleanup
   block:
     # Share each operation body; only selected instances override SSH connection
@@ -181,21 +228,7 @@
         - windows_runtime_settings_vault is not defined
 
     - <<: *activation_native_deadline
-      vars: &activation_pinned_ssh
-        ansible_connection: ssh
-        ansible_shell_type: sh
-        ansible_host: "{{ hostvars[inventory_hostname].windows_runtime_recovery_pin.address }}"
-        ansible_user: "{{ hostvars[inventory_hostname].windows_runtime_recovery_pin.user }}"
-        ansible_port: "{{ hostvars[inventory_hostname].windows_runtime_recovery_pin.port }}"
-        ansible_password: ''
-        ansible_ssh_pass: ''
-        ansible_become_password: ''
-        ansible_ssh_common_args: >-
-          -o BatchMode=yes -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no
-          -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null
-          -o UserKnownHostsFile={{ hostvars[inventory_hostname].windows_activation_hypervisor_trust.path | quote }}
-        ansible_host_key_checking: true
-        ansible_ssh_host_key_checking: true
+      vars: *activation_pinned_ssh
       when:
         - windows_activation_needs_nic | bool
         - windows_runtime_settings_vault is defined
@@ -205,9 +238,12 @@
         windows_activation_temporary_rules: |
           insert rule inet hactar_recovery guest_forward iifname "{{ network.bridge }}" \
             ether saddr {{ windows_activation_temporary_mac }} oifname != @guest_bridges \
-            ip daddr != @installation_denied_v4 tcp dport { 80, 443 } accept comment "{{ windows_activation_guard_unit }}"
+            ip daddr != @installation_denied_v4 ip daddr != @protected_destinations_v4 \
+            tcp dport { 80, 443 } accept comment "{{ windows_activation_guard_unit }}"
           insert rule inet hactar_recovery guest_forward iifname "{{ network.bridge }}" \
             ether saddr {{ windows_activation_temporary_mac }} ip daddr @installation_denied_v4 drop comment "{{ windows_activation_guard_unit }}"
+          insert rule inet hactar_recovery guest_forward iifname "{{ network.bridge }}" \
+            ether saddr {{ windows_activation_temporary_mac }} ip daddr @protected_destinations_v4 drop comment "{{ windows_activation_guard_unit }}"
           insert rule inet hactar_recovery guest_forward iifname "{{ network.bridge }}" \
             ether saddr {{ windows_activation_temporary_mac }} meta nfproto ipv6 drop comment "{{ windows_activation_guard_unit }}"
           insert rule inet hactar_recovery guest_host iifname "{{ network.bridge }}" \

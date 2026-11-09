@@ -12,6 +12,10 @@
           - ansible_run_tags | default(['all']) == ['all']
           - ansible_skip_tags | default([]) | length == 0
           - windows_aap_management_state in ['present', 'absent']
+          - aap_hactar_source_revision is defined
+          - aap_hactar_source_revision is match('^[0-9a-f]{40}$')
+          - hactar_source_public_ip is defined
+          - hactar_source_public_ip is string
           - lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_USERNAME') | length > 0
           - lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_PASSWORD') | length > 0
           - lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_KNOWN_HOSTS') | length > 0
@@ -125,7 +129,7 @@
           ansible.builtin.assert:
             that:
               - windows_aap_network_dependency.windows_recovery_release_repository == 'https://github.com/kvegh/aap_autodeploy_configascode.git'
-              - windows_aap_network_dependency.windows_recovery_release_revision == 'e0a96b1c13c756faf7cef3ca7ca3fe2dcc3b1e2e'
+              - windows_aap_network_dependency.windows_recovery_release_revision == '90edda0546fe149d317846d8d257fefe7abf6319'
             quiet: true
 
         - name: Fetch the single reviewed public implementation for this whole job
@@ -175,6 +179,41 @@
                   - recovery_guest_retire_plan.guest is none
                 quiet: true
                 fail_msg: A registered guest cannot be replaced or treated as an unbooted golden copy.
+
+        - name: Verify native isolation and clone while the existing implementation checkout is available
+          when: windows_aap_management_state == 'present'
+          vars:
+            aap_isolation_autodeploy_root: '{{ windows_aap_network_workspace.path }}/source'
+            aap_isolation_hypervisor: '{{ windows_runtime_recovery_pin }}'
+            aap_isolation_trust_file: '{{ windows_runtime_host_keys.path }}'
+          block:
+            - name: Acquire the shared native transaction without changing permissions
+              ansible.builtin.include_tasks: '{{ windows_aap_network_workspace.path }}/source/tasks/aap-isolation-prepare.yml'
+              vars:
+                aap_isolation_autodeploy_root: '{{ windows_aap_network_workspace.path }}/source'
+
+            - name: Require exact native agreement with the just-published source policy
+              ansible.builtin.include_tasks: '{{ windows_aap_network_workspace.path }}/source/tasks/aap-isolation-observe.yml'
+              vars:
+                aap_isolation_previous_policy: '{{ __recovery_release_plan.transition.desired_policy }}'
+                aap_isolation_desired_policy: '{{ __recovery_release_plan.transition.desired_policy }}'
+                aap_isolation_require_match: true
+
+            - name: Create the selected Windows clone under the same lock as management NIC teardown
+              ansible.builtin.command:
+                argv: [python3, -c, "{{ lookup('ansible.builtin.file', 'assets/windows-aap-interface.py') }}"]
+                stdin: >-
+                  {{ {'mode': 'clone', 'guest': windows_aap_network_guest,
+                      'prefix_length': windows_aap_management.prefix_length,
+                      'owned_guests': windows_runtime_guests, 'published': windows_aap_network_complete | bool,
+                      'policy': __recovery_release_plan.transition.desired_policy,
+                      'clone': {'vm_name': vm_name, 'source': selected_image, 'disk': vm_disk_path}} | to_json }}
+              register: windows_aap_guarded_clone
+              changed_when: (windows_aap_guarded_clone.stdout | from_json).changed
+
+          always:
+            - name: Release only this clone verification transaction and temporary Hactar source
+              ansible.builtin.include_tasks: '{{ windows_aap_network_workspace.path }}/source/tasks/aap-isolation-finish.yml'
 
       rescue:
         - name: Default to preserving components while durable ownership is uncertain

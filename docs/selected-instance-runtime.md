@@ -205,8 +205,8 @@ checkout and temporary hypervisor trust file are removed on success or failure.
 There is no second publisher, extra orchestration job or Windows bootstrap
 HTTPS exception.
 
-The current pin is AutoDeploy 0.48.20 implementation
-`e0a96b1c13c756faf7cef3ca7ca3fe2dcc3b1e2e`. Its existing Windows branch accepts
+The current pin is AutoDeploy 0.49.0 implementation
+`90edda0546fe149d317846d8d257fefe7abf6319`. Its existing Windows branch accepts
 the genuine Boolean certificate result under the owner's lab policy while
 retaining every successful identity, ownership and source/policy check. It also
 retains the canonical Controller SSH-port representation fix; different or
@@ -215,12 +215,24 @@ entrypoint and exact supplemental-interface ownership transaction, preserves
 existing primary identities, and resolves action support code from the current
 checked-out role when one job invokes it repeatedly.
 
-Release waits up to five seconds for the existing shared hypervisor policy lock,
-then reports a fixed safe busy message if another transaction still holds it.
-The verified target, ownership and policy checks are unchanged; retirement keeps
-its existing lock behavior. Isolated regression tests reproduce the former
-immediate lock-busy failure. The precise cause of the earlier live deployment
-failure remains unproved because its native exception was not retained.
+The same pinned implementation reads current encrypted CaC and checks the complete
+native firewall state before changing it. It uses the reviewed public Hactar
+tasks and certified firewall content rather than host JSON or an installed
+isolation helper. Callers supply `aap_hactar_source_revision` and the independent
+`hactar_source_public_ip` through their existing protected launch variables;
+the calling EE needs `redhat.rhel_system_roles:1.120.5` prepared through PAH.
+Preflight compares native state without applying policy and stops on drift.
+The guarded clone remains inside the existing checkout lifetime, while its
+temporary native transaction covers readback and storage checks. Unconfigured
+retirement uses the same readback before the retained VM-only validator. Locks,
+temporary checkouts and trust files are cleaned on failure as well as success.
+
+Bounded activation checks both native deny sets before arming its deadline.
+Its temporary allow excludes private/reserved and protected production addresses;
+both drops precede that allow. The same MAC, ports, 900-second deadline and
+normal cleanup remain. The earlier precise deployment exception remains unproved
+because it was not retained. Focused offline consumer tests and isolated native
+rule fixtures do not prove a fresh complete AAP workflow.
 
 The existing reset jobs use the same retirement role. Its `tasks_from: plan`
 entry point reads actual canonical/source ownership before the destroy job selects

@@ -170,7 +170,8 @@ class WindowsProducerGuardsTests(unittest.TestCase):
         role = ROOT / 'roles/windows_recovery_release'
         defaults = yaml.safe_load((role / 'defaults/main.yml').read_text())
         guard = yaml.safe_load((role / 'tasks/main.yml').read_text())[0]
-        values = dict(defaults, windows_runtime_verified_resource={
+        values = dict(defaults, aap_hactar_source_revision='a' * 40,
+            hactar_source_public_ip='198.51.100.10', windows_runtime_verified_resource={
             'kind': 'windows', 'verified': True, 'winrm_certificate_validated': True,
             'vm_name': 'example-v07', 'instance_name': 'aap27-test-7', 'hypervisor_machine_id': 'a' * 32},
             inventory_hostname='example-v07', windows_runtime_expected_instance='aap27-test-7',
@@ -179,12 +180,17 @@ class WindowsProducerGuardsTests(unittest.TestCase):
             windows_runtime_release_trust={'path': '/tmp/windows-release-known-hosts-fixture'})
         expressions = guard['ansible.builtin.assert']['that']
         self.assertTrue(self.evaluate(expressions, values))
-        for revision in ['3f5c7e253133d9b25e7a213cdb45bebdabca3f17',
+        for revision in ['e0a96b1c13c756faf7cef3ca7ca3fe2dcc3b1e2e',
+                         '3f5c7e253133d9b25e7a213cdb45bebdabca3f17',
                          'ae9cfdbdbf29fe0471b71a0163cd557f607d7d8c',
                          '6de45e0a10a4119d596e1ed65c22c6ee48360e4a', '0' * 40, 'main']:
             with self.subTest(revision=revision):
                 self.assertFalse(self.evaluate(expressions, dict(values, windows_recovery_release_revision=revision)))
         self.assertFalse(self.evaluate(expressions, dict(values, windows_recovery_release_repository='https://example.invalid/other.git')))
+        for key in ['aap_hactar_source_revision', 'hactar_source_public_ip']:
+            missing = dict(values)
+            del missing[key]
+            self.assertFalse(self.evaluate(expressions, missing))
 
     def test_existing_bootstrap_login_is_bound_only_to_initial_standalone_guest_configuration(self):
         tasks = yaml.safe_load((ROOT / 'tasks/windows_runtime_settings.yml').read_text())

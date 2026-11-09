@@ -101,12 +101,12 @@ def main():
         if result['present'] and virsh('snapshot-list', name, '--name'):
             raise ValueError('A selected clone has snapshots; explicit review is required.')
         if record.get('unconfigured') is True:
-            policy = json.loads(Path('/etc/hactarconfig/replacement-isolation.json').read_text())
-            if policy != record['policy']:
-                raise ValueError('Actual recovery policy differs from authenticated source policy.')
+            # The caller verifies native firewall state from this exact CaC
+            # policy under the shared lock before entering this VM-only helper.
+            policy = record['policy']
+            if not isinstance(policy, dict):
+                raise ValueError('Require the authenticated source policy.')
             unconfigured_permissions(record['guests'][name], policy)
-            subprocess.run(['/usr/local/sbin/hactar-recovery-isolation', 'check'],
-                           input=json.dumps(policy), text=True, check=True, capture_output=True)
             for options in ([], ['--permanent']):
                 rules = subprocess.check_output(['firewall-cmd', *options, '--list-all-zones'], text=True)
                 if any(re.search(r'\bsource\s+address="' + re.escape(nic['address']) + r'(?:/32)?"', rules)

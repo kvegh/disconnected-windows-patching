@@ -155,7 +155,10 @@ def main(request):
                     and not copied.get('snapshots') and copied.get('virtual-size', 0) > 0
                     and copied['virtual-size'] == image.get('virtual-size'),
                     'Reuse only a standalone unbooted copy with the original virtual capacity.')
-            policy = json.loads(Path('/etc/hactarconfig/replacement-isolation.json').read_text())
+            # Native Ansible verifies this source policy while the caller holds
+            # the shared transaction lock; this helper only verifies VM storage.
+            policy = request['policy']
+            require(isinstance(policy, dict), 'Require the authenticated source policy.')
             interfaces = request['owned_guests'][clone['vm_name']]['interfaces']
             require(not any(row.get('mac') == nic['mac'] or row.get('ipv4') == nic['address']
                             for field in ('https_clients', 'http_clients', 'released_clients', 'guest_host_clients')

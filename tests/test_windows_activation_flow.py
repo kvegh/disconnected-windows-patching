@@ -91,7 +91,13 @@ class ActionModule(ActionBase):
                 state['network'] = False
                 events.append('cleanup')
             elif argv[0] == 'nft':
-                if '--check' in argv:
+                if 'list' in argv:
+                    elements = [] if argv[-1] == 'installation_denied_v4' else [task_vars['hactar_source_public_ip']]
+                    if state['failure'] == 'missing_production_deny' and argv[-1] == 'protected_destinations_v4':
+                        elements = []
+                    result['stdout'] = json.dumps({'nftables': [{'set': {'name': argv[-1], 'elem': elements}}]})
+                    events.append('read_deny_sets')
+                elif '--check' in argv:
                     events.append('validate_rules')
                 else:
                     assert state['timer']
@@ -162,6 +168,15 @@ def substitute_remote_actions(tasks):
 
 @unittest.skipUnless(shutil.which('ansible-playbook'), 'Ansible is required for control-flow tests')
 class ActivationFlowTests(unittest.TestCase):
+    def test_missing_production_deny_stops_before_any_temporary_access(self):
+        code, state, output = self.run_flow(selected=True, failure='missing_production_deny')
+        self.assertNotEqual(code, 0, output)
+        self.assertNotIn('arm_guard', state['events'])
+        self.assertNotIn('apply_rules', state['events'])
+        self.assertNotIn('attach', state['events'])
+        self.assertFalse(state['timer'])
+        self.assertFalse(state['temporary'])
+
     def test_normal_and_deadline_cleanup_scripts_parse_for_both_paths(self):
         tasks = yaml.safe_load((ROOT / 'tasks/activate_windows_evaluation.yml').read_text())
         script = next(task['ansible.builtin.set_fact']['windows_activation_cleanup_script']
@@ -214,6 +229,7 @@ class ActivationFlowTests(unittest.TestCase):
                 'name': 'Exercise activation cleanup without remote connections',
                 'hosts': 'guest', 'gather_facts': False,
                 'vars': {
+                    'hactar_source_public_ip': '198.51.100.10',
                     'ansible_connection': 'local', 'ansible_become': False,
                     'windows_activation_settings': {'vm_name': 'example-clone', 'windows_version': '2025'},
                     'windows_activation_hypervisor': 'hypervisor',
@@ -293,6 +309,7 @@ class ActivationFlowTests(unittest.TestCase):
                                             'rules': False, 'network': False,
                                             'licensed': licensed, 'failure': failure, 'policy': policy}))
             env = dict(os.environ, ANSIBLE_LOCAL_TEMP=str(directory / 'tmp'),
+                       ANSIBLE_REMOTE_TEMP=str(directory / 'remote'),
                        ANSIBLE_COLLECTIONS_PATH=str(directory / 'collections'),
                        ANSIBLE_NOCOLOR='1', ANSIBLE_RETRY_FILES_ENABLED='false',
                        ANSIBLE_DEPRECATION_WARNINGS='true', ACTIVATION_TEST_STATE=str(statefile))

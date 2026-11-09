@@ -245,6 +245,8 @@ class WindowsCleanupConditionTests(unittest.TestCase):
     def test_ldap_preview_requires_a_boolean_mode_and_exact_selected_ownership(self):
         names = list(profile()['windows_runtime']['settings']['windows_runtime_guests'])
         values = {'windows_runtime_settings_vault': 'example ciphertext',
+                  'teardown_baseline': {'core_before_deployment': True,
+                      'ad_before': {'users': []}, 'ad_cleanup': {'users': []}},
                   'windows_decommission_apply': True, 'windows_runtime_expected_instance': 'example-instance',
                   'windows_demo_vm_names': names,
                   'windows_decommission_preview': {'read_only': True, 'instance': 'example-instance',

@@ -11,7 +11,11 @@
       - windows_runtime_verified_resource.hypervisor_machine_id == windows_runtime_recovery_pin.machine_id
       - windows_runtime_release_trust.path is match('^/tmp/windows-release-known-hosts-[A-Za-z0-9_]+$')
       - windows_recovery_release_repository == 'https://github.com/kvegh/aap_autodeploy_configascode.git'
-      - windows_recovery_release_revision == 'e0a96b1c13c756faf7cef3ca7ca3fe2dcc3b1e2e'
+      - windows_recovery_release_revision == '90edda0546fe149d317846d8d257fefe7abf6319'
+      - aap_hactar_source_revision is defined
+      - aap_hactar_source_revision is match('^[0-9a-f]{40}$')
+      - hactar_source_public_ip is defined
+      - hactar_source_public_ip is string
     quiet: true
     fail_msg: Complete trusted Windows and exact native ownership verification before invoking the shared lifecycle role.
   no_log: true

@@ -94,3 +94,10 @@ Use the [README](README.md) for setup and template details, the
 [WSUS data flow](docs/wsus-data-flow.md), the
 [application pipeline](docs/application-deployment.md), and the
 [AD presenter guide](docs/active-directory-demo-guide.md) for the detailed paths.
+## Native firewall prerequisites
+
+Prepare `redhat.rhel_system_roles:1.120.5` in the calling EE and supply the
+reviewed `aap_hactar_source_revision` plus independent `hactar_source_public_ip`
+through existing protected CaC. Preflight verifies native state without applying
+policy; drift stops before cloning. No host JSON or legacy isolation helper is
+used by these checks. Fresh workflow acceptance remains pending integration.

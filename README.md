@@ -12,6 +12,20 @@ The [supporting-code guide](docs/supporting-code.md) explains the retained Pytho
 PowerShell and command usage; the [test guide](tests/README.md) states what the
 offline suites prove and what still needs live AAP validation.
 
+Native firewall callers require the reviewed Hactar source revision in
+`aap_hactar_source_revision` and the independently recorded production identity in
+`hactar_source_public_ip`, supplied by the existing protected CaC. The calling
+execution environment must have `redhat.rhel_system_roles:1.120.5` prepared through
+PAH. Shared native Ansible tasks compare actual firewall state with current CaC
+before disk operations; preflight never applies firewall changes. Drift stops the
+job and requires explicit reconciliation. The existing source checkout remains
+available until the guarded clone and its read-only transaction finish.
+Unconfigured cleanup uses the same native readback before its VM-only checks.
+Neither path reads host JSON or invokes the retired isolation helper. UUID,
+storage, NIC, source-image and production boundaries remain mandatory. This
+consumer migration has offline checks; a fresh complete AAP workflow remains
+required after source-pin and protected-input integration.
+
 Selected AD preparation reuses the complete guarded evaluation-activation tasks
 before its license gate when the installed evaluation license is invalid. The
 four regular activation targets and workflow graph stay unchanged.
@@ -21,11 +35,12 @@ path has focused offline coverage and has passed normal AAP preparation,
 activation cleanup, promotion, LDAPS and real regional-access verification.
 A fresh unattended full workflow remains unverified.
 
-The shared lifecycle dependency is pinned to the reviewed bounded-lock fix.
-Release waits up to five seconds for the existing policy lock and reports a
-fixed safe busy reason if it remains held, preserving target and ownership
-checks. Isolated tests reproduced the former immediate lock-busy failure; the
-precise cause of the earlier live deployment failure remains unproved. See the
+The shared lifecycle dependency is pinned to native-firewall implementation
+`90edda0546fe149d317846d8d257fefe7abf6319` (AutoDeploy 0.49.0). Firewall policy
+comes from existing encrypted CaC and is applied through native Hactar Ansible;
+temporary Python validators retain only their VM/resource checks. A bounded
+native transaction lock serializes the operation. The precise cause of the
+earlier live deployment failure remains unproved. See the
 [dependency details](docs/selected-instance-runtime.md#release-after-verified-per-vm-configuration).
 
 For prepared versioned environments, read the

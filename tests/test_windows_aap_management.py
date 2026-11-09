@@ -247,7 +247,8 @@ class LibvirtOperationTests(unittest.TestCase):
                                                                       'address': '10.42.0.%d' % (20 + index)}]}
                                                 for index, name in enumerate(['example-ext', 'example-int', 'example-win22',
                                                                               'example-win25', 'example-ad'])},
-                                'clone': clone, 'published': published, 'job_created': job_created})
+                                'clone': clone, 'policy': NativeFiles.policy,
+                                'published': published, 'job_created': job_created})
 
     def test_exact_new_attachment_changes_only_the_supplemental_device(self):
         fixture = LibvirtFixture()
@@ -610,6 +611,47 @@ class NativeAnsibleGuardTests(unittest.TestCase):
         guard.when = expressions
         return guard.evaluate_conditional(Templar(loader=loader, variables=values), values)
 
+    def test_native_drift_stops_clone_and_always_releases_its_transaction(self):
+        outer = yaml.safe_load((ROOT / 'tasks/windows_aap_management_network.yml').read_text())[0]
+        transaction = next(row for row in outer['block'] if row.get('rescue'))
+        original = next(row for row in transaction['block']
+                        if row['name'].startswith('Verify native isolation and clone'))
+        for matches in [True, False]:
+            with self.subTest(matches=matches), tempfile.TemporaryDirectory() as temporary:
+                directory = Path(temporary)
+                shared = directory / 'source/tasks'
+                shared.mkdir(parents=True)
+                (shared / 'aap-isolation-prepare.yml').write_text(yaml.safe_dump([
+                    {'name': 'Fixture native lock', 'ansible.builtin.set_fact': {
+                        'fixture_lock': True, 'aap_isolation_autodeploy_root': '/wrong-caller-project'}},
+                    {'name': 'Fixture uses the actual common source inside prepare', 'ansible.builtin.assert': {'that': [
+                        "aap_isolation_autodeploy_root == windows_aap_network_workspace.path ~ '/source'"]}}]))
+                (shared / 'aap-isolation-observe.yml').write_text(yaml.safe_dump([
+                    {'name': 'Fixture exact native readback', 'ansible.builtin.assert': {'that': [
+                        'fixture_lock', 'aap_isolation_require_match', 'fixture_native_matches']}}]))
+                (shared / 'aap-isolation-finish.yml').write_text(yaml.safe_dump([
+                    {'name': 'Fixture transaction cleanup', 'ansible.builtin.file': {
+                        'path': str(directory / 'cleaned'), 'state': 'touch'}}]))
+                task = copy.deepcopy(original)
+                clone = task['block'][-1]
+                clone.pop('ansible.builtin.command')
+                clone.pop('changed_when')
+                clone['ansible.builtin.file'] = {'path': str(directory / 'cloned'), 'state': 'touch'}
+                variables = {'windows_aap_management_state': 'present',
+                    'windows_aap_network_workspace': {'path': str(directory)},
+                    'windows_runtime_recovery_pin': {}, 'windows_runtime_host_keys': {'path': '/tmp/fixture'},
+                    'fixture_native_matches': matches}
+                play = directory / 'play.yml'
+                play.write_text(yaml.safe_dump([{'hosts': 'localhost', 'connection': 'local',
+                    'gather_facts': False, 'vars': variables, 'tasks': [task]}]))
+                result = subprocess.run([sys.executable, '-m', 'ansible.cli.playbook',
+                    '-i', 'localhost,', str(play)], text=True, capture_output=True,
+                    env=dict(os.environ, ANSIBLE_LOCAL_TEMP=str(directory / 'local'),
+                             ANSIBLE_REMOTE_TEMP=str(directory / 'remote')), timeout=60)
+                self.assertEqual(result.returncode == 0, matches, result.stdout + result.stderr)
+                self.assertEqual((directory / 'cloned').exists(), matches)
+                self.assertTrue((directory / 'cleaned').exists())
+
     def test_rollback_requires_fresh_canonical_absence_not_only_own_publish_flag(self):
         tasks = yaml.safe_load((ROOT / 'tasks/windows_aap_management_network.yml').read_text())
         transaction = next(row for row in tasks[0]['block'] if row.get('rescue'))
@@ -648,7 +690,7 @@ class NativeAnsibleGuardTests(unittest.TestCase):
     def test_locked_clone_precedes_every_selected_reservation_and_boot(self):
         tasks = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]['tasks']
         names = [row['name'] for row in tasks]
-        clone = names.index('Create the selected Windows clone under the same lock as management NIC teardown')
+        clone = names.index("Prepare the selected AAP's isolated Windows management connection before cloning")
         reserve = names.index("Reserve only the selected instance guest's exact resources after its locked disk creation")
         boot = names.index('Create and start Windows VM')
         self.assertLess(clone, reserve)
@@ -717,6 +759,8 @@ class NativeAnsibleCredentialBindingTests(unittest.TestCase):
             directory = Path(temporary)
             data = profile()
             variables = {'windows_runtime_settings_vault': 'synthetic-defined-ciphertext',
+                         'aap_hactar_source_revision': 'a' * 40,
+                         'hactar_source_public_ip': '198.51.100.10',
                          'windows_runtime_expected_instance': 'example-aap',
                          'windows_runtime_hypervisor': {'inventory_host': 'example-hypervisor'},
                          'windows_runtime_recovery_pin': data['route']['hypervisor'],
