@@ -205,8 +205,8 @@ checkout and temporary hypervisor trust file are removed on success or failure.
 There is no second publisher, extra orchestration job or Windows bootstrap
 HTTPS exception.
 
-The current pin is AutoDeploy 0.49.0 implementation
-`90edda0546fe149d317846d8d257fefe7abf6319`. Its existing Windows branch accepts
+The current pin is AutoDeploy 0.50.0 implementation
+`bdda318620ae30ebea455376442dc509ec7fb583`. Its existing Windows branch accepts
 the genuine Boolean certificate result under the owner's lab policy while
 retaining every successful identity, ownership and source/policy check. It also
 retains the canonical Controller SSH-port representation fix; different or
@@ -216,16 +216,29 @@ existing primary identities, and resolves action support code from the current
 checked-out role when one job invokes it repeatedly.
 
 The same pinned implementation reads current encrypted CaC and checks the complete
-native firewall state before changing it. It uses the reviewed public Hactar
+native firewall state before changing it. It uses the reviewed Hactar
 tasks and certified firewall content rather than host JSON or an installed
 isolation helper. Callers supply `aap_hactar_source_revision` and the independent
 `hactar_source_public_ip` through their existing protected launch variables;
 the calling EE needs `redhat.rhel_system_roles:1.120.5` prepared through PAH.
+The existing encrypted runtime `hactar_source_git_token` authenticates the
+private Hactar checkout; it never replaces the allocation writer credential.
 Preflight compares native state without applying policy and stops on drift.
 The guarded clone remains inside the existing checkout lifetime, while its
 temporary native transaction covers readback and storage checks. Unconfigured
 retirement uses the same readback before the retained VM-only validator. Locks,
 temporary checkouts and trust files are cleaned on failure as well as success.
+
+The shared application reader requires permissions at
+`aiops_instances[instance].zabbix.configuration.firewall.guest_host_clients` and
+refuses the former sibling `aiops_instances[instance].firewall`. A fresh Zabbix
+configuration may retain an empty grant without inventing guest ownership.
+The common release and retirement role interfaces are unchanged, so Windows
+needs no new runtime field or credential. Before execution, coordinate the
+protected data migration with all callers: older shared pins must be stopped,
+and the nested data must exist before the new pin runs. Publishing this source
+does not migrate CaC, import definitions or launch a job. Fresh runtime
+acceptance remains separate.
 
 Bounded activation checks both native deny sets before arming its deadline.
 Its temporary allow excludes private/reserved and protected production addresses;

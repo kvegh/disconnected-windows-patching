@@ -180,7 +180,9 @@ class WindowsProducerGuardsTests(unittest.TestCase):
             windows_runtime_release_trust={'path': '/tmp/windows-release-known-hosts-fixture'})
         expressions = guard['ansible.builtin.assert']['that']
         self.assertTrue(self.evaluate(expressions, values))
-        for revision in ['e0a96b1c13c756faf7cef3ca7ca3fe2dcc3b1e2e',
+        for revision in ['b1587dc7e76df7320815fc8199be1a98144e2fe5',
+                         '90edda0546fe149d317846d8d257fefe7abf6319',
+                         'e0a96b1c13c756faf7cef3ca7ca3fe2dcc3b1e2e',
                          '3f5c7e253133d9b25e7a213cdb45bebdabca3f17',
                          'ae9cfdbdbf29fe0471b71a0163cd557f607d7d8c',
                          '6de45e0a10a4119d596e1ed65c22c6ee48360e4a', '0' * 40, 'main']:
@@ -191,6 +193,19 @@ class WindowsProducerGuardsTests(unittest.TestCase):
             missing = dict(values)
             del missing[key]
             self.assertFalse(self.evaluate(expressions, missing))
+
+    def test_retirement_requires_the_same_current_pin_before_checkout(self):
+        defaults = yaml.safe_load((ROOT / 'roles/windows_recovery_release/defaults/main.yml').read_text())
+        tasks = yaml.safe_load((ROOT / 'tasks/windows_retire_guest.yml').read_text())
+        guard = next(row for row in tasks if row['name'].startswith('Require the same reviewed public implementation'))
+        expressions = guard['ansible.builtin.assert']['that']
+        self.assertTrue(self.evaluate(expressions, {'windows_retire_dependency': defaults}))
+        for revision in ['b1587dc7e76df7320815fc8199be1a98144e2fe5', '0' * 40, 'main']:
+            with self.subTest(revision=revision):
+                changed = dict(defaults, windows_recovery_release_revision=revision)
+                self.assertFalse(self.evaluate(expressions, {'windows_retire_dependency': changed}))
+        changed = dict(defaults, windows_recovery_release_repository='https://example.invalid/foreign.git')
+        self.assertFalse(self.evaluate(expressions, {'windows_retire_dependency': changed}))
 
     def test_existing_bootstrap_login_is_bound_only_to_initial_standalone_guest_configuration(self):
         tasks = yaml.safe_load((ROOT / 'tasks/windows_runtime_settings.yml').read_text())

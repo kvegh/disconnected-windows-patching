@@ -45,12 +45,16 @@ activation cleanup, promotion, LDAPS and real regional-access verification.
 A fresh unattended full workflow remains unverified.
 
 The shared lifecycle dependency is pinned to native-firewall implementation
-`b1587dc7e76df7320815fc8199be1a98144e2fe5` (AutoDeploy 0.49.10). Firewall policy
+`bdda318620ae30ebea455376442dc509ec7fb583` (AutoDeploy 0.50.0). Firewall policy
 comes from existing encrypted CaC and is applied through native Hactar Ansible;
 temporary Python validators retain only their VM/resource checks. A bounded
 native transaction lock serializes the operation. The precise cause of the
 earlier live deployment failure remains unproved. See the
 [dependency details](docs/selected-instance-runtime.md#release-after-verified-per-vm-configuration).
+The shared reader now expects application permissions inside the existing
+Zabbix VM's `configuration.firewall` section. Migrate that protected AIOps data
+and keep older callers stopped before running the new pin; a source update
+alone neither migrates data nor applies firewall policy.
 
 For prepared versioned environments, read the
 [selected-instance runtime contract](docs/selected-instance-runtime.md). Its
