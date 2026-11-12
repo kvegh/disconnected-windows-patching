@@ -9,6 +9,12 @@ from jinja2 import StrictUndefined
 from jinja2.nativetypes import NativeEnvironment
 import yaml
 
+try:
+    from ansible.template import trust_as_template
+except ImportError:  # Core 2.16 predates explicit template trust.
+    def trust_as_template(value):
+        return value
+
 
 ROOT = Path(__file__).resolve().parents[1]
 RESOURCE_SETS = [
@@ -185,6 +191,11 @@ class RegionalResourceTests(unittest.TestCase):
         self.assertEqual(template['inventory'], '{{ ad_resource_set.key }} Inventory')
         self.assertEqual(template['credentials'], ['{{ ad_resource_set.key }} Credential'])
         self.assertEqual(template['playbook'], 'mock_regional_job.yml')
+        self.assertEqual(self.render(template['execution_environment'], {}),
+                         'Disconnected Windows Execution Environment')
+        self.assertEqual(self.render(template['execution_environment'],
+                                     {'ad_mock_execution_environment': 'Selected test runtime'}),
+                         'Selected test runtime')
         self.assertEqual(template['extra_vars'], {
             'demo_resource_set': '{{ ad_resource_set.key }}',
             'demo_owner': '{{ ad_resource_set.owner }}',
@@ -223,9 +234,11 @@ class RegionalResourceTests(unittest.TestCase):
             context = {'ansible_failed_result': {'msg': message}, 'ad_aap_request_timeout': 60}
             templar = Templar(loader=DataLoader(), variables=context)
             for key, value in report['vars'].items():
-                context[key] = templar.template(value)
+                # These expressions come from reviewed repository task YAML;
+                # synthetic error messages remain ordinary untrusted data.
+                context[key] = templar.template(trust_as_template(value))
                 templar.available_variables = context
-            rendered = templar.template(report['ansible.builtin.fail']['msg'])
+            rendered = templar.template(trust_as_template(report['ansible.builtin.fail']['msg']))
             self.assertIn('HTTP status=' + expected, rendered)
             self.assertIn('60 seconds', rendered)
             self.assertNotIn('fixture-secret', rendered)

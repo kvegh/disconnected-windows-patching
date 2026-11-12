@@ -672,6 +672,10 @@ barriers before LDAP activation.
 The configuration subset is also listed in
 `collections/ad-configuration-requirements.yml`. These configuration pins match
 the reviewed PAH catalog and the versions used for local API validation.
+Regional mock templates default to the CaC-owned
+`Disconnected Windows Execution Environment`, so they follow its selected runtime
+instead of the platform's default EE. `ad_mock_execution_environment` remains an
+explicit override for a separately selected runtime.
 Before syncing its projects, the regional organization reuses the selected
 target's three existing PAH credential associations. It rejects missing or
 unexpected Hub sources and copies no tokens. `ad_galaxy_source_organization`

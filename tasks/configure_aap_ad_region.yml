@@ -62,7 +62,8 @@
     credentials: ["{{ ad_resource_set.key }} Credential"]
     playbook: mock_regional_job.yml
     job_type: run
-    execution_environment: "{{ ad_mock_execution_environment | default('Default execution environment') }}"
+    # CaC owns this named EE's image; keep mock jobs on the selected Windows runtime.
+    execution_environment: "{{ ad_mock_execution_environment | default('Disconnected Windows Execution Environment') }}"
     extra_vars:
       demo_resource_set: "{{ ad_resource_set.key }}"
       demo_owner: "{{ ad_resource_set.owner }}"
