@@ -2714,3 +2714,16 @@ is introduced.
 The 22 runtime/safety tests, strict production lint of the six-file affected
 closure and four normal playbook syntax checks pass. Encrypted profile/capture
 publication and fresh live AAP execution remain separate acceptance steps.
+
+## 2026-11-12 — Preserve the selected Windows EE in regional templates
+
+Implementation `1c28790` (1.1.23) changes regional mock-job fallback from the
+legacy platform-default EE name to the existing Windows execution-environment
+name owned by CaC. Explicit operator overrides continue to work. The private
+configuration selects the unmodified official Core 2.20 image for that same name.
+
+Thirteen focused resource tests passed in the actual stock Core 2.20.10 EE and
+on local Core 2.16. Repository-owned template expressions in the test fixture
+use Ansible's native trust API; synthetic error messages remain untrusted and
+secret-redaction assertions remain. Full Windows deployment is a separate
+acceptance step. Version 1.1.24 records this implementation decision.
