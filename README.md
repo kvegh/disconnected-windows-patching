@@ -74,8 +74,13 @@ path has focused offline coverage and has passed normal AAP preparation,
 activation cleanup, promotion, LDAPS and real regional-access verification.
 A fresh unattended full workflow remains unverified.
 
-The shared lifecycle dependency is pinned to native-firewall implementation
-`bdda318620ae30ebea455376442dc509ec7fb583` (AutoDeploy 0.50.0). Firewall policy
+The shared lifecycle dependency is pinned to the reviewed Core 2.20 implementation
+`feab264664caa4cd8e3554aaf0a7d825f2fbb384` (AutoDeploy 0.53.0). The lifecycle action imports successfully in the actual Core 2.20.10 image;
+four synthetic protected-YAML tests verify trust separation, literal templates,
+Vault header/value/tag roundtrips and unchanged vendor serialization. The old
+native dumper subclass caused the live loader exception; the pinned implementation
+uses Ansible's factory without changing the shared Windows role or guest runtime.
+Firewall policy
 comes from existing encrypted CaC and is applied through native Hactar Ansible;
 temporary Python validators retain only their VM/resource checks. A bounded
 native transaction lock serializes the operation. The precise cause of the

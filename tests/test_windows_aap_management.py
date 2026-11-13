@@ -695,8 +695,8 @@ class NativeAnsibleGuardTests(unittest.TestCase):
 
     def test_optional_settings_absent_preserve_the_existing_infrastructure_path(self):
         tasks = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]['tasks']
-        task = next(row for row in tasks if row.get('ansible.builtin.include_tasks')
-                    == 'tasks/windows_aap_management_network.yml')
+        task = next(row for row in tasks if row['name'] ==
+                    "Prepare the selected AAP's isolated Windows management connection before cloning")
         self.assertFalse(self.condition([task['when']], {}))
         self.assertTrue(self.condition([task['when']], {'windows_runtime_aap_management': {}}))
 
@@ -707,7 +707,8 @@ class NativeAnsibleGuardTests(unittest.TestCase):
         dependency = yaml.safe_load((ROOT / 'roles/windows_recovery_release/defaults/main.yml').read_text())
         self.assertTrue(self.condition(guard['ansible.builtin.assert']['that'],
                                        {'windows_aap_network_dependency': dependency}))
-        for key, value in [('windows_recovery_release_revision', 'b1587dc7e76df7320815fc8199be1a98144e2fe5'),
+        for key, value in [('windows_recovery_release_revision', 'bdda318620ae30ebea455376442dc509ec7fb583'),
+                           ('windows_recovery_release_revision', 'b1587dc7e76df7320815fc8199be1a98144e2fe5'),
                            ('windows_recovery_release_revision', '0' * 40),
                            ('windows_recovery_release_repository', 'https://example.test/foreign.git')]:
             changed = dict(dependency, **{key: value})

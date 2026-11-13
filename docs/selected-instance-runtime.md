@@ -205,8 +205,8 @@ checkout and temporary hypervisor trust file are removed on success or failure.
 There is no second publisher, extra orchestration job or Windows bootstrap
 HTTPS exception.
 
-The current pin is AutoDeploy 0.50.0 implementation
-`bdda318620ae30ebea455376442dc509ec7fb583`. Its existing Windows branch accepts
+The current pin is AutoDeploy 0.53.0 implementation
+`feab264664caa4cd8e3554aaf0a7d825f2fbb384`. Its existing Windows branch accepts
 the genuine Boolean certificate result under the owner's lab policy while
 retaining every successful identity, ownership and source/policy check. It also
 retains the canonical Controller SSH-port representation fix; different or

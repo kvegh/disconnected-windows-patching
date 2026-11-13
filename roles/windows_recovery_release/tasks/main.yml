@@ -11,7 +11,7 @@
       - windows_runtime_verified_resource.hypervisor_machine_id == windows_runtime_recovery_pin.machine_id
       - windows_runtime_release_trust.path is match('^/tmp/windows-release-known-hosts-[A-Za-z0-9_]+$')
       - windows_recovery_release_repository == 'https://github.com/kvegh/aap_autodeploy_configascode.git'
-      - windows_recovery_release_revision == 'bdda318620ae30ebea455376442dc509ec7fb583'
+      - windows_recovery_release_revision == 'feab264664caa4cd8e3554aaf0a7d825f2fbb384'
       - aap_hactar_source_revision is defined
       - aap_hactar_source_revision is match('^[0-9a-f]{40}$')
       - hactar_source_public_ip is defined

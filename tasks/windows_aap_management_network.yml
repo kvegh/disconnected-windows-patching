@@ -157,7 +157,7 @@
           ansible.builtin.assert:
             that:
               - windows_aap_network_dependency.windows_recovery_release_repository == 'https://github.com/kvegh/aap_autodeploy_configascode.git'
-              - windows_aap_network_dependency.windows_recovery_release_revision == 'bdda318620ae30ebea455376442dc509ec7fb583'
+              - windows_aap_network_dependency.windows_recovery_release_revision == 'feab264664caa4cd8e3554aaf0a7d825f2fbb384'
             quiet: true
 
         - name: Fetch the single reviewed public implementation for this whole job
