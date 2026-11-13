@@ -2746,3 +2746,18 @@ on local Core 2.16. Repository-owned template expressions in the test fixture
 use Ansible's native trust API; synthetic error messages remain untrusted and
 secret-redaction assertions remain. Full Windows deployment is a separate
 acceptance step. Version 1.1.24 records this implementation decision.
+
+## 2026-11-13 — Inspect infrastructure guard failures without changing resources
+
+Implementation `8cb420c` (1.1.27) adds an explicit, default-off Boolean inspection
+through the existing VM-creation template. Actual receiver jobs failed protected
+preflight assertions even though saved inputs matched the selected runtime.
+Evaluate diagnostic expressions under `no_log`, expose only Boolean results, and
+mark the result diagnostic only. Invalid selections remain protected. Both the
+creation path and the management path stop before their infrastructure changes;
+the normal ownership and identity assertions remain unchanged.
+
+All six native initial-run tests pass on local Core 2.16.19, covering opt-in
+behavior, missing SSH data, invalid-selection privacy and a mutation sentinel.
+This is diagnostic coverage, not evidence of successful live provisioning.
+Version 1.1.28 records the implementation and its validation boundary.
