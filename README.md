@@ -1390,3 +1390,10 @@ The original baseline keeps AD API input and authentication output protected.
 If its ownership read fails, a separate assertion reports only the reader's safe
 failure reason, including certificate-validation errors, before any provisioning.
 No credentials or transport exception details are printed.
+
+
+The existing read-only AD guest inspection includes installed-license reason
+codes and up to twelve local Security-SPP activation events. This evidence stays
+under the inspector's protected result and artifact handling; it does not attempt
+activation, change keys, reset evaluation time or alter networking. Use it to
+establish an activation failure's actual cause before a focused retry.

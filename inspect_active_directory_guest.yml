@@ -47,7 +47,11 @@
           $version = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
           $licenseFilter = "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL"
           $licenses = @(Get-CimInstance SoftwareLicensingProduct -Filter $licenseFilter |
-              Select-Object Name,LicenseStatus,GracePeriodRemaining)
+              Select-Object Name,LicenseStatus,LicenseStatusReason,GracePeriodRemaining)
+          $activationEvents = @(Get-WinEvent -FilterHashtable @{
+              LogName='Application'; ProviderName='Microsoft-Windows-Security-SPP'
+          } -MaxEvents 12 -ErrorAction SilentlyContinue |
+              Select-Object TimeCreated,Id,LevelDisplayName,Message)
           $events = @(Get-WinEvent -LogName 'Microsoft-Windows-WindowsUpdateClient/Operational' -MaxEvents 8 -ErrorAction SilentlyContinue |
               Select-Object TimeCreated,Id,Message)
           $systemEventFilter = @{LogName='System';ProviderName='Microsoft-Windows-WindowsUpdateClient'}
@@ -117,7 +121,7 @@
               };
               Build="$($version.CurrentBuildNumber).$($version.UBR)";
               DomainRole=$cs.DomainRole; Domain=$cs.Domain; Hostname=$cs.Name;
-              Boot=$os.LastBootUpTime; Licenses=$licenses; UpdateEvents=$events;
+              Boot=$os.LastBootUpTime; Licenses=$licenses; ActivationEvents=$activationEvents; UpdateEvents=$events;
               SystemUpdateEvents=$systemUpdateEvents;
               ShutdownEvents=$shutdownEvents;
               UpdateAgent=$agentState; AnsibleScheduledTasks=$updateTasks;
