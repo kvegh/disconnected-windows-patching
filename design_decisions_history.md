@@ -2782,3 +2782,21 @@ and all six initial-run tests pass there (28.128s). Local Core 2.16.19 verifies
 release guard acceptance of the native tuple and refusal of partial, extra,
 duplicate and empty tag collections and string input. Version 1.1.30 records
 this decision; live Windows provisioning remains incomplete.
+
+## 2026-11-13 — Treat an absent secondary NIC consistently with the survey
+
+Implementation `97602cc` (1.1.31) handles the observed receiver null value for an
+empty optional secondary-network answer. Canonicalize only null network/MAC
+inputs to empty strings and require strings before evaluating the existing exact
+owned-interface count, network and MAC assertions. Use those same canonical
+values in input validation, libvirt checks, deployment arguments and reporting.
+The survey fields and encrypted runtime schema remain unchanged; a missing
+secondary interface cannot satisfy a declared two-interface guest.
+
+Actual Core 2.20.10 passes the affected ownership and privacy/control-flow tests
+(2 tests, 19.644s). The final focused ownership regression also passes (15.637s),
+including explicit numeric and mapping refusal alongside Boolean, foreign-network
+and absent-dual-interface rejection. Diagnostic job 22 established the actual
+null input and verified the earlier tuple-tag correction, stopping before any
+infrastructure change; it is not provisioning success. Version 1.1.32 records
+this implementation and its validation boundary.
