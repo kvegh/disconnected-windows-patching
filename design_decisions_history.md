@@ -1,5 +1,24 @@
 # Design decisions history
 
+## Accept native Ansible tagged integer prefixes — 2026-11-13
+
+Implementation `5e7afb0daaae1026b16df93f88c9e06f2567eff9` (1.1.25) corrects
+the supplemental AAP connection validator. Actual Core 2.20.10 native YAML
+loading returns an integer subclass, which the earlier exact-type comparison
+rejected before any connection change. Accept an integer instance while
+explicitly rejecting Booleans and retaining the existing 1–30 range. Network,
+ownership, route and primary-identity guards remain unchanged; no coercion or
+new schema is introduced.
+
+The new native-loader acceptance regression fails against the previous guard.
+Seven focused profile/preservation checks pass in the existing cached Core
+2.20.10 image with pulling disabled, network disabled and a read-only root
+filesystem. They include invalid Boolean, string, float and out-of-range cases.
+All forty-three management tests pass on local Core 2.16.19; its existing
+Python `crypt` warning remains visible. The same focused checks also pass on
+the existing newer local Ansible runtime. These are offline checks, not a fresh
+Windows deployment or functional acceptance. This history checkpoint is 1.1.26.
+
 ## Select the shared reader for firewall configuration inside the Zabbix VM — 2026-11-09
 
 Implementation: `e29a060ec4dd41cd34412f683cfde26f45f4ba7c` (Windows 1.1.21).
