@@ -205,8 +205,8 @@ checkout and temporary hypervisor trust file are removed on success or failure.
 There is no second publisher, extra orchestration job or Windows bootstrap
 HTTPS exception.
 
-The current pin is AutoDeploy 0.53.0 implementation
-`feab264664caa4cd8e3554aaf0a7d825f2fbb384`. Its existing Windows branch accepts
+The current pin is AutoDeploy 0.62.3 implementation
+`f22171b8ea6635888d280eb317d24863341197af`. Its existing Windows branch accepts
 the genuine Boolean certificate result under the owner's lab policy while
 retaining every successful identity, ownership and source/policy check. It also
 retains the canonical Controller SSH-port representation fix; different or
@@ -322,3 +322,13 @@ source/canonical ownership and permissions, captured AD resources and the owned
 AAP secondary connection were absent; original core definitions/states and golden
 images were preserved. This run required no manual orphan recovery. No live lock
 contention was injected, and an unattended fresh full workflow remains unverified.
+
+
+The Windows common variables and Windows release-role defaults set
+`aap_isolation_lock_retries: 1800`. VM creation, AD's common import, selected AAP
+management, retirement readback and verified guest release inherit that bounded
+budget. Native acquisition still uses the existing exclusive directory lock and
+one-second delay; cleanup removes only a lock acquired by that invocation.
+A held or abandoned lock fails closed after the budget rather than being stolen.
+This caller change is covered by native scope fixtures; the current five guests
+are preserved and are not recreated for a parallel-deployment claim.

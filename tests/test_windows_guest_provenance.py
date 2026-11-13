@@ -180,7 +180,8 @@ class WindowsProducerGuardsTests(unittest.TestCase):
             windows_runtime_release_trust={'path': '/tmp/windows-release-known-hosts-fixture'})
         expressions = guard['ansible.builtin.assert']['that']
         self.assertTrue(self.evaluate(expressions, values))
-        for revision in ['bdda318620ae30ebea455376442dc509ec7fb583',
+        for revision in ['feab264664caa4cd8e3554aaf0a7d825f2fbb384',
+                         'bdda318620ae30ebea455376442dc509ec7fb583',
                          'b1587dc7e76df7320815fc8199be1a98144e2fe5',
                          '90edda0546fe149d317846d8d257fefe7abf6319',
                          'e0a96b1c13c756faf7cef3ca7ca3fe2dcc3b1e2e',
@@ -201,7 +202,8 @@ class WindowsProducerGuardsTests(unittest.TestCase):
         guard = next(row for row in tasks if row['name'].startswith('Require the same reviewed public implementation'))
         expressions = guard['ansible.builtin.assert']['that']
         self.assertTrue(self.evaluate(expressions, {'windows_retire_dependency': defaults}))
-        for revision in ['bdda318620ae30ebea455376442dc509ec7fb583',
+        for revision in ['feab264664caa4cd8e3554aaf0a7d825f2fbb384',
+                         'bdda318620ae30ebea455376442dc509ec7fb583',
                          'b1587dc7e76df7320815fc8199be1a98144e2fe5', '0' * 40, 'main']:
             with self.subTest(revision=revision):
                 changed = dict(defaults, windows_recovery_release_revision=revision)

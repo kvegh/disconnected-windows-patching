@@ -707,7 +707,8 @@ class NativeAnsibleGuardTests(unittest.TestCase):
         dependency = yaml.safe_load((ROOT / 'roles/windows_recovery_release/defaults/main.yml').read_text())
         self.assertTrue(self.condition(guard['ansible.builtin.assert']['that'],
                                        {'windows_aap_network_dependency': dependency}))
-        for key, value in [('windows_recovery_release_revision', 'bdda318620ae30ebea455376442dc509ec7fb583'),
+        for key, value in [('windows_recovery_release_revision', 'feab264664caa4cd8e3554aaf0a7d825f2fbb384'),
+                           ('windows_recovery_release_revision', 'bdda318620ae30ebea455376442dc509ec7fb583'),
                            ('windows_recovery_release_revision', 'b1587dc7e76df7320815fc8199be1a98144e2fe5'),
                            ('windows_recovery_release_revision', '0' * 40),
                            ('windows_recovery_release_repository', 'https://example.test/foreign.git')]:

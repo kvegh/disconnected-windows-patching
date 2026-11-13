@@ -75,11 +75,17 @@ activation cleanup, promotion, LDAPS and real regional-access verification.
 A fresh unattended full workflow remains unverified.
 
 The shared lifecycle dependency is pinned to the reviewed Core 2.20 implementation
-`feab264664caa4cd8e3554aaf0a7d825f2fbb384` (AutoDeploy 0.53.0). The lifecycle action imports successfully in the actual Core 2.20.10 image;
+`f22171b8ea6635888d280eb317d24863341197af` (AutoDeploy 0.62.3). The lifecycle action imports successfully in the actual Core 2.20.10 image;
 four synthetic protected-YAML tests verify trust separation, literal templates,
 Vault header/value/tag roundtrips and unchanged vendor serialization. The old
 native dumper subclass caused the live loader exception; the pinned implementation
 uses Ansible's factory without changing the shared Windows role or guest runtime.
+Windows callers declare an integer native-lock retry budget of 1800 through the
+existing common variables and Windows release-role defaults. This lets parallel
+setup jobs queue at the same exclusive lock; its one-second retry delay, ownership
+rules and invocation-only cleanup remain unchanged. Other callers retain the
+shared default of five retries. The bounded wait never adopts or deletes another
+operation's lock, and no new parallel physical deployment is claimed from tests.
 Firewall policy
 comes from existing encrypted CaC and is applied through native Hactar Ansible;
 temporary Python validators retain only their VM/resource checks. A bounded

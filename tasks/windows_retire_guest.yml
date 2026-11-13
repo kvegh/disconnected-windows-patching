@@ -25,7 +25,7 @@
   ansible.builtin.assert:
     that:
       - windows_retire_dependency.windows_recovery_release_repository == 'https://github.com/kvegh/aap_autodeploy_configascode.git'
-      - windows_retire_dependency.windows_recovery_release_revision == 'feab264664caa4cd8e3554aaf0a7d825f2fbb384'
+      - windows_retire_dependency.windows_recovery_release_revision == 'f22171b8ea6635888d280eb317d24863341197af'
     quiet: true
 
 - name: Allocate one private implementation checkout for this retirement

@@ -1,4 +1,6 @@
 ---
+# Queue parallel Windows operations at the existing exclusive native policy lock.
+aap_isolation_lock_retries: 1800
 vm_dir: /opt/vms
 # Set to the management libvirt network for internal WSUS only.
 vm_management_network: ''

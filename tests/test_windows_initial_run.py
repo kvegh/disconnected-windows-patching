@@ -26,6 +26,63 @@ def run_play(play, extra_files=None, environment=None):
 
 
 class InitialRunTests(unittest.TestCase):
+    def test_native_lock_budget_reaches_common_import_and_lifecycle_contexts(self):
+        """Exercise native include/import/role scope without calling host operations."""
+        with tempfile.TemporaryDirectory(prefix='windows-lock-context-') as directory:
+            path = Path(directory)
+            probe = path / 'probe'
+            (probe / 'tasks').mkdir(parents=True)
+            (probe / 'tasks/main.yml').write_text(yaml.safe_dump([{
+                'ansible.builtin.assert': {'that': [
+                    'aap_isolation_lock_retries | default(5) is integer',
+                    'aap_isolation_lock_retries | default(5) == 1800'], 'quiet': True}}]))
+            include = {'ansible.builtin.include_role': {'name': str(probe)}}
+            common = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]
+            child = {'hosts': 'localhost', 'gather_facts': False,
+                     'vars_files': [str(ROOT / item) for item in common['vars_files']],
+                     'tasks': [include]}
+            imported = copy.deepcopy(yaml.safe_load((ROOT / 'create_active_directory_vm.yml').read_text())[1])
+            imported['ansible.builtin.import_playbook'] = 'child.yml'
+            imported['vars']['active_directory'] = {'hostname': 'example-ad',
+                'libvirt_network': 'isolated', 'mac': '52:54:00:00:00:10'}
+            defaults_path = ROOT / 'roles/windows_recovery_release/defaults/main.yml'
+            management = yaml.safe_load((ROOT / 'tasks/windows_aap_management_network.yml').read_text())[0]['block']
+            transaction = next(row for row in management if row.get('rescue'))
+            read_dependency = next(row for row in transaction['block'] if row.get('ansible.builtin.include_vars'))
+            read_dependency = copy.deepcopy(read_dependency)
+            read_dependency['ansible.builtin.include_vars']['file'] = str(defaults_path)
+            management_play = {'hosts': 'localhost', 'gather_facts': False,
+                               'vars_files': child['vars_files'], 'tasks': [read_dependency, include]}
+            retirement_entry = yaml.safe_load((ROOT / 'destroy-win-vms.yml').read_text())[0]
+            verification_entry = yaml.safe_load((ROOT / 'verify_windows_teardown.yml').read_text())[0]
+            for entry in [common, retirement_entry, verification_entry]:
+                self.assertIn('vars/main.yml', entry['vars_files'])
+            retirement_play = {'hosts': 'localhost', 'gather_facts': False,
+                'vars_files': [str(ROOT / item) for item in retirement_entry['vars_files']], 'tasks': [
+                {'ansible.builtin.include_vars': {'file': str(defaults_path), 'name': 'windows_retire_dependency'}},
+                include]}
+            parent = path / 'parent'
+            (parent / 'defaults').mkdir(parents=True)
+            (parent / 'tasks').mkdir()
+            (parent / 'defaults/main.yml').write_bytes(defaults_path.read_bytes())
+            release = yaml.safe_load((ROOT / 'roles/windows_recovery_release/tasks/main.yml').read_text())
+            release_call = copy.deepcopy(next(row for row in next(row for row in release if row.get('block'))['block']
+                                             if row.get('ansible.builtin.include_role')))
+            release_call['ansible.builtin.include_role']['name'] = str(probe)
+            (parent / 'tasks/main.yml').write_text(yaml.safe_dump([release_call]))
+            release_play = {'hosts': 'localhost', 'gather_facts': False, 'vars': {
+                'windows_runtime_verified_resource': {}, 'windows_runtime_recovery_pin': {},
+                'windows_runtime_release_trust': {'path': 'synthetic'}}, 'tasks': [
+                    {'ansible.builtin.include_role': {'name': str(parent)}}]}
+            for label, play in [('common', [child]), ('ad-import', [imported]),
+                                ('management', [management_play]), ('retirement', [retirement_play]),
+                                ('release-role', [release_play])]:
+                with self.subTest(context=label):
+                    result = run_play(play, {'child.yml': [child]}, environment={
+                        'ANSIBLE_LOCAL_TEMP': str(path / 'local'),
+                        'ANSIBLE_REMOTE_TEMP': str(path / 'remote')})
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_boolean_guard_inspection_is_opt_in_private_and_stops_before_changes(self):
         common = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]
         tasks = common['tasks']
