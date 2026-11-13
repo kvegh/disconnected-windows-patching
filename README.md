@@ -1383,9 +1383,15 @@ The orphan refusal remains intact. Do not present this result as an unattended
 first-run reset or proof of a fresh complete provisioning workflow.
 
 `inspect_windows_network.yml` provides a read-only diagnostic JT for the saved
-network result, scheduled-task status, current adapters, addresses and routes.
-It accepts a host limit and uses the Windows Machine credential. Diagnostic
-output includes network details and stays in AAP, outside Git.
+bootstrap result, scheduled-task status, current interfaces and protected shutdown
+evidence. It accepts a host limit and uses the existing Windows Machine credential.
+Diagnostic output stays in AAP, outside Git. It also
+records the installed build, boot/reboot state and two update-worker/service/pipe
+metadata samples ten seconds apart. Use an exact host limit after a disconnected
+update run. Pipe names
+are never opened; this inspection starts no scan, installation or reboot. The
+evidence remains protected and does not equate an empty ephemeral task list with
+completed updates.
 
 The original baseline keeps AD API input and authentication output protected.
 If its ownership read fails, a separate assertion reports only the reader's safe

@@ -36,15 +36,43 @@
     - name: Inspect current adapters, addresses and routes
       # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
       ansible.windows.win_powershell:
-        depth: 4
+        depth: 6
         script: |
           # Language choice: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
           $Ansible.Changed = $false
           $licenseFilter = "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL"
+          $version = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+          $os = Get-CimInstance Win32_OperatingSystem
+          $updateSnapshots = @()
+          foreach ($sample in 1..2) {
+              $pipes = @{ Available=$false; Names=@() }
+              try {
+                  # Names only: never connect to or consume a live worker's progress pipe.
+                  $names = @(Get-ChildItem -LiteralPath '\\.\pipe\' -ErrorAction Stop |
+                      Where-Object Name -Like 'Ansible.Windows.WinUpdates-*' | ForEach-Object Name)
+                  $pipes = @{ Available=$true; Names=$names }
+              } catch { $pipes = @{ Available=$false; Names=@(); ErrorCode=$_.Exception.HResult } }
+              $updateSnapshots += @{
+                  Utc=[DateTime]::UtcNow.ToString('o')
+                  NativeUpdatePipes=$pipes
+                  Workers=@(Get-Process -Name TiWorker,TrustedInstaller,MoUsoCoreWorker,wuauclt,powershell,pwsh,msiexec -ErrorAction SilentlyContinue |
+                      Where-Object Id -NE $PID | Select-Object Name,Id,CPU,WorkingSet64,StartTime)
+                  Services=@(Get-CimInstance Win32_Service |
+                      Where-Object Name -In @('wuauserv','BITS','UsoSvc','DoSvc') | Select-Object Name,State,ProcessId)
+              }
+              if ($sample -eq 1) { Start-Sleep -Seconds 10 }
+          }
           $Ansible.Result = @{
               ComputerUuid = (Get-CimInstance Win32_ComputerSystemProduct).UUID
               Utc = [DateTime]::UtcNow.ToString('o')
               TimeZone = (Get-TimeZone).Id
+              Build = "$($version.CurrentBuildNumber).$($version.UBR)"
+              Boot = $os.LastBootUpTime
+              UpdateSnapshots = $updateSnapshots
+              PendingReboot = (
+                  (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or
+                  (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')
+              )
               Licenses = @(Get-CimInstance SoftwareLicensingProduct -Filter $licenseFilter |
                   Select-Object Name, LicenseStatus, GracePeriodRemaining)
               ShutdownEvents = @(Get-WinEvent -FilterHashtable @{LogName='System';Id=1074,6006,6008} -MaxEvents 12 -ErrorAction SilentlyContinue |
