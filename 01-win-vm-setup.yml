@@ -25,6 +25,16 @@
           windows_infrastructure_guard_diagnostic_only: true
       when: windows_infrastructure_guard_diagnostics | default(false) | bool
 
+    - name: Require a declared selection before evaluating diagnostic expressions
+      ansible.builtin.assert:
+        that: vm_name in windows_runtime_guests
+        quiet: true
+        fail_msg: The diagnostic selection is not declared in the selected private profile.
+      when:
+        - windows_runtime_settings_vault is defined
+        - windows_infrastructure_guard_diagnostics | default(false) | bool
+      no_log: true
+
     - name: Evaluate selected-clone diagnostic flags without exposing invalid inputs
       ansible.builtin.set_fact:
         windows_selected_clone_guard_flags:
@@ -33,6 +43,10 @@
           version_matches: "{{ windows_runtime_guests[vm_name].version | string == windows_version | string }}"
           primary_network_matches: "{{ windows_runtime_guests[vm_name].interfaces[0].network == vm_network }}"
           primary_mac_matches: "{{ windows_runtime_guests[vm_name].interfaces[0].mac == vm_mac | lower }}"
+          management_network_is_none: "{{ vm_management_network is none }}"
+          management_network_is_boolean: "{{ vm_management_network is boolean }}"
+          management_network_is_mapping: "{{ vm_management_network is mapping }}"
+          management_network_is_nonstring_sequence: "{{ vm_management_network is sequence and vm_management_network is not string }}"
           management_network_is_string: "{{ vm_management_network is string }}"
           management_network_empty: "{{ vm_management_network is string and vm_management_network | length == 0 }}"
           interface_count_matches: "{{ vm_management_network is string and windows_runtime_guests[vm_name].interfaces | length == (2 if vm_management_network | length > 0 else 1) }}"

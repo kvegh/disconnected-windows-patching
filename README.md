@@ -25,10 +25,13 @@ accepts `windows_infrastructure_guard_diagnostics: true`. This reports only
 Boolean results for the selected-clone and management guards, marks the run as
 diagnostic only, and stops before provisioning or management changes. It never
 prints the underlying names, addresses, MACs, credentials or trust material.
-Diagnostic expressions are evaluated privately, including invalid selections;
-only successfully evaluated Boolean flags can be displayed. Six native initial-run
-regressions cover the default path, protected invalid inputs, missing SSH values
-and the pre-mutation stop. Default runs retain their protected guards and normal
+A fixed protected selection assertion runs before indexed diagnostic expressions;
+this avoids templating tracebacks that native `no_log` alone cannot suppress.
+Six native initial-run regressions pass in the actual Core 2.20.10 image, covering
+the default path, protected invalid inputs, missing SSH values and the pre-mutation
+stop. Core 2.20 represents run tags as a tuple; infrastructure and release guards
+normalize the collection before requiring exactly one `all` entry. Partial, extra
+and duplicate entries remain rejected. Default runs retain their protected guards and normal
 behavior; a successful diagnostic inspection is not provisioning success.
 
 Native firewall callers require the reviewed Hactar source revision in

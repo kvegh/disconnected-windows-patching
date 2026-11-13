@@ -2,7 +2,7 @@
 - name: Require complete baseline configuration and the existing pinned lifecycle inputs
   ansible.builtin.assert:
     that:
-      - ansible_run_tags == ['all']
+      - ansible_run_tags | list == ['all']
       - ansible_skip_tags | length == 0
       - not ansible_check_mode
       - windows_runtime_recovery_pin is mapping

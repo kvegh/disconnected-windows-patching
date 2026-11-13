@@ -236,7 +236,11 @@ class WindowsProducerGuardsTests(unittest.TestCase):
                   'ansible_winrm_server_cert_validation': 'validate', 'windows_runtime_ca_file': {'path': '/tmp/fixture-ca'}}
         expressions = first['ansible.builtin.assert']['that']
         self.assertTrue(self.evaluate(expressions, values))
-        for field, value in [('ansible_run_tags', ['partial']), ('ansible_skip_tags', ['some-task']),
+        self.assertTrue(self.evaluate(expressions, dict(values, ansible_run_tags=('all',))))
+        for field, value in [('ansible_run_tags', ['all', 'partial']),
+                             ('ansible_run_tags', ['all', 'all']),
+                             ('ansible_run_tags', []), ('ansible_run_tags', 'all'),
+                             ('ansible_run_tags', ['partial']), ('ansible_skip_tags', ['some-task']),
                              ('ansible_check_mode', True), ('ansible_port', 5985),
                              ('ansible_winrm_server_cert_validation', 'disabled'), ('ansible_winrm_scheme', 'http'),
                              ('ansible_connection', 'local'), ('windows_runtime_ca_file', {})]:

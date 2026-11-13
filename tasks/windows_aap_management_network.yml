@@ -9,7 +9,7 @@
           selected_runtime_defined: "{{ windows_runtime_settings_vault is defined }}"
           exact_hypervisor: "{{ inventory_hostname == windows_runtime_hypervisor.inventory_host }}"
           normal_run: "{{ not ansible_check_mode }}"
-          all_tags_only: "{{ ansible_run_tags | default(['all']) == ['all'] }}"
+          all_tags_only: "{{ ansible_run_tags | default(['all']) | list == ['all'] }}"
           skip_tags_empty: "{{ ansible_skip_tags | default([]) | length == 0 }}"
           requested_state_valid: "{{ windows_aap_management_state in ['present', 'absent'] }}"
           source_revision_valid: "{{ aap_hactar_source_revision | default('') is match('^[0-9a-f]{40}$') }}"
@@ -33,7 +33,7 @@
           - windows_runtime_settings_vault is defined
           - inventory_hostname == windows_runtime_hypervisor.inventory_host
           - not ansible_check_mode
-          - ansible_run_tags | default(['all']) == ['all']
+          - ansible_run_tags | default(['all']) | list == ['all']
           - ansible_skip_tags | default([]) | length == 0
           - windows_aap_management_state in ['present', 'absent']
           - aap_hactar_source_revision is defined
