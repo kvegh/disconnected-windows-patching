@@ -940,7 +940,7 @@ See the [live verification details](docs/windows-os-patching.md#references-and-v
 - `deploy_baseline_applications.yml`: install older pinned versions on endnodes.
 - `upgrade_applications.yml`: switch feeds and upgrade to newer pinned versions.
 - `prepare_repository_servers.yml`: feature/MSI installation and reboot barrier before parallel setup.
-- `check_wsus_prerequisites.yml`: read-only external WSUS readiness and PowerShell syntax checks.
+- `check_wsus_prerequisites.yml`: read-only external WSUS readiness and PowerShell syntax checks. Its timestamped report separates the last completed synchronization result from the current synchronization status, phase and processed/total items, and reports downloaded/total content bytes. A completed metadata phase does not prove payload downloads or client applicability.
 - `assess_windows_patch_level.yml`: read-only installed OS build and hotfix evidence on managed endnodes.
 - `set_internal_wsus_patch_month.yml`: prepare a named monthly baseline and enforce its internal WSUS ceiling.
 - `configure_wsus_patch_ceiling_template.yml`: reproduce the ceiling Job Template and month-name survey with Ansible.

@@ -88,6 +88,9 @@
           $scope.ApprovedStates = [Microsoft.UpdateServices.Administration.ApprovedStates]::LatestRevisionApproved
           $approved = @($server.GetUpdates($scope))
           $ready = @($approved | Where-Object { [string]$_.State -eq 'Ready' -and -not $_.IsDeclined })
+          $subscription = $server.GetSubscription()
+          $synchronizationProgress = $subscription.GetSynchronizationProgress()
+          $contentProgress = $server.GetContentDownloadProgress()
           $Ansible.Result = @{
               Ready = $true
               CatalogUpdates = $catalogCount
@@ -97,9 +100,16 @@
               FreeGB = [math]::Round($drive.FreeSpace / 1GB, 2)
               Services = $services
               Endpoints = $endpoints
-              ProductsSelected = @($server.GetSubscription().GetUpdateCategories() | ForEach-Object Title)
-              LastSync = [string]$server.GetSubscription().GetLastSynchronizationInfo().Result
-              PendingDownloadBytes = $server.GetContentDownloadProgress().TotalBytesToDownload - $server.GetContentDownloadProgress().DownloadedBytes
+              ObservedAtUtc = [datetime]::UtcNow.ToString('o')
+              ProductsSelected = @($subscription.GetUpdateCategories() | ForEach-Object Title)
+              LastSync = [string]$subscription.GetLastSynchronizationInfo().Result
+              SynchronizationStatus = [string]$subscription.GetSynchronizationStatus()
+              SynchronizationPhase = [string]$synchronizationProgress.Phase
+              SynchronizationProcessedItems = $synchronizationProgress.ProcessedItems
+              SynchronizationTotalItems = $synchronizationProgress.TotalItems
+              DownloadedBytes = $contentProgress.DownloadedBytes
+              TotalBytesToDownload = $contentProgress.TotalBytesToDownload
+              PendingDownloadBytes = $contentProgress.TotalBytesToDownload - $contentProgress.DownloadedBytes
           }
       register: wsus_prerequisites
 
