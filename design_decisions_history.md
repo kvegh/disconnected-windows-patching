@@ -1,5 +1,21 @@
 # Design decisions history
 
+## 2026-11-13 — Distinguish current WSUS synchronization from its last result
+
+Implementation `a30210b` (1.1.39) extends the existing read-only readiness report
+with the subscription's current synchronization status, phase and processed/total
+item counts. It also records a UTC observation time and a single snapshot of
+downloaded/total content bytes. A successful historical synchronization result
+alone cannot establish that the current metadata operation or payload download
+is progressing. The report does not start or stop synchronization, approve updates
+or change WSUS configuration.
+
+The fields use the documented WSUS administration API. YAML parsing, whitespace
+checks and offline production lint pass with the existing Windows collection.
+The normal readiness template provides the live API verification. These counters
+do not prove client applicability or completed patching. Version 1.1.40 records
+this implementation and its validation boundary.
+
 ## Accept native Ansible tagged integer prefixes — 2026-11-13
 
 Implementation `5e7afb0daaae1026b16df93f88c9e06f2567eff9` (1.1.25) corrects
