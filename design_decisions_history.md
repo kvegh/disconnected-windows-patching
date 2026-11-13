@@ -1,5 +1,24 @@
 # Design decisions history
 
+## 2026-11-13 — Inspect managed update state after a disconnected installation
+
+Implementation `70348d9` (1.1.43) extends the existing protected Windows network
+inspector with the installed build, boot/reboot state and two bounded update
+worker/service/pipe-name snapshots ten seconds apart. A failed WinRM response
+does not establish whether Windows installed updates or still has a live worker.
+This existing exact-host inspection supplies evidence before a focused retry.
+
+The observer never connects to a progress pipe, reads process arguments or
+environment, starts an update scan, controls a service or requests a reboot.
+It retains the existing protected artifacts and connection checks and adds no
+helper, Job Template, credential or runtime schema. An empty ephemeral task list
+is not treated as proof of completion.
+
+YAML parsing, whitespace checks and final offline production lint pass using the
+existing Windows collections. The normal inspection template provides the live
+Core 2.20 verification; source validation does not establish the interrupted
+guest's final update state. Version 1.1.44 records this decision and boundary.
+
 ## 2026-11-13 — Observe detached update and WSUS import work without interference
 
 Implementation `1ef9c22` (1.1.41) extends the existing protected AD inspector
