@@ -1,5 +1,25 @@
 # Design decisions history
 
+## 2026-11-13 — Observe detached update and WSUS import work without interference
+
+Implementation `1ef9c22` (1.1.41) extends the existing protected AD inspector
+with execution-process and update-service metadata, native update pipe names and
+sixteen lines from the existing update reporting log. The installed Windows
+collection deletes its ephemeral task definition after starting a detached worker;
+an empty task list therefore cannot establish completion. Pipe names are only
+enumerated, never opened or consumed. Existing logging protection remains enabled.
+
+The existing WSUS readiness playbook also reads internal import-worker metadata
+and at most two actual snapshot import logs, with sixteen lines per log. These
+observations remain protected job artifacts. Neither observer starts a scan,
+changes permissions, controls a worker or modifies a running operation. No new
+helper, Job Template, credential or runtime schema is introduced.
+
+YAML and whitespace checks pass. Offline production lint passes with the existing
+Windows collection and normal Vault context; a Python syntax warning remains
+visible in its output. The existing native inspection templates provide the live
+verification. Version 1.1.42 records the implementation and this boundary.
+
 ## 2026-11-13 — Distinguish current WSUS synchronization from its last result
 
 Implementation `a30210b` (1.1.39) extends the existing read-only readiness report
