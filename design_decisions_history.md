@@ -2823,3 +2823,29 @@ checks pass locally, accepting only the new pin and rejecting the old pin and
 foreign source. The normal-path test now explicitly selects the normal include
 rather than the optional diagnostic include. Version 1.1.34 records this decision.
 Fresh resource checks and a complete live workflow remain required.
+
+## 2026-11-13 — Queue Windows native transactions within the existing lock boundary
+
+Implementation `6efaa1e` (1.1.35) pins every Windows shared-code default and strict
+pre-check to AutoDeploy `f22171b8ea6635888d280eb317d24863341197af` (0.62.3).
+Parallel VM creation exposed that the earlier five one-second retries could expire
+while another legitimate creation still held the native policy lock. Windows
+common variables and its release-role defaults now supply integer 1800 to the
+existing bounded retry option. The shared default remains five for other callers.
+The same atomic lock, independent identity checks and invocation-only cleanup
+remain mandatory; no lock stealing, new wrapper or additional job is introduced.
+
+Native caller fixtures exercise the common creation variables, real AD import,
+management include, retirement include and nested release-role defaults. These
+and the three strict pin/refusal checks pass on local Core 2.16.19 (4 tests,
+3.351s). Offline production lint passes the seven affected YAML files, with the
+intentional external native-API variable documented as a role-prefix exception.
+The exact pinned lifecycle action imports in actual Core 2.20.10 and all four
+protected-YAML tests pass there (0.014s), preserving trust separation and Vault
+headers, values and literal tags. The pinned shared native wait has its own
+concurrent acquisition, default and bounded-input coverage.
+
+Existing guests were recovered sequentially and are preserved. Publication occurs
+between remote jobs; this change does not claim a new parallel physical workflow
+passed. Historical pins above retain their original meaning. Version 1.1.36
+records this implementation and its validation boundary.
