@@ -2800,3 +2800,26 @@ and absent-dual-interface rejection. Diagnostic job 22 established the actual
 null input and verified the earlier tuple-tag correction, stopping before any
 infrastructure change; it is not provisioning success. Version 1.1.32 records
 this implementation and its validation boundary.
+
+## 2026-11-13 — Pin the shared lifecycle loader to its verified Core 2.20 migration
+
+Implementation `207a7ef` (1.1.33) advances every shared Windows lifecycle pin and
+its strict pre-check to immutable AutoDeploy `feab264664caa4cd8e3554aaf0a7d825f2fbb384`
+(0.53.0). The prior `bdda318` subclassed the vendor dumper, which Core 2.20 exposes
+as a factory. That import caused the same top-level TypeError in all five VM
+creation jobs of workflow 25. Existing migration code fixes the factory and
+native repository trust loader; no new shared implementation is introduced.
+
+The reviewed lifecycle closure changes only the publisher action, instance-key
+helpers and protected-YAML helper. Its shared release role and guest-release
+runtime are unchanged. Tagged-integer support still rejects Booleans; durable
+ownership, selected-only retirement and production protection remain guarded.
+Historical entries above retain the implementation pins they originally describe.
+
+The exact pinned public revision imports its lifecycle action in actual Core
+2.20.10 and passes all four synthetic protected-YAML tests, including literal
+trust separation and Vault header/value/tag preservation. Four focused Windows
+checks pass locally, accepting only the new pin and rejecting the old pin and
+foreign source. The normal-path test now explicitly selects the normal include
+rather than the optional diagnostic include. Version 1.1.34 records this decision.
+Fresh resource checks and a complete live workflow remain required.
