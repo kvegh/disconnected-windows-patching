@@ -3,6 +3,30 @@
   when: windows_runtime_aap_management is defined
   no_log: true
   block:
+    - name: Evaluate management diagnostic flags without exposing invalid inputs
+      ansible.builtin.set_fact:
+        windows_management_guard_flags:
+          selected_runtime_defined: "{{ windows_runtime_settings_vault is defined }}"
+          exact_hypervisor: "{{ inventory_hostname == windows_runtime_hypervisor.inventory_host }}"
+          normal_run: "{{ not ansible_check_mode }}"
+          all_tags_only: "{{ ansible_run_tags | default(['all']) == ['all'] }}"
+          skip_tags_empty: "{{ ansible_skip_tags | default([]) | length == 0 }}"
+          requested_state_valid: "{{ windows_aap_management_state in ['present', 'absent'] }}"
+          source_revision_valid: "{{ aap_hactar_source_revision | default('') is match('^[0-9a-f]{40}$') }}"
+          source_address_defined: "{{ hactar_source_public_ip is defined }}"
+          source_address_is_string: "{{ hactar_source_public_ip | default(none) is string }}"
+          existing_ssh_username_present: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_USERNAME') | length > 0 }}"
+          existing_ssh_password_present: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_PASSWORD') | length > 0 }}"
+          existing_ssh_trust_present: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_KNOWN_HOSTS') | length > 0 }}"
+      when: windows_infrastructure_guard_diagnostics | default(false) | bool
+      no_log: true
+
+    - name: Report only Boolean management guard results when explicitly requested
+      ansible.builtin.debug:
+        msg: "{{ windows_management_guard_flags }}"
+      when: windows_infrastructure_guard_diagnostics | default(false) | bool
+      no_log: false
+
     - name: Require a complete normal run on the exact pinned hypervisor
       ansible.builtin.assert:
         that:
@@ -21,6 +45,10 @@
           - lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_KNOWN_HOSTS') | length > 0
         quiet: true
         fail_msg: Use a complete selected-instance infrastructure job and its existing pinned OS SSH credential.
+
+    - name: Stop the explicitly requested guard inspection before management changes
+      ansible.builtin.meta: end_host
+      when: windows_infrastructure_guard_diagnostics | default(false) | bool
 
     - name: Validate the optional management declaration against the existing route
       ansible.builtin.set_fact:

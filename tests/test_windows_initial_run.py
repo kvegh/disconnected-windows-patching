@@ -26,6 +26,46 @@ def run_play(play, extra_files=None, environment=None):
 
 
 class InitialRunTests(unittest.TestCase):
+    def test_boolean_guard_inspection_is_opt_in_private_and_stops_before_changes(self):
+        tasks = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]['tasks']
+        boundary = next(index for index, task in enumerate(tasks)
+                        if task['name'] == "Require the selected instance's exact owned clone and interfaces")
+        inspection = copy.deepcopy(tasks[:boundary])
+        include = next(task for task in inspection if 'ansible.builtin.include_tasks' in task)
+        include['ansible.builtin.include_tasks'] = str(ROOT / 'tasks/windows_aap_management_network.yml')
+        private = 'synthetic-private-value'
+        for enabled, have_ssh, valid_selection, expected in [(False, False, True, 0), (True, True, True, 0), (True, False, True, 2), (True, True, False, 2)]:
+            with self.subTest(enabled=enabled, have_ssh=have_ssh, valid_selection=valid_selection), tempfile.TemporaryDirectory() as directory:
+                changed = Path(directory) / 'unexpected-change'
+                variables = {
+                    'windows_infrastructure_guard_diagnostics': enabled,
+                    'windows_runtime_settings_vault': private,
+                    'windows_runtime_hypervisor': {'inventory_host': 'localhost'},
+                    'windows_runtime_aap_management': {'configured': True},
+                    'windows_runtime_guests': {'example-win': {'role': 'managed', 'version': '2022',
+                        'interfaces': [{'network': 'example-isolated', 'mac': '52:54:00:00:00:10'}]}},
+                    'vm_name': 'example-win' if valid_selection else private, 'vm_role': 'managed', 'windows_version': '2022',
+                    'vm_network': 'example-isolated', 'vm_mac': '52:54:00:00:00:10',
+                    'vm_management_network': '', 'vm_management_mac': '',
+                    'aap_hactar_source_revision': 'a' * 40, 'hactar_source_public_ip': private,
+                }
+                environment = {key: private if have_ssh else '' for key in [
+                    'AD_AAP_TARGET_SSH_USERNAME', 'AD_AAP_TARGET_SSH_PASSWORD', 'AD_AAP_TARGET_SSH_KNOWN_HOSTS']}
+                environment.update(ANSIBLE_LOCAL_TEMP=str(Path(directory) / 'local'),
+                                   ANSIBLE_REMOTE_TEMP=str(Path(directory) / 'remote'))
+                result = run_play([{'hosts': 'localhost', 'gather_facts': False, 'vars': variables,
+                    'tasks': inspection + [{'ansible.builtin.file': {'path': str(changed), 'state': 'touch'}}]}],
+                    environment=environment)
+                output = result.stdout + result.stderr
+                self.assertEqual(result.returncode, expected, output)
+                self.assertEqual(changed.exists(), not enabled)
+                self.assertNotIn(private, output)
+                if enabled and valid_selection:
+                    self.assertIn('primary_mac_matches', output)
+                    self.assertIn('existing_ssh_password_present', output)
+                else:
+                    self.assertNotIn('primary_mac_matches', output)
+
     def test_existing_copy_requires_the_existing_read_only_source_plan_to_prove_absence(self):
         tasks = yaml.safe_load((ROOT / 'tasks/windows_aap_management_network.yml').read_text())[0]['block']
         operation = next(row for row in tasks if row['name'].startswith('Run the same-job plan'))

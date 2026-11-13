@@ -19,6 +19,50 @@
       tags: always
 
   tasks:
+    - name: Mark an explicitly requested infrastructure guard inspection as diagnostic only
+      ansible.builtin.set_stats:
+        data:
+          windows_infrastructure_guard_diagnostic_only: true
+      when: windows_infrastructure_guard_diagnostics | default(false) | bool
+
+    - name: Evaluate selected-clone diagnostic flags without exposing invalid inputs
+      ansible.builtin.set_fact:
+        windows_selected_clone_guard_flags:
+          requested_name_declared: "{{ vm_name in windows_runtime_guests }}"
+          role_matches: "{{ windows_runtime_guests[vm_name].role == vm_role or (windows_runtime_guests[vm_name].role == 'ad' and vm_role == 'managed') }}"
+          version_matches: "{{ windows_runtime_guests[vm_name].version | string == windows_version | string }}"
+          primary_network_matches: "{{ windows_runtime_guests[vm_name].interfaces[0].network == vm_network }}"
+          primary_mac_matches: "{{ windows_runtime_guests[vm_name].interfaces[0].mac == vm_mac | lower }}"
+          management_network_is_string: "{{ vm_management_network is string }}"
+          management_network_empty: "{{ vm_management_network is string and vm_management_network | length == 0 }}"
+          interface_count_matches: "{{ vm_management_network is string and windows_runtime_guests[vm_name].interfaces | length == (2 if vm_management_network | length > 0 else 1) }}"
+          secondary_network_matches: "{{ vm_management_network is string and (vm_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].network == vm_management_network) }}"
+          secondary_mac_matches: "{{ vm_management_network is string and (vm_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].mac == vm_management_mac | lower) }}"
+      when:
+        - windows_runtime_settings_vault is defined
+        - windows_infrastructure_guard_diagnostics | default(false) | bool
+      no_log: true
+
+    - name: Report only Boolean selected-clone guard results when explicitly requested
+      ansible.builtin.debug:
+        msg: "{{ windows_selected_clone_guard_flags }}"
+      when:
+        - windows_runtime_settings_vault is defined
+        - windows_infrastructure_guard_diagnostics | default(false) | bool
+      no_log: false
+
+    - name: Inspect the same management guard context without permitting infrastructure changes
+      ansible.builtin.include_tasks: tasks/windows_aap_management_network.yml
+      vars:
+        windows_aap_management_state: present
+      when:
+        - windows_runtime_aap_management is defined
+        - windows_infrastructure_guard_diagnostics | default(false) | bool
+
+    - name: Stop a diagnostic-only infrastructure inspection before provisioning
+      ansible.builtin.meta: end_host
+      when: windows_infrastructure_guard_diagnostics | default(false) | bool
+
     - name: Require the selected instance's exact owned clone and interfaces
       ansible.builtin.assert:
         that:

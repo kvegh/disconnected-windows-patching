@@ -20,6 +20,17 @@ Seven focused profile checks pass in the actual Core 2.20.10 execution image,
 and all forty-three management tests pass on local Core 2.16.19. These checks
 do not provision Windows or replace the complete functional workflow.
 
+For a diagnosed infrastructure preflight failure, the existing creation template
+accepts `windows_infrastructure_guard_diagnostics: true`. This reports only
+Boolean results for the selected-clone and management guards, marks the run as
+diagnostic only, and stops before provisioning or management changes. It never
+prints the underlying names, addresses, MACs, credentials or trust material.
+Diagnostic expressions are evaluated privately, including invalid selections;
+only successfully evaluated Boolean flags can be displayed. Six native initial-run
+regressions cover the default path, protected invalid inputs, missing SSH values
+and the pre-mutation stop. Default runs retain their protected guards and normal
+behavior; a successful diagnostic inspection is not provisioning success.
+
 Native firewall callers require the reviewed Hactar source revision in
 `aap_hactar_source_revision` and the independently recorded production identity in
 `hactar_source_public_ip`, supplied by the existing protected CaC. The calling
