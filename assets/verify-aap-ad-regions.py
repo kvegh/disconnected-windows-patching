@@ -74,6 +74,30 @@ def verify_with_request(p, request):
     """Use an injected transport so acceptance and failure paths can be tested offline."""
     validate_profile(p)
     prefix = p['prefix']
+    wait_budget = p.get('job_wait_timeout', 1200)
+    verification_deadline = time.monotonic() + wait_budget
+    cleanup_deadline = verification_deadline + wait_budget
+    cleanup_phase = False
+    transport = request
+
+    def request(path, user=None, method='GET', body=None):
+        deadline = cleanup_deadline if cleanup_phase else verification_deadline
+        label = 'cleanup' if cleanup_phase else 'verification'
+        remaining = deadline - time.monotonic()
+        require(remaining > 0, 'The shared mock ' + label + ' deadline expired before an API request.')
+        result = transport(path, user, method, body, timeout=min(30, remaining))
+        # Record a late accepted launch before raising, so finally can still drain it.
+        if not (method == 'POST' and path.endswith('/launch/')):
+            require(time.monotonic() < deadline,
+                    'The shared mock ' + label + ' deadline expired during an API request.')
+        return result
+
+    def pause(seconds):
+        deadline = cleanup_deadline if cleanup_phase else verification_deadline
+        remaining = deadline - time.monotonic()
+        require(remaining > 0, 'The shared mock deadline expired before waiting.')
+        time.sleep(min(seconds, remaining))
+        require(time.monotonic() < deadline, 'The shared mock deadline expired while waiting.')
 
     def get(path, user=None):
         status, data = request(path, user)
@@ -208,11 +232,12 @@ def verify_with_request(p, request):
                'team_membership_checks': 0, 'mock_jobs_verified': 0,
                'localhost_execution_verified': 0}
     jobs = {}
+    seen_jobs = set()
 
     def wait_for_allowed(path, user, deadline):
         status, data = request(path, user)
         while status in DENIED and time.monotonic() < deadline:
-            time.sleep(2)
+            pause(2)
             status, data = request(path, user)
         return status, data
 
@@ -228,7 +253,7 @@ def verify_with_request(p, request):
                 return
             require(deadline is not None and time.monotonic() < deadline,
                     'Expected controller team membership did not converge.')
-            time.sleep(2)
+            pause(2)
 
     def prove_execution(job, key, operation):
         require(str(job.get('inventory')) == str(resource(key, 'inventory')['id']) and
@@ -253,11 +278,11 @@ def verify_with_request(p, request):
                 'A mock job did not report the expected read/simulated-change behavior.')
         summary['localhost_execution_verified'] += 1
 
-    def drain_jobs():
+    def drain_jobs(*, cleanup=False):
         """Wait for every launched job, even if an earlier access check failed."""
         pending = dict(jobs)
         errors = []
-        deadline = time.monotonic() + p.get('job_wait_timeout', 1200)
+        deadline = cleanup_deadline if cleanup else verification_deadline
         while pending:
             for job_id, (key, operation) in list(pending.items()):
                 try:
@@ -268,6 +293,7 @@ def verify_with_request(p, request):
                 if status not in ('successful', 'failed', 'error', 'canceled'):
                     continue
                 del pending[job_id]
+                del jobs[job_id]
                 if status != 'successful':
                     errors.append('A launched inert mock job did not complete successfully.')
                     continue
@@ -279,10 +305,10 @@ def verify_with_request(p, request):
                 except Exception:
                     errors.append('Final mock execution statistics could not be verified.')
             if pending and time.monotonic() >= deadline:
-                errors.append('Launched mock jobs exceeded the verification deadline.')
+                errors.append('Launched mock jobs exceeded the ' + ('cleanup' if cleanup else 'verification') + ' deadline.')
                 break
             if pending:
-                time.sleep(5)
+                pause(5)
         require(not errors, ' '.join(dict.fromkeys(errors)))
 
     failure = None
@@ -325,7 +351,7 @@ def verify_with_request(p, request):
                             break
                         require(time.monotonic() < deadline,
                                 'Expected resource-list visibility did not converge.')
-                        time.sleep(2)
+                        pause(2)
                     summary['resource_list_checks'] += 1
                 for key in RESOURCE_SETS:
                     for kind, endpoint in ENDPOINTS.items():
@@ -346,24 +372,31 @@ def verify_with_request(p, request):
                         summary['permission_checks'] += 1
                     for operation in OPERATIONS:
                         template = resource(key, 'jobtemplate', operation)
+                        require(time.monotonic() < verification_deadline,
+                                'The shared mock verification deadline expired before another launch.')
                         status, launch = request('/api/controller/v2/job_templates/' +
                                                  str(template['id']) + '/launch/', user, 'POST', {})
                         job_id = launch.get('job') or launch.get('id')
                         # Also drain any unexpectedly accepted forbidden launch before reporting failure.
                         if job_id:
-                            require(job_id not in jobs, 'The API returned a duplicate launched job identifier.')
+                            require(job_id not in seen_jobs, 'The API returned a duplicate launched job identifier.')
+                            seen_jobs.add(job_id)
                             jobs[job_id] = (key, operation)
                         permitted = key in allowed and user['role'] in ('executor', 'admin')
                         require(status in (200, 201, 202) and bool(job_id) if permitted else
                                 status in DENIED and not job_id,
                                 'A mock launch violated the country or reader/executor boundary.')
                         summary['permission_checks'] += 1
+                        if job_id:
+                            # Keep the complete matrix while allowing only one unfinished mock at a time.
+                            drain_jobs()
                 summary['ldap_logins_verified'] += 1
     except Exception as error:
         failure = error
     finally:
+        cleanup_phase = True
         try:
-            drain_jobs()
+            drain_jobs(cleanup=True)
         except Exception as error:
             if failure is None:
                 failure = error
@@ -398,7 +431,7 @@ def verify(p):
         opener = urllib.request.build_opener(
             urllib.request.HTTPSHandler(context=context), NoRedirect())
 
-        def request(path, user=None, method='GET', body=None):
+        def request(path, user=None, method='GET', body=None, *, timeout=30):
             principal = user or {'username': p['admin_username'], 'password': p['admin_password']}
             authorization = base64.b64encode((principal['username'] + ':' + principal['password']).encode()).decode()
             req = urllib.request.Request(base + path, method=method,
@@ -406,7 +439,7 @@ def verify(p):
                                          headers={'Authorization': 'Basic ' + authorization,
                                                   'Content-Type': 'application/json'})
             try:
-                with opener.open(req, timeout=30) as response:
+                with opener.open(req, timeout=timeout) as response:
                     payload = response.read()
                     return response.status, json.loads(payload) if payload else {}
             except urllib.error.HTTPError as error:

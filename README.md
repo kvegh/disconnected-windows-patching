@@ -666,8 +666,19 @@ directory identities, check allowed and denied regional access, exercise admin
 authorization with unchanged descriptions, and run only the permitted inert
 mock jobs for both template operations. The five-set matrix expects 360 primary
 read/launch checks and 36 successful mock executions; description PATCH and
-resource-list checks are additional. It waits for launched jobs to finish and
-rejects failed executions.
+resource-list checks are additional. It finishes and verifies each accepted mock
+before launching another, retaining only one unfinished mock at a time. Failed
+executions stop further launches; cleanup still drains any already accepted work,
+including an unexpectedly accepted forbidden launch. Previously completed job IDs
+remain protected against reuse.
+The existing `job_wait_timeout` defaults to one shared 1200-second verification
+window, followed by a separate 1200-second cleanup reserve. API reads, login and
+permission convergence, polls and sleeps share those absolute deadlines; request
+timeouts are capped by the remaining phase budget. A late accepted launch is
+retained for cleanup. These windows fit the existing 3600-second parent template
+with room for normal Ansible setup and reporting. They do not grant each of the
+36 mocks a fresh 1200 seconds. Budget exhaustion is a failed verification, never
+an incomplete success.
 It reads the signed-in identity on both gateway and controller before checking
 resource permissions, initializing the service identity as a browser session
 does and verifying that neither service substituted a privileged account.
@@ -684,7 +695,9 @@ python3 -m unittest discover -s tests -p 'test_active_directory_verifier.py' -v
 ```
 
 These tests cover the full expected matrix and failure paths without contacting
-AAP. Live LDAP verification remains a separate deployment check.
+AAP. All 21 focused verifier checks pass locally and in the cached Core 2.20.10
+execution image, including serial admission, shared API/sleep budgets and cleanup
+after deadline expiry. Live LDAP verification remains a separate deployment check.
 
 `configure_windows_ad_workflow.yml` adds a separate eight-stage AD branch to the
 existing Windows workflow and verifies that its other nodes and edges are

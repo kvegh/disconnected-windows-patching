@@ -29,7 +29,7 @@ TEAMS = {'DK': ['DKlocal', 'EUapproved'], 'NO': ['NOlocal', 'EUapproved'],
 class FakeAAP:
     def __init__(self):
         self.profile = {'prefix': 'Demo', 'verify_logins': True,
-                        'convergence_timeout': 0, 'job_wait_timeout': 0,
+                        'convergence_timeout': 0, 'job_wait_timeout': 60,
                         'resource_sets': [dict(key=key, owner=owner, access=access)
                                           for key, owner, access in SETS],
                         'users': [dict(region=country, role=role,
@@ -52,6 +52,7 @@ class FakeAAP:
         self.jobs = {}
         self.drained = set()
         self.stats_read = set()
+        self.max_outstanding_jobs = 0
         self.fault = None
         self._fixtures()
 
@@ -111,7 +112,7 @@ class FakeAAP:
                                                  for key, kind, obj in self.by_resource_id.values()
                                                  if key in keys]
 
-    def request(self, path, user=None, method='GET', body=None):
+    def request(self, path, user=None, method='GET', body=None, *, timeout=30):
         parsed = urlsplit(path)
         query = parse_qs(parsed.query)
         service = 'gateway/v1' if '/gateway/' in path else 'controller/v2'
@@ -177,9 +178,13 @@ class FakeAAP:
             if len(parts) == 3 and parts[2] == 'launch':
                 permitted = allowed and user['role'] in ('executor', 'admin')
                 if permitted or self.fault == 'forbidden_launch':
+                    if self.fault == 'duplicate_job_id' and self.jobs:
+                        return 201, dict(job=min(self.jobs))
                     job_id = len(self.jobs) + 1
                     self.jobs[job_id] = dict(id=job_id, inventory=obj['inventory'], project=obj['project'],
                                              job_template=obj['id'], operation=self.operation[obj['id']])
+                    self.max_outstanding_jobs = max(
+                        self.max_outstanding_jobs, len(set(self.jobs) - self.drained))
                     return 201, dict(job=job_id)
                 return 403, {}
             if self.fault == 'late_get_leak' and user and user['region'] == 'DK' and \
@@ -215,6 +220,120 @@ class ActiveDirectoryVerifierTests(unittest.TestCase):
         self.assertEqual(result['object_scoped_grants_verified'], 75)
         self.assertEqual(result['permission_checks'], 0)
         self.assertFalse(self.api.jobs)
+
+    def test_complete_matrix_waits_for_each_mock_before_the_next_launch(self):
+        result = self.run_verifier()
+        self.assertEqual(len(self.api.jobs), 36)
+        self.assertEqual(result['permission_checks'], 360)
+        self.assertEqual(result['mock_jobs_verified'], 36)
+        self.assertEqual(self.api.max_outstanding_jobs, 1)
+        self.assertEqual(self.api.drained, set(self.api.jobs))
+        self.assertEqual(self.api.stats_read, set(self.api.jobs))
+
+    def test_reused_completed_job_identifier_is_still_rejected(self):
+        self.api.fault = 'duplicate_job_id'
+        with self.assertRaisesRegex(AssertionError, 'duplicate launched job identifier'):
+            self.run_verifier()
+        self.assertEqual(len(self.api.jobs), 1)
+        self.assertEqual(self.api.drained, {1})
+
+    def test_shared_deadline_is_not_reset_for_the_next_mock(self):
+        clock = [0]
+        request = self.api.request
+
+        def timed_request(path, user=None, method='GET', data=None, *, timeout=30):
+            result = request(path, user, method, data, timeout=timeout)
+            if '/jobs/' in path and '/job_events/' not in path:
+                clock[0] = 61
+            return result
+
+        with mock.patch.object(VERIFIER.time, 'monotonic', side_effect=lambda: clock[0]):
+            with self.assertRaisesRegex(AssertionError, 'verification deadline'):
+                VERIFIER.verify_with_request(self.api.profile, timed_request)
+        self.assertEqual(len(self.api.jobs), 1)
+        self.assertEqual(self.api.drained, {1})
+        self.assertEqual(self.api.stats_read, {1})
+
+    def test_cleanup_has_reserved_time_after_verification_deadline(self):
+        clock = [0]
+        polls = [0]
+        request = self.api.request
+
+        def timed_request(path, user=None, method='GET', data=None, *, timeout=30):
+            if '/jobs/' in path and '/job_events/' not in path:
+                polls[0] += 1
+                clock[0] = 60 + polls[0]
+                if polls[0] <= 2:
+                    return 200, dict(self.api.jobs[1], status='running')
+            return request(path, user, method, data, timeout=timeout)
+
+        with mock.patch.object(VERIFIER.time, 'monotonic', side_effect=lambda: clock[0]), \
+                mock.patch.object(VERIFIER.time, 'sleep'):
+            with self.assertRaisesRegex(AssertionError, 'verification deadline'):
+                VERIFIER.verify_with_request(self.api.profile, timed_request)
+        self.assertEqual(polls[0], 3)
+        self.assertEqual(len(self.api.jobs), 1)
+        self.assertEqual(self.api.drained, {1})
+        self.assertEqual(self.api.stats_read, {1})
+
+    def test_api_reads_use_only_the_remaining_shared_budget(self):
+        clock = [0]
+        timeouts = []
+        request = self.api.request
+
+        def timed_request(path, user=None, method='GET', body=None, *, timeout=30):
+            timeouts.append(timeout)
+            result = request(path, user, method, body, timeout=timeout)
+            if len(timeouts) == 1:
+                clock[0] = 59
+            return result
+
+        with mock.patch.object(VERIFIER.time, 'monotonic', side_effect=lambda: clock[0]):
+            result = VERIFIER.verify_with_request(self.api.profile, timed_request)
+        self.assertEqual(result['mock_jobs_verified'], 36)
+        self.assertEqual(max(timeouts), 30)
+        self.assertEqual(min(timeouts), 1)
+
+    def test_convergence_sleep_cannot_consume_cleanup_reserve(self):
+        clock = [0]
+        sleeps = []
+        request = self.api.request
+        self.api.profile['convergence_timeout'] = 100
+
+        def timed_request(path, user=None, method='GET', body=None, *, timeout=30):
+            if path == '/api/controller/v2/me/' and user:
+                return 403, {}
+            result = request(path, user, method, body, timeout=timeout)
+            clock[0] = 59
+            return result
+
+        def sleep(seconds):
+            sleeps.append(seconds)
+            clock[0] += seconds
+
+        with mock.patch.object(VERIFIER.time, 'monotonic', side_effect=lambda: clock[0]), \
+                mock.patch.object(VERIFIER.time, 'sleep', side_effect=sleep):
+            with self.assertRaisesRegex(AssertionError, 'deadline expired while waiting'):
+                VERIFIER.verify_with_request(self.api.profile, timed_request)
+        self.assertEqual(sleeps, [1])
+        self.assertFalse(self.api.jobs)
+
+    def test_late_accepted_launch_is_retained_for_cleanup(self):
+        clock = [0]
+        request = self.api.request
+
+        def timed_request(path, user=None, method='GET', body=None, *, timeout=30):
+            result = request(path, user, method, body, timeout=timeout)
+            if method == 'POST' and result[1].get('job'):
+                clock[0] = 61
+            return result
+
+        with mock.patch.object(VERIFIER.time, 'monotonic', side_effect=lambda: clock[0]):
+            with self.assertRaisesRegex(AssertionError, 'verification deadline'):
+                VERIFIER.verify_with_request(self.api.profile, timed_request)
+        self.assertEqual(len(self.api.jobs), 1)
+        self.assertEqual(self.api.drained, {1})
+        self.assertEqual(self.api.stats_read, {1})
 
     def test_profile_cannot_expand_country_clearance(self):
         self.api.profile['resource_sets'][0]['access'] = 'EU'
@@ -280,20 +399,20 @@ class ActiveDirectoryVerifierTests(unittest.TestCase):
         self.assertEqual(len(self.api.jobs), 1)
         self.assertEqual(self.api.drained, {1})
 
-    def test_success_status_without_host_tasks_is_rejected_after_draining_every_job(self):
+    def test_success_without_host_tasks_stops_before_another_launch(self):
         self.api.fault = 'no_tasks'
         with self.assertRaisesRegex(AssertionError, 'execute its tasks on localhost'):
             self.run_verifier()
-        self.assertEqual(len(self.api.jobs), 36)
+        self.assertEqual(len(self.api.jobs), 1)
         self.assertEqual(self.api.drained, set(self.api.jobs))
 
-    def test_one_failed_job_does_not_stop_draining_other_jobs(self):
+    def test_failed_job_is_drained_before_another_launch(self):
         self.api.fault = 'failed_job'
         with self.assertRaisesRegex(AssertionError, 'did not complete successfully'):
             self.run_verifier()
-        self.assertEqual(len(self.api.jobs), 36)
+        self.assertEqual(len(self.api.jobs), 1)
         self.assertEqual(self.api.drained, set(self.api.jobs))
-        self.assertEqual(len(self.api.stats_read), 35)
+        self.assertFalse(self.api.stats_read)
 
 
 class VerifierTransportTests(unittest.TestCase):
