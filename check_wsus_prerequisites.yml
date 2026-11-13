@@ -139,3 +139,60 @@
         - assets/import-wsus-metadata.ps1
         - assets/validate-chocolatey-export.ps1
         - assets/upload-nexus-package.ps1
+
+- name: Inspect internal WSUS import workers and existing logs without changing them
+  hosts: wsus_internal
+  gather_facts: false
+  vars_files:
+    - vars/wsus_pipeline.yml
+  pre_tasks:
+    - name: Load the explicitly selected private Windows runtime profile
+      ansible.builtin.include_tasks: tasks/windows_runtime_settings.yml
+      when: windows_runtime_settings_vault is defined
+      tags: always
+
+  tasks:
+    - name: Require one distinct internal WSUS server for the protected import observation
+      ansible.builtin.assert:
+        that:
+          - groups.get('wsus_internal', []) | length == 1
+          - groups.get('wsus_internal', []) | intersect(groups.get('wsus_external', [])) | length == 0
+        quiet: true
+
+    - name: Read existing import worker and bounded log metadata
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
+      ansible.windows.win_powershell:
+        error_action: stop
+        depth: 5
+        parameters:
+          ImportRoot: "{{ wsus_import_root }}"
+        script: |
+          # Language choice: [rationale](docs/supporting-code.md#wsus-server-operations).
+          param([string]$ImportRoot)
+          $Ansible.Changed = $false
+          $workers = @(Get-Process -Name WsusUtil,sqlservr -ErrorAction SilentlyContinue |
+              Select-Object Name,Id,CPU,WorkingSet64,StartTime)
+          $logs = @()
+          if (Test-Path -LiteralPath $ImportRoot) {
+              $logs = @(Get-ChildItem -LiteralPath $ImportRoot -Directory -Filter 'snapshot-*' |
+                  ForEach-Object { Get-ChildItem -LiteralPath $_.FullName -File -Filter 'import-*.log' } |
+                  Sort-Object LastWriteTime -Descending | Select-Object -First 2 | ForEach-Object {
+                      @{ File=($_ | Select-Object Name,Length,LastWriteTime);
+                         Tail=@(Get-Content -LiteralPath $_.FullName -Tail 16 -ErrorAction SilentlyContinue) }
+                  })
+          }
+          $Ansible.Result = @{ ObservedAtUtc=[datetime]::UtcNow.ToString('o'); Workers=$workers; ImportLogs=$logs }
+      register: wsus_import_inspection
+      changed_when: false
+      no_log: true
+
+    - name: Preserve protected internal WSUS import evidence
+      ansible.builtin.set_stats:
+        data:
+          windows_wsus_import_inspection: "{{ wsus_import_inspection.result }}"
+        aggregate: false
+      no_log: true
+
+    - name: Report read-only internal WSUS observation completion
+      ansible.builtin.debug:
+        msg: Existing internal WSUS import worker and bounded log evidence was captured without changing the operation.

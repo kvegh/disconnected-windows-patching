@@ -941,6 +941,7 @@ See the [live verification details](docs/windows-os-patching.md#references-and-v
 - `upgrade_applications.yml`: switch feeds and upgrade to newer pinned versions.
 - `prepare_repository_servers.yml`: feature/MSI installation and reboot barrier before parallel setup.
 - `check_wsus_prerequisites.yml`: read-only external WSUS readiness and PowerShell syntax checks. Its timestamped report separates the last completed synchronization result from the current synchronization status, phase and processed/total items, and reports downloaded/total content bytes. A completed metadata phase does not prove payload downloads or client applicability.
+  It also preserves protected internal WSUS worker metadata and the last sixteen lines of at most two existing import logs. The AD inspector likewise retains update-service/process metadata, native update pipe names and a bounded existing reporting-log tail. It never opens a worker pipe, starts a scan or changes a live operation. Detached `win_updates` workers can outlive their ephemeral scheduled-task definitions; an empty scheduled-task list does not prove completion.
 - `assess_windows_patch_level.yml`: read-only installed OS build and hotfix evidence on managed endnodes.
 - `set_internal_wsus_patch_month.yml`: prepare a named monthly baseline and enforce its internal WSUS ceiling.
 - `configure_wsus_patch_ceiling_template.yml`: reproduce the ceiling Job Template and month-name survey with Ansible.

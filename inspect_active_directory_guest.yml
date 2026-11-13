@@ -74,6 +74,26 @@
           $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$($env:SystemDrive)'"
           $servicing = @(Get-Process -Name TiWorker,TrustedInstaller,MoUsoCoreWorker,wuauclt -ErrorAction SilentlyContinue |
               Select-Object Name,Id,CPU,WorkingSet64,StartTime)
+          $executionProcesses = @(Get-Process -Name powershell,pwsh,wsmprovhost,msiexec -ErrorAction SilentlyContinue |
+              Select-Object Name,Id,CPU,WorkingSet64,StartTime)
+          $updateServices = @(Get-CimInstance Win32_Service |
+              Where-Object Name -In @('wuauserv','BITS','UsoSvc','DoSvc') |
+              Select-Object Name,State,ProcessId,StartMode)
+          $nativePipes = @{ Available=$false; Names=@() }
+          try {
+              # Enumerate names only: opening a worker pipe could consume its progress stream.
+              $pipeNames = @(Get-ChildItem -LiteralPath '\\.\pipe\' -ErrorAction Stop |
+                  Where-Object Name -Like 'Ansible.Windows.WinUpdates-*' | ForEach-Object Name)
+              $nativePipes = @{ Available=$true; Names=$pipeNames }
+          } catch { $nativePipes = @{ Available=$false; Names=@(); ErrorCode=$_.Exception.HResult } }
+          $reportingLog = $null
+          $reportingPath = "$env:SystemRoot\SoftwareDistribution\ReportingEvents.log"
+          if (Test-Path -LiteralPath $reportingPath) {
+              $reportingLog = @{
+                  File=(Get-Item -LiteralPath $reportingPath | Select-Object Length,LastWriteTime)
+                  Tail=@(Get-Content -LiteralPath $reportingPath -Tail 16 -ErrorAction SilentlyContinue)
+              }
+          }
           $delivery = @()
           if (Get-Command Get-DeliveryOptimizationStatus -ErrorAction SilentlyContinue) {
               try {
@@ -126,6 +146,8 @@
               ShutdownEvents=$shutdownEvents;
               UpdateAgent=$agentState; AnsibleScheduledTasks=$updateTasks;
               FreeSystemBytes=$disk.FreeSpace; ServicingProcesses=$servicing;
+              ExecutionProcesses=$executionProcesses; UpdateServices=$updateServices;
+              NativeUpdatePipes=$nativePipes; UpdateReportingLog=$reportingLog;
               DeliveryOptimization=$delivery; BitsTransfers=$bits; ServicingLog=$cbs;
               SecurityHealth=@{
                   Files=$healthFiles; Service=$healthService; ServiceFileVersion=$healthServiceVersion;
