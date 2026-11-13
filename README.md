@@ -12,6 +12,14 @@ The [supporting-code guide](docs/supporting-code.md) explains the retained Pytho
 PowerShell and command usage; the [test guide](tests/README.md) states what the
 offline suites prove and what still needs live AAP validation.
 
+The supplemental AAP connection validator accepts Ansible's native tagged
+integer prefix lengths while retaining Boolean, string, float and range
+rejection. Native YAML regression checks exercise the production validator;
+this correction preserves the existing network declaration and ownership rules.
+Seven focused profile checks pass in the actual Core 2.20.10 execution image,
+and all forty-three management tests pass on local Core 2.16.19. These checks
+do not provision Windows or replace the complete functional workflow.
+
 Native firewall callers require the reviewed Hactar source revision in
 `aap_hactar_source_revision` and the independently recorded production identity in
 `hactar_source_public_ip`, supplied by the existing protected CaC. The calling

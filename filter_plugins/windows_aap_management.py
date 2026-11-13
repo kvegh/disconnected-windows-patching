@@ -62,7 +62,9 @@ def profile(value, instance, pin, guests):
                 'Use exact private IPv4, unicast MAC, network and bridge identities.')
     require(all(primary[key] != extra[key] for key in ('address', 'mac', 'network', 'bridge'))
             and extra['bridge'] in pin['isolation_bridges']
-            and type(value['prefix_length']) is int and 1 <= value['prefix_length'] <= 30,
+            and isinstance(value['prefix_length'], int)
+            and not isinstance(value['prefix_length'], bool)
+            and 1 <= value['prefix_length'] <= 30,
             'The second NIC must remain distinct and on the enforced isolated bridge.')
     selected_subnet = ipaddress.ip_network(extra['address'] + '/' + str(value['prefix_length']), strict=False)
     for guest in guests.values():

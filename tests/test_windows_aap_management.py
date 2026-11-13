@@ -18,9 +18,16 @@ import xml.etree.ElementTree as ET
 
 from ansible.errors import AnsibleFilterError
 from ansible.parsing.dataloader import DataLoader
+from ansible.parsing.yaml.loader import AnsibleLoader
 from ansible.playbook.conditional import Conditional
 from ansible.template import Templar
 import yaml
+
+try:
+    from ansible.template import trust_as_template
+except ImportError:  # Core 2.16 predates explicit template trust.
+    def trust_as_template(value):
+        return value
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -85,6 +92,25 @@ NETWORK = ('<network><name>example-isolated</name><bridge name="virbr42"/>'
 
 
 class ProfileAndPreservationTests(unittest.TestCase):
+    def test_native_yaml_integer_prefix_is_accepted(self):
+        for prefix in (1, 24, 30):
+            data = profile()
+            data['prefix_length'] = prefix
+            loaded = AnsibleLoader(trust_as_template(yaml.safe_dump(data))).get_single_data()
+            with self.subTest(prefix=prefix):
+                self.assertEqual(
+                    management.profile(loaded, 'example-aap', loaded['route']['hypervisor'], {}),
+                    loaded,
+                )
+
+    def test_native_yaml_boolean_wrong_type_and_out_of_range_prefixes_are_refused(self):
+        for prefix in (True, False, '24', 24.0, 0, 31):
+            data = profile()
+            data['prefix_length'] = prefix
+            loaded = AnsibleLoader(trust_as_template(yaml.safe_dump(data))).get_single_data()
+            with self.subTest(prefix=prefix), self.assertRaises(AnsibleFilterError):
+                management.profile(loaded, 'example-aap', loaded['route']['hypervisor'], {})
+
     def test_profile_preserves_exact_existing_primary_and_direct_isolated_reachability(self):
         data = profile()
         guests = {'example-win': {'interfaces': [{'network': 'example-isolated',
