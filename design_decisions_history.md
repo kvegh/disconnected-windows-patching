@@ -2849,3 +2849,17 @@ Existing guests were recovered sequentially and are preserved. Publication occur
 between remote jobs; this change does not claim a new parallel physical workflow
 passed. Historical pins above retain their original meaning. Version 1.1.36
 records this implementation and its validation boundary.
+
+## 2026-11-13 — Diagnose AD activation through protected read-only evidence
+
+Implementation `ebb1918` (1.1.37) adds installed-license reason codes and at most
+twelve local Security-SPP events to the existing AD inspection result. An actual
+AD preparation failure occurred inside protected activation execution, so the
+controller's censored event did not establish its HRESULT. The existing inspection
+template supplies this evidence without attempting activation or changing keys,
+evaluation time, networking or the installed edition. Its result and artifacts
+remain protected by the existing logging controls.
+
+YAML parsing and whitespace checks pass. The normal read-only inspection job is
+the live verification; an activation repair remains conditional on its actual
+evidence. Version 1.1.38 records this decision.
