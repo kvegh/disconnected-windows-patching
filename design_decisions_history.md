@@ -2761,3 +2761,24 @@ All six native initial-run tests pass on local Core 2.16.19, covering opt-in
 behavior, missing SSH data, invalid-selection privacy and a mutation sentinel.
 This is diagnostic coverage, not evidence of successful live provisioning.
 Version 1.1.28 records the implementation and its validation boundary.
+
+## 2026-11-13 — Preserve strict guards with native Core 2.20 values
+
+Implementation `cb004c4` (1.1.29) fixes the observed normal-run tag rejection:
+Core 2.20.10 supplies the single `all` tag as a tuple, which does not equal a
+Python list. Normalize the collection in management and verified-release guards
+before comparing to exactly one `all` entry. Partial, extra and duplicate tags
+remain rejected; ownership, source and identity requirements remain mandatory.
+
+The same implementation adds a fixed protected selection assertion before
+indexed Boolean diagnostic expressions. Core 2.20 templating tracebacks can
+expose synthetic invalid input even when the failed result uses `no_log`.
+Rejecting an undeclared selection before evaluating those expressions prevents
+that traceback. Additional network-type flags expose only Booleans; the live
+receiver's empty-network representation still needs a separate diagnosis.
+
+The focused privacy/control-flow test passes in actual Core 2.20.10 (7.583s),
+and all six initial-run tests pass there (28.128s). Local Core 2.16.19 verifies
+release guard acceptance of the native tuple and refusal of partial, extra,
+duplicate and empty tag collections and string input. Version 1.1.30 records
+this decision; live Windows provisioning remains incomplete.
