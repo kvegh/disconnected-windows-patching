@@ -27,7 +27,8 @@ def run_play(play, extra_files=None, environment=None):
 
 class InitialRunTests(unittest.TestCase):
     def test_boolean_guard_inspection_is_opt_in_private_and_stops_before_changes(self):
-        tasks = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]['tasks']
+        common = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]
+        tasks = common['tasks']
         boundary = next(index for index, task in enumerate(tasks)
                         if task['name'] == "Require the selected instance's exact owned clone and interfaces")
         inspection = copy.deepcopy(tasks[:boundary])
@@ -37,7 +38,8 @@ class InitialRunTests(unittest.TestCase):
         for enabled, have_ssh, valid_selection, expected in [(False, False, True, 0), (True, True, True, 0), (True, False, True, 2), (True, True, False, 2)]:
             with self.subTest(enabled=enabled, have_ssh=have_ssh, valid_selection=valid_selection), tempfile.TemporaryDirectory() as directory:
                 changed = Path(directory) / 'unexpected-change'
-                variables = {
+                variables = {key: value for key, value in common['vars'].items() if key.startswith('selected_management_')}
+                variables.update({
                     'windows_infrastructure_guard_diagnostics': enabled,
                     'windows_runtime_settings_vault': private,
                     'windows_runtime_hypervisor': {'inventory_host': 'localhost'},
@@ -48,7 +50,7 @@ class InitialRunTests(unittest.TestCase):
                     'vm_network': 'example-isolated', 'vm_mac': '52:54:00:00:00:10',
                     'vm_management_network': '', 'vm_management_mac': '',
                     'aap_hactar_source_revision': 'a' * 40, 'hactar_source_public_ip': private,
-                }
+                })
                 environment = {key: private if have_ssh else '' for key in [
                     'AD_AAP_TARGET_SSH_USERNAME', 'AD_AAP_TARGET_SSH_PASSWORD', 'AD_AAP_TARGET_SSH_KNOWN_HOSTS']}
                 environment.update(ANSIBLE_LOCAL_TEMP=str(Path(directory) / 'local'),
@@ -65,6 +67,35 @@ class InitialRunTests(unittest.TestCase):
                     self.assertIn('existing_ssh_password_present', output)
                 else:
                     self.assertNotIn('primary_mac_matches', output)
+
+    def test_optional_null_nic_inputs_preserve_exact_owned_interface_rejection(self):
+        common = yaml.safe_load((ROOT / '01-win-vm-setup.yml').read_text())[0]
+        guard = next(task for task in common['tasks'] if task['name'] ==
+                     "Require the selected instance's exact owned clone and interfaces")
+        for network, mac, nic_count, expected in [('', '', 1, 0), (None, None, 1, 0),
+                (False, '', 1, 2), (0, '', 1, 2), ({'synthetic-private-value': True}, '', 1, 2),
+                ('', False, 1, 2), ('foreign-network', '', 1, 2),
+                ('management', '52:54:00:00:00:11', 2, 0), (None, None, 2, 2),
+                ('foreign-network', '52:54:00:00:00:11', 2, 2)]:
+            with self.subTest(network=network, mac=mac), tempfile.TemporaryDirectory() as directory:
+                variables = {key: value for key, value in common['vars'].items()
+                             if key.startswith('selected_management_')}
+                variables.update({'windows_runtime_settings_vault': 'synthetic-private-value',
+                    'windows_runtime_guests': {'example-win': {'role': 'managed', 'version': '2022',
+                        'interfaces': [{'network': 'isolated', 'mac': '52:54:00:00:00:10'}]}},
+                    'vm_name': 'example-win', 'vm_role': 'managed', 'windows_version': '2022',
+                    'vm_network': 'isolated', 'vm_mac': '52:54:00:00:00:10',
+                    'vm_management_network': network, 'vm_management_mac': mac})
+                if nic_count == 2:
+                    variables['windows_runtime_guests']['example-win']['interfaces'].append(
+                        {'network': 'management', 'mac': '52:54:00:00:00:11'})
+                result = run_play([{'hosts': 'localhost', 'gather_facts': False,
+                                   'vars': variables, 'tasks': [guard]}], environment={
+                    'ANSIBLE_LOCAL_TEMP': str(Path(directory) / 'local'),
+                    'ANSIBLE_REMOTE_TEMP': str(Path(directory) / 'remote')})
+                output = result.stdout + result.stderr
+                self.assertEqual(result.returncode, expected, output)
+                self.assertNotIn('synthetic-private-value', output)
 
     def test_existing_copy_requires_the_existing_read_only_source_plan_to_prove_absence(self):
         tasks = yaml.safe_load((ROOT / 'tasks/windows_aap_management_network.yml').read_text())[0]['block']

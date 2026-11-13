@@ -7,6 +7,8 @@
     - vars/main.yml
   vars:
     vm_network: windows-isolated
+    selected_management_network: "{{ '' if vm_management_network is none else vm_management_network }}"
+    selected_management_mac: "{{ '' if vm_management_mac is none else vm_management_mac }}"
     selected_image: "{{ windows_images[windows_version | string] }}"
     selected_memory_mb: "{{ windows_memory_mb[vm_role] }}"
     vm_boot_mode: "{{ windows_boot_modes[windows_version | string] }}"
@@ -48,10 +50,10 @@
           management_network_is_mapping: "{{ vm_management_network is mapping }}"
           management_network_is_nonstring_sequence: "{{ vm_management_network is sequence and vm_management_network is not string }}"
           management_network_is_string: "{{ vm_management_network is string }}"
-          management_network_empty: "{{ vm_management_network is string and vm_management_network | length == 0 }}"
-          interface_count_matches: "{{ vm_management_network is string and windows_runtime_guests[vm_name].interfaces | length == (2 if vm_management_network | length > 0 else 1) }}"
-          secondary_network_matches: "{{ vm_management_network is string and (vm_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].network == vm_management_network) }}"
-          secondary_mac_matches: "{{ vm_management_network is string and (vm_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].mac == vm_management_mac | lower) }}"
+          management_network_empty: "{{ selected_management_network is string and selected_management_network | length == 0 }}"
+          interface_count_matches: "{{ selected_management_network is string and windows_runtime_guests[vm_name].interfaces | length == (2 if selected_management_network | length > 0 else 1) }}"
+          secondary_network_matches: "{{ selected_management_network is string and (selected_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].network == selected_management_network) }}"
+          secondary_mac_matches: "{{ selected_management_network is string and (selected_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].mac == selected_management_mac | lower) }}"
       when:
         - windows_runtime_settings_vault is defined
         - windows_infrastructure_guard_diagnostics | default(false) | bool
@@ -80,14 +82,16 @@
     - name: Require the selected instance's exact owned clone and interfaces
       ansible.builtin.assert:
         that:
+          - selected_management_network is string
+          - selected_management_mac is string
           - vm_name in windows_runtime_guests
           - windows_runtime_guests[vm_name].role == vm_role or (windows_runtime_guests[vm_name].role == 'ad' and vm_role == 'managed')
           - windows_runtime_guests[vm_name].version | string == windows_version | string
           - windows_runtime_guests[vm_name].interfaces[0].network == vm_network
           - windows_runtime_guests[vm_name].interfaces[0].mac == vm_mac | lower
-          - windows_runtime_guests[vm_name].interfaces | length == (2 if vm_management_network | length > 0 else 1)
-          - vm_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].network == vm_management_network
-          - vm_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].mac == vm_management_mac | lower
+          - windows_runtime_guests[vm_name].interfaces | length == (2 if selected_management_network | length > 0 else 1)
+          - selected_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].network == selected_management_network
+          - selected_management_network | length == 0 or windows_runtime_guests[vm_name].interfaces[1].mac == selected_management_mac | lower
         quiet: true
         fail_msg: The requested clone does not match the selected private instance's owned guest mapping.
       when: windows_runtime_settings_vault is defined
@@ -96,18 +100,20 @@
     - name: Validate survey or extra variable inputs
       ansible.builtin.assert:
         that:
+          - selected_management_network is string
+          - selected_management_mac is string
           - vm_role | default('') in ['managed', 'wsus']
           - windows_version | default('') | string in ['2022', '2025']
           - vm_name | default('') is match('^[A-Za-z][A-Za-z0-9-]{0,62}$')
           - vm_disk_path == vm_dir ~ '/win-' ~ vm_name ~ '-clone.disk.qcow2'
           - vm_network is match('^[A-Za-z0-9_.-]+$')
-          - vm_management_network == '' or vm_management_network is match('^[A-Za-z0-9_.-]+$')
-          - vm_management_network == '' or vm_role == 'wsus'
-          - vm_management_network != vm_network
+          - selected_management_network == '' or selected_management_network is match('^[A-Za-z0-9_.-]+$')
+          - selected_management_network == '' or vm_role == 'wsus'
+          - selected_management_network != vm_network
           - vm_mac | default('') == '' or vm_mac is match('(?i)^([0-9a-f]{2}:){5}[0-9a-f]{2}$')
-          - vm_management_mac | default('') == '' or vm_management_mac is match('(?i)^([0-9a-f]{2}:){5}[0-9a-f]{2}$')
-          - vm_management_mac | default('') == '' or vm_management_network | length > 0
-          - vm_management_mac | default('') == '' or vm_management_mac | lower != vm_mac | default('') | lower
+          - selected_management_mac | default('') == '' or selected_management_mac is match('(?i)^([0-9a-f]{2}:){5}[0-9a-f]{2}$')
+          - selected_management_mac | default('') == '' or selected_management_network | length > 0
+          - selected_management_mac | default('') == '' or selected_management_mac | lower != vm_mac | default('') | lower
         fail_msg: Supply vm_role (managed/wsus), windows_version (2022/2025), vm_name, and vm_network.
 
     - name: Validate selected image boot mode
@@ -120,7 +126,7 @@
         argv: [virsh, net-info, "{{ item }}"]
       environment:
         LC_ALL: C
-      loop: "{{ [vm_network] + ([vm_management_network] if vm_management_network | length > 0 else []) }}"
+      loop: "{{ [vm_network] + ([selected_management_network] if selected_management_network | length > 0 else []) }}"
       register: selected_network_info
       changed_when: false
       check_mode: false
@@ -233,9 +239,9 @@
               'path=' ~ vm_disk_path ~ ',format=qcow2,bus=sata',
               '--network', 'network=' ~ vm_network ~ ',model=e1000e'
               ~ (',mac=' ~ vm_mac if vm_mac | default('') | length > 0 else '')]
-              + (['--network', 'network=' ~ vm_management_network ~ ',model=e1000e'
-                 ~ (',mac=' ~ vm_management_mac if vm_management_mac | default('') | length > 0 else '')]
-                 if vm_management_network | length > 0 else [])
+              + (['--network', 'network=' ~ selected_management_network ~ ',model=e1000e'
+                 ~ (',mac=' ~ selected_management_mac if selected_management_mac | default('') | length > 0 else '')]
+                 if selected_management_network | length > 0 else [])
               + (['--clock', 'offset=utc'] if windows_runtime_settings_vault is defined
                  and windows_runtime_guests[vm_name].role != 'ad' else [])
               + ['--noautoconsole'] }}
@@ -288,7 +294,7 @@
           memory_mb: "{{ selected_memory_mb }}"
           disk: "{{ vm_disk_path }}"
           network: "{{ vm_network }}"
-          management_network: "{{ vm_management_network | default('') }}"
+          management_network: "{{ selected_management_network }}"
           interfaces: "{{ vm_interfaces.stdout_lines | default([]) }}"
           mac: "{{ vm_mac | default('not available in check mode') }}"
           ipv4: "{{ dhcp_leases.stdout | default('') | regex_search('([0-9]{1,3}\\.){3}[0-9]{1,3}') | default('not discovered', true) }}"

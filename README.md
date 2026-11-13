@@ -34,6 +34,14 @@ normalize the collection before requiring exactly one `all` entry. Partial, extr
 and duplicate entries remain rejected. Default runs retain their protected guards and normal
 behavior; a successful diagnostic inspection is not provisioning success.
 
+
+The live controller can supply `null` for an empty optional secondary-network
+survey answer. VM creation converts only null secondary-network and secondary-MAC
+inputs to empty strings, then requires string inputs and the exact declared
+interface count, networks and MACs. Boolean, numeric, mapping and foreign-network
+inputs remain invalid. Actual Core 2.20 tests cover single-NIC null/empty values,
+exact dual-NIC values and refusal of missing or mismatched secondary interfaces.
+
 Native firewall callers require the reviewed Hactar source revision in
 `aap_hactar_source_revision` and the independently recorded production identity in
 `hactar_source_public_ip`, supplied by the existing protected CaC. The calling
