@@ -1,5 +1,35 @@
 # Design decisions history
 
+## 2026-11-13 — Verify regional mock executions serially with a shared budget
+
+Implementation `3100be2` (1.1.45) makes the existing AD access verifier wait for
+each accepted inert mock job and verify its actual localhost statistics before
+admitting another. Concurrent platform work exposed receiver memory pressure;
+starting all permitted mocks before draining them would recreate unnecessary
+load. The same twelve identities, 75 scoped grants, 360 permission checks and
+36 genuine mock executions remain mandatory. No controller capacity, service,
+credential, TLS, resource binding or launch-input control is changed.
+
+Terminal jobs leave the pending registry after verification while a separate
+seen-ID set preserves duplicate protection. A failed execution stops further
+launches. The final cleanup still drains already accepted work, including a
+forbidden launch unexpectedly accepted by the platform.
+
+One absolute 1200-second work window covers API reads, login and permission
+convergence, polls, sleeps and mock admission. A separate 1200-second cleanup
+reserve stays within the existing 3600-second parent template. Requests receive
+only the remaining phase timeout; a late accepted launch is retained before
+raising so cleanup can follow it. Deadline expiry is reported as failure.
+
+All 21 focused synthetic verifier tests pass locally and in the existing cached
+Core 2.20.10 image with network disabled and public source mounted read-only.
+They include peak outstanding work of one, unchanged full success counts,
+duplicate-ID rejection, unsafe-scope refusal, failed/forbidden cleanup, shared
+deadline exhaustion, bounded reads/sleeps and cleanup after a late acceptance.
+These checks do not demonstrate live LDAP access or general platform capacity.
+The normal access verification remains required. Version 1.1.46 records this
+implementation and its validation boundary.
+
 ## 2026-11-13 — Inspect managed update state after a disconnected installation
 
 Implementation `70348d9` (1.1.43) extends the existing protected Windows network
