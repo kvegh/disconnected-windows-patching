@@ -3058,3 +3058,10 @@ Version 1.1.50 records the width adjustment. No new controls, dependencies,
 framework or browser installation are introduced. Existing presentation tests
 and publication checks apply; browser layout remains unverified. Implementation
 commit and publication evidence follow.
+
+Implementation: `647471fc70bb458ea127cf69beafd0f7c1a3447b`. SSH publication
+succeeded. Existing Publish Windows demo run `43626523931` completed successfully
+on 2026-11-14 at 18:25:53 UTC (created 18:25:31 UTC). Both AAP-edition Node
+test files and whitespace checks passed. Public HTTPS HTML, the versioned AAP
+stylesheet and unchanged app JavaScript matched the reviewed local bytes.
+Rendered browser width/readability remains unverified.
