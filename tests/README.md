@@ -2,6 +2,14 @@
 
 ## TLDR
 
+The shared dependency's exact-pin checks run through native Ansible in
+`test_windows_initial_run.py`: all three production guards accept the reviewed
+revision and stop before a mutation marker for the previous pin, a branch or a
+foreign repository. The same file proves the unchanged lock budget across five
+native include/import/role contexts. Legacy tests that call Ansible's removed
+internal `Conditional.evaluate_conditional` API do not run on Core 2.20; the
+native guard fixture provides the relevant current-runtime evidence.
+
 These offline regressions check artifacts, access rules and failure paths using
 synthetic inputs. They complement the normal AAP job-template and workflow tests.
 They do not demonstrate real provisioning, Windows updates, application

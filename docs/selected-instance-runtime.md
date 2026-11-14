@@ -205,8 +205,8 @@ checkout and temporary hypervisor trust file are removed on success or failure.
 There is no second publisher, extra orchestration job or Windows bootstrap
 HTTPS exception.
 
-The current pin is AutoDeploy 0.62.3 implementation
-`f22171b8ea6635888d280eb317d24863341197af`. Its existing Windows branch accepts
+The current pin is AutoDeploy 0.63.57 implementation
+`f9aa8410dc91536a7175141a85878c7055672180`. Its existing Windows branch accepts
 the genuine Boolean certificate result under the owner's lab policy while
 retaining every successful identity, ownership and source/policy check. It also
 retains the canonical Controller SSH-port representation fix; different or
@@ -214,6 +214,13 @@ malformed ports still fail. The same reviewed implementation supplies the plan
 entrypoint and exact supplemental-interface ownership transaction, preserves
 existing primary identities, and resolves action support code from the current
 checked-out role when one job invokes it repeatedly.
+
+Only the private source read gains two retries with a three-second delay, before
+the existing exact-SHA assertion and native policy lock. Failure of all three
+reads or a mismatched SHA still stops before policy or VM mutation. No launch,
+mutation, credential or isolation permission is retried or broadened. Adoption
+must occur between completed job stages because source updates can be consumed
+by the next normal template launch; running jobs retain their original source.
 
 The same pinned implementation reads current encrypted CaC and checks the complete
 native firewall state before changing it. It uses the reviewed Hactar

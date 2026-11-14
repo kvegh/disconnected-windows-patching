@@ -26,6 +26,45 @@ def run_play(play, extra_files=None, environment=None):
 
 
 class InitialRunTests(unittest.TestCase):
+    def test_exact_shared_pin_guards_run_natively_before_checkout_or_mutation(self):
+        """Run the production guards, including rejected pins, using native Ansible."""
+        defaults = yaml.safe_load((ROOT / 'roles/windows_recovery_release/defaults/main.yml').read_text())
+        role_guard = yaml.safe_load((ROOT / 'roles/windows_recovery_release/tasks/main.yml').read_text())[0]
+        retirement = yaml.safe_load((ROOT / 'tasks/windows_retire_guest.yml').read_text())
+        retire_guard = next(task for task in retirement if task['name'].startswith('Require the same reviewed public implementation'))
+        outer = yaml.safe_load((ROOT / 'tasks/windows_aap_management_network.yml').read_text())[0]
+        transaction = next(task for task in outer['block'] if task.get('rescue'))
+        network_guard = next(task for task in transaction['block'] if task['name'].startswith('Require the same fixed public source'))
+        base = dict(aap_hactar_source_revision='a' * 40, hactar_source_public_ip='198.51.100.10',
+            windows_runtime_verified_resource={'kind': 'windows', 'verified': True,
+                'winrm_certificate_validated': True, 'vm_name': 'example-v07',
+                'instance_name': 'aap27-test-7', 'hypervisor_machine_id': 'a' * 32},
+            inventory_hostname='example-v07', windows_runtime_expected_instance='aap27-test-7',
+            ansible_winrm_server_cert_validation='validate',
+            windows_runtime_recovery_pin={'machine_id': 'a' * 32},
+            windows_runtime_release_trust={'path': '/tmp/windows-release-known-hosts-fixture'})
+        for context, guard in [('release', role_guard), ('retirement', retire_guard), ('management', network_guard)]:
+            for variant in ['exact', 'old-pin', 'branch', 'foreign-repository']:
+                with self.subTest(context=context, variant=variant), tempfile.TemporaryDirectory() as directory:
+                    selected = dict(defaults)
+                    if variant == 'old-pin':
+                        selected['windows_recovery_release_revision'] = 'f22171b8ea6635888d280eb317d24863341197af'
+                    elif variant == 'branch':
+                        selected['windows_recovery_release_revision'] = 'main'
+                    elif variant == 'foreign-repository':
+                        selected['windows_recovery_release_repository'] = 'https://example.invalid/foreign.git'
+                    variables = dict(base, **selected)
+                    variables.update(windows_retire_dependency=selected, windows_aap_network_dependency=selected)
+                    marker = Path(directory) / 'mutation-marker'
+                    play = [{'hosts': 'localhost', 'gather_facts': False, 'vars': variables,
+                        'tasks': [copy.deepcopy(guard), {'ansible.builtin.copy': {
+                            'dest': str(marker), 'content': 'guard passed', 'mode': '0600'}}]}]
+                    result = run_play(play, environment={
+                        'ANSIBLE_LOCAL_TEMP': str(Path(directory) / 'local'),
+                        'ANSIBLE_REMOTE_TEMP': str(Path(directory) / 'remote')})
+                    self.assertEqual(result.returncode == 0, variant == 'exact', result.stdout + result.stderr)
+                    self.assertEqual(marker.exists(), variant == 'exact')
+
     def test_native_lock_budget_reaches_common_import_and_lifecycle_contexts(self):
         """Exercise native include/import/role scope without calling host operations."""
         with tempfile.TemporaryDirectory(prefix='windows-lock-context-') as directory:

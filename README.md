@@ -86,11 +86,20 @@ activation cleanup, promotion, LDAPS and real regional-access verification.
 A fresh unattended full workflow remains unverified.
 
 The shared lifecycle dependency is pinned to the reviewed Core 2.20 implementation
-`f22171b8ea6635888d280eb317d24863341197af` (AutoDeploy 0.62.3). The lifecycle action imports successfully in the actual Core 2.20.10 image;
+`f9aa8410dc91536a7175141a85878c7055672180` (AutoDeploy 0.63.57). The lifecycle action imports successfully in the actual Core 2.20.10 image;
 four synthetic protected-YAML tests verify trust separation, literal templates,
 Vault header/value/tag roundtrips and unchanged vendor serialization. The old
 native dumper subclass caused the live loader exception; the pinned implementation
 uses Ansible's factory without changing the shared Windows role or guest runtime.
+The pinned private-source read retries an interrupted Git read twice, retaining
+its exact-SHA check before policy locking or VM changes. No launch or mutation
+is retried. Authentication, TLS, logging and native ownership checks stay the
+same. The original transfer interruption remains unexplained, and a focused
+recovery does not make the current full candidate clean. Native Core 2.20.10
+checks verify the three caller guards and unchanged five-context lock budget;
+22 shared instance-key and 34 protected-YAML/lifecycle/interface checks pass.
+Three legacy tests use a removed internal conditional API; the current native
+fixture runs the actual production guards instead. Live adoption remains separate.
 Windows callers declare an integer native-lock retry budget of 1800 through the
 existing common variables and Windows release-role defaults. This lets parallel
 setup jobs queue at the same exclusive lock; its one-second retry delay, ownership

@@ -1,7 +1,7 @@
 ---
 # Public implementation dependency; all environment data remains in Vault.
 windows_recovery_release_repository: https://github.com/kvegh/aap_autodeploy_configascode.git
-windows_recovery_release_revision: f22171b8ea6635888d280eb317d24863341197af
+windows_recovery_release_revision: f9aa8410dc91536a7175141a85878c7055672180
 
 # Also applies when this role is called from a play without vars/main.yml.
 aap_isolation_lock_retries: 1800  # noqa: var-naming[no-role-prefix]
