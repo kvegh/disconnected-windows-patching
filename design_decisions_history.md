@@ -3018,3 +3018,20 @@ Node test files passed locally and the workflow walkthrough checks passed.
 Public HTTPS HTML, the versioned AAP stylesheet and unchanged app JavaScript
 matched the reviewed local bytes. Browser rendering remains unverified; HTTP
 source equality does not establish observed desktop/mobile visual fitting.
+
+
+## 2026-11-14 18:11 UTC — Restore readable AAP diagram sizing
+
+The owner's actual screenshot showed that version 1.1.48's single-viewport fit
+made the architecture too small to read and left excessive horizontal space.
+Remove that fit block and restore width-driven, proportional SVG sizing with
+normal vertical page scrolling. Restore the earlier wide-desktop workflow height.
+Keep the requested 8px heading-bottom gap, top alignment, status position, SVG
+viewBox, typography, content and JavaScript unchanged. This supersedes the
+previous desktop viewport-fit decision; readability takes priority over forcing
+the complete diagram into one viewport.
+
+Version 1.1.49 records this focused correction. No new layout, dependency or
+browser installation is introduced. Existing presentation tests and publication
+source checks cover this change; rendered browser sizing remains unverified.
+Implementation commit and publication evidence follow.

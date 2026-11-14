@@ -9,9 +9,9 @@
 </a>
 
 The AAP edition keeps the changing execution status beside the Datacenter heading
-and omits the redundant host-count summary. On desktop, the complete diagram fits
-the space between the controls and footer; the workflow scrolls within its panel.
-Narrower and very short windows retain page scrolling. See its
+and omits the redundant host-count summary. The diagram fills the available
+panel width, keeps the smaller heading gap and permits vertical page scrolling
+rather than shrinking to a single viewport. See its
 [walkthrough guide](demo-with-aap/README.md) for scope and validation limits.
 
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
