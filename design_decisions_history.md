@@ -1,5 +1,30 @@
 # Design decisions history
 
+## 2026-11-14 — Observe external WSUS activity without changing synchronization
+
+Implementation `8cb20fb89f668fbb2e0328680e8bc42c2dacb78b` (1.1.53)
+adds optional protected measurements to the existing external readiness check.
+Category synchronization reported a running operation without processed items;
+process/log observations previously covered only the internal server. Reuse the
+same selected external host, credential, PowerShell module and native AAP artifact
+instead of adding a transport, template, worker or synchronization request.
+
+Capture at most twelve whitelisted WSUS/IIS/SQL workers and the known
+synchronization log's metadata. Do not read raw log lines, command lines or an
+environment dump. Both tasks retain protected output. Independent review found
+process-exit/property and log-rotation races in the initial draft; separate
+optional-read guards now report unavailable fields, with missing logs distinct,
+without adding readiness failures or changing permissions. All original plays,
+host scopes, readiness gates and tasks remain structurally identical.
+
+YAML parsing, structural preservation and whitespace checks passed; independent
+PowerShell 5.1 inspection approved coordinated native validation. Actual execution
+and comparable observations remain separate from that static review. Cumulative
+CPU, shared SQL/IIS workers and log metadata do not establish processed-item or
+payload progress, and worker presence alone proves neither progress nor a stall.
+Existing running updates and synchronization retain their frozen source and
+native timeouts. Version 1.1.54 documents this implementation identifier.
+
 ## 2026-11-14 — Qualify the bounded private source read dependency
 
 Implementation `3242d988619dd5dba396013005594bcfd9660f56` (1.1.51)
