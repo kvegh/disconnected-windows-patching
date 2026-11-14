@@ -37,6 +37,15 @@ agree with these operations. Ansible manages Windows features, files, ACLs,
 firewall rules, transfers and asynchronous waits around them. Do not replace
 these controls with unrestricted remote shell calls.
 
+The existing readiness check also reads a bounded external worker sample and
+metadata for the known WSUS synchronization log. Native PowerShell keeps this
+inside the same selected Windows host and credential. It captures no raw log
+content, process command lines or environment. Independent optional-read guards
+report missing/unavailable evidence without changing the readiness result. Both
+the read and its normal AAP artifact remain protected. These aggregate metrics
+help investigate a quiet category phase; they do not establish completed items,
+payload bytes or which work a shared SQL/IIS process performed.
+
 ## Windows inspection and evidence
 
 PowerShell can query registry, CIM, Windows Update Agent COM, servicing state and

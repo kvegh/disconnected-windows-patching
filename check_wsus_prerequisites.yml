@@ -117,6 +117,58 @@
       ansible.builtin.debug:
         var: wsus_prerequisites.result
 
+    - name: Read external WSUS workers and known log metadata without changing synchronization
+      # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
+      ansible.windows.win_powershell:
+        error_action: stop
+        depth: 5
+        script: |
+          $Ansible.Changed = $false
+          $workers = @()
+          $workerRead = 'available'
+          try {
+              $workers = @(Get-Process -ErrorAction Stop |
+                  Where-Object { $_.Name -in @('WsusService','sqlservr','w3wp') } |
+                  Sort-Object Name,Id |
+                  Select-Object -First 12 Name,Id,CPU,WorkingSet64,StartTime -ErrorAction Stop)
+          } catch {
+              $workers = @()
+              $workerRead = 'unavailable'
+          }
+          $logPath = Join-Path $env:ProgramFiles 'Update Services\LogFiles\SoftwareDistribution.log'
+          $log = @{ Name='SoftwareDistribution.log'; State='unavailable' }
+          try {
+              $file = Get-Item -LiteralPath $logPath -ErrorAction Stop
+              if (-not $file.PSIsContainer) {
+                  $log = @{
+                      Name = 'SoftwareDistribution.log'
+                      State = 'available'
+                      Length = [long]$file.Length
+                      LastWriteTimeUtc = $file.LastWriteTimeUtc.ToString('o')
+                  }
+              }
+          } catch [System.Management.Automation.ItemNotFoundException] {
+              $log.State = 'missing'
+          } catch {
+              $log.State = 'unavailable'
+          }
+          $Ansible.Result = @{
+              ObservedAtUtc = [datetime]::UtcNow.ToString('o')
+              WorkerRead = $workerRead
+              Workers = $workers
+              SynchronizationLog = $log
+          }
+      register: wsus_external_inspection
+      changed_when: false
+      no_log: true
+
+    - name: Preserve protected external WSUS activity evidence
+      ansible.builtin.set_stats:
+        data:
+          windows_wsus_external_inspection: "{{ wsus_external_inspection.result }}"
+        aggregate: false
+      no_log: true
+
     - name: Validate pipeline scripts with the Windows PowerShell parser
       # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
       ansible.windows.win_powershell:
