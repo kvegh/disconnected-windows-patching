@@ -1,5 +1,37 @@
 # Design decisions history
 
+## 2026-11-14 — Qualify the bounded private source read dependency
+
+Implementation `3242d988619dd5dba396013005594bcfd9660f56` (1.1.51)
+updates only the shared dependency revision and its three matching pre-checkout
+guards to AutoDeploy `f9aa8410dc91536a7175141a85878c7055672180`
+(working 0.63.57). A real creation stage failed on an incomplete private Git
+transfer; a focused unchanged retry recovered. The shared source now retries
+only that protected read twice before the exact-SHA assertion and policy lock.
+It preserves authentication, TLS, redirects, ownership and every mutation path;
+the transfer interruption's underlying cause remains unknown.
+
+Four source retry cases and the real local Git authentication/cleanup regression
+passed on Core 2.20.10 and 2.21.5. Caller qualification passed 22 instance-key and
+34 protected-YAML, Windows-lifecycle and supplemental-interface checks on actual
+Core 2.20.10. Two old marker assertions were corrected to the existing literal
+predicate only after old/current comparison and two encrypted roundtrips proved
+unchanged protection. No production serialization change was required.
+
+Three legacy Windows tests call an internal conditional method removed by Core
+2.20. A native playbook fixture instead runs all three actual source-pin guards:
+the exact pin passes; the old pin, a branch or foreign repository stops before a
+mutation marker. All twelve cases passed against the final revision (20.701s).
+The existing five-context native lock-budget fixture also passed. The 1800-retry
+Windows policy-lock budget and its ownership/cleanup rules remain unchanged.
+
+Adoption is coordinated at the completed regular-server-basics stage because the
+receiving project updates from main on launch. Already-running jobs retain their
+original source. Preserve the failed original workflow and original pre-creation
+baseline; this focused dependency correction does not establish a clean candidate
+or authorize a workflow restart, host erase or shared-creator refactor. Version
+1.1.52 documents the implementation identifier; live acceptance remains separate.
+
 
 ## 2026-11-14 — Small AAP visualization heading adjustment
 
