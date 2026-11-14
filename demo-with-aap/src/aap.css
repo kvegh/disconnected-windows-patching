@@ -1,5 +1,7 @@
 /* The edition keeps the original typography and adds a clear control plane. */
 .edition-name { color:#477fce; font-weight:450; }
+/* Use the desktop window width before making any separate height adjustment. */
+@media(min-width:1121px) { .app { width:100%; padding-inline:24px; } }
 .architecture { height:auto; min-height:0; max-height:none; }
 .architecture-canvas { min-height:0; flex:initial; }
 .workflow-scroll { height:760px; }

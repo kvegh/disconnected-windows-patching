@@ -9,7 +9,8 @@
 </a>
 
 The AAP edition keeps the changing execution status beside the Datacenter heading
-and omits the redundant host-count summary. The diagram fills the available
+and omits the redundant host-count summary. Wide desktop windows use the full
+page width with 24px side padding. The diagram fills the available
 panel width, keeps the smaller heading gap and permits vertical page scrolling
 rather than shrinking to a single viewport. See its
 [walkthrough guide](demo-with-aap/README.md) for scope and validation limits.

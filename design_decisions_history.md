@@ -3042,3 +3042,19 @@ on 2026-11-14 at 18:12:29 UTC (created 18:12:09 UTC). Both existing AAP-edition
 Node test files and whitespace checks passed. Public HTTPS HTML, the versioned
 AAP stylesheet and unchanged app JavaScript matched the local reviewed bytes.
 This confirms publication of the correction, not observed browser readability.
+
+
+## 2026-11-14 18:24 UTC — Use the available desktop page width
+
+The owner said the visualization page was too narrow and requested widening
+before tuning height further. Above 1120px, remove the 1600px page cap and use
+the browser width with 24px side padding in the AAP edition only. Keep existing
+narrow-screen rules, natural SVG ratio, typography, top alignment and the 8px
+heading gap. This first small step does not compress the diagram or rearrange
+its cards; greater width can also increase its natural height. Any later
+height tuning remains separate.
+
+Version 1.1.50 records the width adjustment. No new controls, dependencies,
+framework or browser installation are introduced. Existing presentation tests
+and publication checks apply; browser layout remains unverified. Implementation
+commit and publication evidence follow.
