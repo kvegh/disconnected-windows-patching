@@ -2985,4 +2985,7 @@ well as on the personal project homepage. Keep the exact original PNG in
 preview and link it to the canonical AAP visualization URL, which starts before
 the first action. The screenshot depicts a later stage. This documentation
 change does not change automation or visualization behavior; version remains
-1.1.47. Its implementation reference follows once committed.
+1.1.47. Implementation: `3d0bf52db14f660072cf1ddcd73595db056442a4`. The public
+README contains the preview and the remote image Git blob matches the supplied
+PNG (`728161d82e68da63ca009ecaca598480fa616281`, 246884 bytes). No Pages
+asset or runtime change is involved in this README-only publication.
