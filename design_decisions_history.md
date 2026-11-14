@@ -3035,3 +3035,10 @@ Version 1.1.49 records this focused correction. No new layout, dependency or
 browser installation is introduced. Existing presentation tests and publication
 source checks cover this change; rendered browser sizing remains unverified.
 Implementation commit and publication evidence follow.
+
+Implementation: `6f2e3bc8c4ae6fa6f124e17790384c519690b4cc`. SSH publication
+succeeded. Existing Publish Windows demo run `43625260012` completed successfully
+on 2026-11-14 at 18:12:29 UTC (created 18:12:09 UTC). Both existing AAP-edition
+Node test files and whitespace checks passed. Public HTTPS HTML, the versioned
+AAP stylesheet and unchanged app JavaScript matched the local reviewed bytes.
+This confirms publication of the correction, not observed browser readability.
