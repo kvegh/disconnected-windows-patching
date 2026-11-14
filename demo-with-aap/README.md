@@ -7,6 +7,13 @@ execution node inside the secure network. It retains the original palette,
 larger typography, growing workflow, server details and in-page code previews.
 The original `demo/` assets remain independent.
 
+The changing execution-status message sits beside the Datacenter heading on
+wide windows and wraps below it on narrower ones. The redundant AAP/Windows-host
+summary is omitted. This small layout adjustment reduces vertical overhead
+without resizing the diagram or changing text sizes; full viewport fitting
+remains a separate tuning step. Visual browser sizing was not checked under
+the owner's existing choice to proceed without browser installation.
+
 The existing GitHub Pages root continues to show the original demo. This edition
 is published at `/demo-with-aap/` underneath the same project Pages origin. Each
 page has its own source files and URL; no second repository is needed.

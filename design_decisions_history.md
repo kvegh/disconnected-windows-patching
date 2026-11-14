@@ -1,5 +1,28 @@
 # Design decisions history
 
+
+## 2026-11-14 — Small AAP visualization heading adjustment
+
+The owner requested tiny incremental sizing changes, removal of the redundant
+AAP/proposed-execution and Windows-host summary, and relocation of the changing
+execution-status textbox beside the Datacenter heading. Move that existing
+live-status element into the heading row and retain its ID and updates. Remove
+only the obsolete summary element and its render assignment.
+
+Use the existing CSS layout with a narrow-window wrap. Do not resize the diagram,
+shrink typography, change orchestration, redesign panels or alter the standard
+visualization. Moving the textbox recovers vertical space without adding other
+spacing changes in this pass. The proposed broader viewport-fitting design is
+not adopted. The existing proposed-node disclosures remain.
+
+Version 1.1.47 records this presentation patch. Revision queries on the changed
+stylesheet and script avoid pairing a new DOM with a cached old renderer. The
+existing local-asset check accepts those ordinary URL query strings. No tool,
+framework, workflow, schedule, AAP runtime or infrastructure change is made.
+Existing browser-installation restrictions remain; source/Node and deployed
+asset checks do not establish observed browser sizing or interactive behavior.
+Implementation commit and actual validation will follow when available.
+
 ## 2026-11-13 — Verify regional mock executions serially with a shared budget
 
 Implementation `3100be2` (1.1.45) makes the existing AD access verifier wait for

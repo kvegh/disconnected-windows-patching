@@ -4,6 +4,10 @@
 
 [Open the standard Windows visualization](https://kvegh.github.io/disconnected-windows-patching/)
 
+The AAP edition keeps the changing execution status beside the Datacenter heading
+and omits the redundant host-count summary, reducing vertical overhead. See its
+[walkthrough guide](demo-with-aap/README.md) for scope and validation limits.
+
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
 in a simulated disconnected environment.
 

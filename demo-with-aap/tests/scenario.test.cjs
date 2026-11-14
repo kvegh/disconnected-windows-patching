@@ -48,7 +48,10 @@ test('the page has no missing local assets or duplicate IDs', () => {
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
   assert.equal(new Set(ids).size, ids.length);
-  for (const [, asset] of html.matchAll(/(?:src|href)="(src\/[^"#]+)"/g)) assert.ok(fs.existsSync(path.join(root, asset)), asset);
+  for (const [, asset] of html.matchAll(/(?:src|href)="(src\/[^"#]+)"/g)) {
+    const assetPath = asset.split('?')[0];
+    assert.ok(fs.existsSync(path.join(root, assetPath)), asset);
+  }
   const script = fs.readFileSync(path.join(root, 'src/app.js'), 'utf8');
   for (const [, id] of script.matchAll(/(?:byId|setText)\('([^']+)'/g)) assert.ok(ids.includes(id), id);
 });

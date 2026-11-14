@@ -142,7 +142,6 @@
     byId('next').disabled = !state.next;
     byId('progress-fill').style.width = `${state.stage / steps.length * 100}%`;
     byId('architecture-empty').classList.toggle('is-hidden', state.servers);
-    setText('architecture-summary', state.servers ? '4 Windows · AAP + execution' : 'AAP + proposed execution');
     setText('flow-caption', state.current?.flow || 'The architecture grows with the workflow.');
     diagram.dataset.phase = state.stage ? 'complete' : 'idle';
     diagram.dataset.scope = state.current?.scope || '';

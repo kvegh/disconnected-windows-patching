@@ -3,7 +3,8 @@
 .architecture { height:auto; min-height:0; max-height:none; }
 .architecture-canvas { min-height:0; flex:initial; }
 .workflow-scroll { height:760px; }
-.execution-banner { display:flex; gap:9px; align-items:center; margin:0 20px 12px; padding:11px 13px; border:1px solid #dce8fa; border-radius:10px; background:#f0f6ff; color:#4873ab; font-size:12px; line-height:1.5; }
+.architecture-panel > .panel-heading { display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:20px; }
+.execution-banner { display:flex; gap:9px; align-items:center; justify-self:end; min-width:0; margin:0; padding:11px 13px; border:1px solid #dce8fa; border-radius:10px; background:#f0f6ff; color:#4873ab; font-size:12px; line-height:1.5; }
 .execution-indicator { width:6px; height:6px; flex-shrink:0; border-radius:50%; background:#548ce0; }
 .execution-pending { display:flex; align-items:flex-start; gap:10px; margin:5px 0 10px; padding:13px; background:#f1f6ff; border:1px solid #d8e5fa; border-radius:11px; }
 .execution-pending[hidden] { display:none; }
@@ -42,6 +43,6 @@
 .architecture[data-target="deploy-internal"] .deployment-external-control .command-particle { visibility:hidden; }
 .architecture[data-phase="execute"] .command-path { opacity:1; }
 @media(min-width:1500px) { .workflow-scroll { height:805px; } }
-@media(max-width:860px) { .workflow-scroll { height:660px; }.execution-banner { font-size:11px; margin:0 13px 10px; } }
+@media(max-width:860px) { .workflow-scroll { height:660px; }.architecture-panel > .panel-heading { grid-template-columns:1fr; gap:10px; }.execution-banner { justify-self:stretch; font-size:11px; } }
 @media(max-width:650px) { .workflow-scroll { height:340px; }.execution-banner { font-size:10.8px; }.edition-name { white-space:nowrap; }.architecture-canvas { min-height:0; } }
 @media(prefers-reduced-motion:reduce) { .control-particle { display:none; } }
