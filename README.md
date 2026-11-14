@@ -4,6 +4,10 @@
 
 [Open the standard Windows visualization](https://kvegh.github.io/disconnected-windows-patching/)
 
+<a href="https://kvegh.github.io/disconnected-windows-patching/demo-with-aap/">
+  <img src="docs/screenshots/windows-aap-visualization.png" alt="Screenshot of the Windows plus AAP visualization; open from the beginning" width="640">
+</a>
+
 The AAP edition keeps the changing execution status beside the Datacenter heading
 and omits the redundant host-count summary, reducing vertical overhead. See its
 [walkthrough guide](demo-with-aap/README.md) for scope and validation limits.

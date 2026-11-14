@@ -21,7 +21,11 @@ existing local-asset check accepts those ordinary URL query strings. No tool,
 framework, workflow, schedule, AAP runtime or infrastructure change is made.
 Existing browser-installation restrictions remain; source/Node and deployed
 asset checks do not establish observed browser sizing or interactive behavior.
-Implementation commit and actual validation will follow when available.
+Implementation: `8dadcc283da396e27ba52263b332ef76bd8df45a`. App syntax, both
+existing AAP-edition Node test files, source review and whitespace checks pass.
+The unchanged Publish Windows demo workflow completed successfully for that
+revision (run `43571035796`). Deployed HTML, changed CSS and renderer bytes
+match the reviewed source over HTTPS. Browser rendering remains unobserved.
 
 ## 2026-11-13 — Verify regional mock executions serially with a shared budget
 
@@ -2971,3 +2975,14 @@ remain protected by the existing logging controls.
 YAML parsing and whitespace checks pass. The normal read-only inspection job is
 the live verification; an activation repair remains conditional on its actual
 evidence. Version 1.1.38 records this decision.
+
+
+## 2026-11-14 — Supplied README visualization preview
+
+The owner requested the supplied Windows screenshot in this public README as
+well as on the personal project homepage. Keep the exact original PNG in
+`docs/screenshots/windows-aap-visualization.png`, display a proportionate 640px
+preview and link it to the canonical AAP visualization URL, which starts before
+the first action. The screenshot depicts a later stage. This documentation
+change does not change automation or visualization behavior; version remains
+1.1.47. Its implementation reference follows once committed.
