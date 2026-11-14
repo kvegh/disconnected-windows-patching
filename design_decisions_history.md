@@ -3010,3 +3010,11 @@ owner's existing instruction. Implementation and publication evidence follow.
 The owner also requested a smaller gap below the Datacenter/status row. Reduce
 the heading bottom padding from 18px to 8px and top-align the SVG so proportional
 fitting does not introduce centered vertical whitespace. Keep the SVG viewBox.
+
+Implementation: `e40531ea68450b78ded489836e5ab71f838d39d8`. SSH publication
+succeeded. Existing Publish Windows demo run `43619218408` completed successfully
+on 2026-11-14 at 17:06:21 UTC (created 17:05:52 UTC). Both existing AAP-edition
+Node test files passed locally and the workflow walkthrough checks passed.
+Public HTTPS HTML, the versioned AAP stylesheet and unchanged app JavaScript
+matched the reviewed local bytes. Browser rendering remains unverified; HTTP
+source equality does not establish observed desktop/mobile visual fitting.
