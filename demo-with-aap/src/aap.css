@@ -3,7 +3,7 @@
 .architecture { height:auto; min-height:0; max-height:none; }
 .architecture-canvas { min-height:0; flex:initial; }
 .workflow-scroll { height:760px; }
-.architecture-panel > .panel-heading { display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:20px; }
+.architecture-panel > .panel-heading { padding-bottom:8px; display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:20px; }
 .execution-banner { display:flex; gap:9px; align-items:center; justify-self:end; min-width:0; margin:0; padding:11px 13px; border:1px solid #dce8fa; border-radius:10px; background:#f0f6ff; color:#4873ab; font-size:12px; line-height:1.5; }
 .execution-indicator { width:6px; height:6px; flex-shrink:0; border-radius:50%; background:#548ce0; }
 .execution-pending { display:flex; align-items:flex-start; gap:10px; margin:5px 0 10px; padding:13px; background:#f1f6ff; border:1px solid #d8e5fa; border-radius:11px; }
@@ -42,7 +42,19 @@
 .architecture[data-phase="execute"] .command-particle { visibility:visible; }
 .architecture[data-target="deploy-internal"] .deployment-external-control .command-particle { visibility:hidden; }
 .architecture[data-phase="execute"] .command-path { opacity:1; }
-@media(min-width:1500px) { .workflow-scroll { height:805px; } }
+/* Fit the complete desktop diagram between the existing controls and footer.
+   Narrow or very short windows retain the natural scrolling layout. */
+@media(min-width:1000px) and (min-height:600px) {
+  .app { height:100vh; height:100dvh; display:flex; flex-direction:column; }
+  .masthead,.controls,.page-footer { flex-shrink:0; }
+  .workspace { flex:1; min-height:0; grid-template-rows:minmax(0,1fr); }
+  .workflow-panel,.architecture-panel { min-height:0; }
+  .panel-heading,.panel-footnote,.architecture-footer { flex-shrink:0; }
+  .workflow-scroll { height:auto; min-height:0; flex:1; }
+  .workflow-empty { min-height:0; height:100%; }
+  .architecture-canvas { flex:1; min-height:0; }
+  .architecture { height:100%; min-height:0; max-height:none; }
+}
 @media(max-width:860px) { .workflow-scroll { height:660px; }.architecture-panel > .panel-heading { grid-template-columns:1fr; gap:10px; }.execution-banner { justify-self:stretch; font-size:11px; } }
 @media(max-width:650px) { .workflow-scroll { height:340px; }.execution-banner { font-size:10.8px; }.edition-name { white-space:nowrap; }.architecture-canvas { min-height:0; } }
 @media(prefers-reduced-motion:reduce) { .control-particle { display:none; } }

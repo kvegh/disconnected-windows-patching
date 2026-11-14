@@ -9,10 +9,14 @@ The original `demo/` assets remain independent.
 
 The changing execution-status message sits beside the Datacenter heading on
 wide windows and wraps below it on narrower ones. The redundant AAP/Windows-host
-summary is omitted. This small layout adjustment reduces vertical overhead
-without resizing the diagram or changing text sizes; full viewport fitting
-remains a separate tuning step. Visual browser sizing was not checked under
-the owner's existing choice to proceed without browser installation.
+summary is omitted. On desktop windows at least 1000px wide and 600px high,
+the workspace uses the viewport space remaining below the controls and above
+the footer. The complete diagram scales proportionally inside that space and
+the workflow list scrolls within its panel. The diagram aligns to the top,
+with a smaller gap below the Datacenter heading. Narrower or very short windows keep
+the existing page-scrolling layout. Typography, diagram coordinates and
+orchestration behavior are unchanged. Visual browser sizing was not checked
+under the owner's existing choice to proceed without browser installation.
 
 The existing GitHub Pages root continues to show the original demo. This edition
 is published at `/demo-with-aap/` underneath the same project Pages origin. Each

@@ -2989,3 +2989,24 @@ change does not change automation or visualization behavior; version remains
 README contains the preview and the remote image Git blob matches the supplied
 PNG (`728161d82e68da63ca009ecaca598480fa616281`, 246884 bytes). No Pages
 asset or runtime change is involved in this README-only publication.
+
+
+## 2026-11-14 17:04 UTC — Fit the AAP diagram to the desktop viewport
+
+The owner reported that the full Windows+AAP visualization still extended below
+the browser window after the earlier heading-only adjustment. Apply a small
+CSS change in this edition: reserve the existing header, controls and footer
+space, fit the remaining workspace to the desktop viewport, scroll the workflow
+inside its panel, and proportionally fit the complete SVG in its canvas. This
+replaces the fixed 760/805px desktop workflow height and width-derived SVG height.
+
+The existing page-scrolling layout remains below 1000px width or 600px height,
+where forcing the entire interface into one viewport would harm readability.
+Diagram coordinates, typography, content, JavaScript and the standard demo are
+unchanged. Version 1.1.48 records this correction. No browser installation or
+new dependency is introduced; browser rendering remains unverified under the
+owner's existing instruction. Implementation and publication evidence follow.
+
+The owner also requested a smaller gap below the Datacenter/status row. Reduce
+the heading bottom padding from 18px to 8px and top-align the SVG so proportional
+fitting does not introduce centered vertical whitespace. Keep the SVG viewBox.
