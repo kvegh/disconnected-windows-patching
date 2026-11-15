@@ -3331,3 +3331,18 @@ Existing Publish Windows demo run43727842713 completed successfully at
 2026-11-15 15:05:05 UTC (created15:04:46 UTC). Public HTTPS HTML and the
 versioned stylesheet matched checked local bytes exactly. Browser-rendered
 appearance remains unverified. No runtime automation or JavaScript changed.
+
+
+### Preserve protected central Git errors on the existing lifecycle dependency
+
+Implementation `3867398d77e56c77322ad173d43e443f3d9f05b2` selects the minimal diagnostic backport
+`6d36ee98cd55abe19b787b1665824f315fd64e32`, based on the existing reviewed
+lifecycle revision. Two current native creation jobs stopped during the central
+Git read, before cloning their Windows guests; protected logs did not retain the
+underlying error. The existing encrypted artifact now preserves that error while
+keeping authentication, TLS, ownership, rollback and cleanup behavior intact.
+
+Nine native Core 2.20.10 initial-run checks passed, including rejection of the
+previous pin, branch names and foreign repositories. Six diagnostic tests passed
+on the minimal backport. The original workflow and healthy AD branch remain
+separate from the planned focused retry; the live Git cause is still unresolved.
