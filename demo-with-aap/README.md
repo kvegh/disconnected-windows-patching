@@ -20,8 +20,12 @@ available vertically.
 
 This layout revision replaces the earlier width-only and viewport-fit attempts,
 which the owner's screenshots showed were respectively too large and too small.
-Colors, walkthrough ordering, execution phases, server details and code previews
-remain. Browser rendering remains unverified under the owner's choice to proceed
+Microsoft Update appears outside the connected network on the left. Moving IIS
+export below the content tiles lets that network rectangle become narrower.
+The two managed Windows hosts sit near the secure network’s bottom edge; the
+final verification badge sits beside the internal repository. The server-inspection
+hint uses larger, darker text. Colors, walkthrough ordering, execution phases,
+server details and code previews remain. Browser rendering remains unverified under the owner's choice to proceed
 without installing a browser. Source checks and publication verification do not
 establish observed visual readability.
 

@@ -3178,3 +3178,30 @@ Publish Windows demo run `43716234841` completed successfully at
 AAP CSS and unchanged app JavaScript matched the reviewed local bytes.
 Browser-rendered appearance remains unverified. Revert this implementation
 commit through normal Git history if the owner rejects the new layout.
+
+
+## 2026-11-15 — Clarify the server hint and network grouping
+
+The owner requested a larger, higher-contrast “Click a server to look inside”
+hint, Windows2022/2025 cards at the secure network’s bottom, Microsoft Update
+outside the connected rectangle, and IIS export below the repository content
+tiles so the connected rectangle can become narrower. Keep the existing
+1280×660 landscape frame and readable card/text sizes. Place Microsoft Update
+on the left outside the connected boundary, narrow the connected zone around
+AAP/repository/content, and move the completion badge beside the internal
+repository to free the secure zone’s bottom edge. Reroute existing connectors
+and particles while preserving walkthrough stages and interactions.
+
+Version 1.2.1 records this requested presentation polish. No new component,
+dependency, workflow or runtime automation change is needed. Browser rendering
+remains unverified under the prior choice. Implementation and actual publication
+evidence will be recorded after checks.
+
+The hint is 16px instead of 10.8px, weight650, with dark #223d62 text
+against the existing near-white panel (calculated contrast10.87:1). Managed
+cards end at SVG y634,14 units above the secure-zone bottom648. Microsoft
+Update is outside the connected zone atx16,y194; the zone now startsx260
+with width360 rather than604. IIS export sits below content atx290,y560.
+Existing paths and particle distances follow the narrower repository corridor.
+Both existing Node walkthrough files, source/geometry/reference checks and
+whitespace checks passed before publication. Browser appearance is unverified.

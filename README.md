@@ -11,8 +11,10 @@
 The AAP edition uses a wide, compact diagram with a shorter title/action area.
 Content sources and export tiles share the wider connected section, while AAP,
 the internal repository and managed Windows hosts remain clearly grouped.
-Readable cards, the changing execution status, growing workflow and server
-interactions are retained. See the
+Microsoft Update sits outside the narrower connected rectangle; IIS export sits
+below its content tiles. Managed Windows hosts align near the secure rectangle’s
+bottom, and a larger, darker hint highlights server inspection. Readable cards,
+the changing execution status, growing workflow and interactions are retained. See the
 [walkthrough guide](demo-with-aap/README.md) for layout and verification limits.
 
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
