@@ -3171,3 +3171,10 @@ to the secure network. Existing two Node walkthrough test files, object-level
 semantic preservation, numeric card/path bounds and whitespace checks passed.
 No browser/renderer was installed or used; observed visual acceptance remains
 unverified. These are development checks, not a formal automation review.
+
+Implementation: `645a8dbd95f5dc44888ad8474187da99c17aeaff`. SSH push succeeded. Existing
+Publish Windows demo run `43716234841` completed successfully at
+2026-11-15 12:54:59 UTC (created 12:54:41 UTC). Public HTTPS HTML, versioned
+AAP CSS and unchanged app JavaScript matched the reviewed local bytes.
+Browser-rendered appearance remains unverified. Revert this implementation
+commit through normal Git history if the owner rejects the new layout.

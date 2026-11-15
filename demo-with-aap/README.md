@@ -128,3 +128,8 @@ implementation commit recorded in `../design_decisions_history.md` if the owner
 chooses to roll it back. The pre-revision layout is preserved at
 `d158dcd872ec1553d85d388a04924fd598f79436`; do not reset shared history or revert
 unrelated automation changes.
+
+Version 1.2.0 was published from implementation `645a8dbd95f5dc44888ad8474187da99c17aeaff`.
+The existing Pages workflow succeeded on 2026-11-15 at 12:54:59 UTC; served
+HTML, versioned CSS and app JavaScript matched that revision. The source
+checks above passed; browser appearance remains unverified.
