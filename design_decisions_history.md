@@ -3246,3 +3246,43 @@ Existing Publish Windows demo run `43723854079` completed successfully at
 2026-11-15 14:21:10 UTC (created14:20:48 UTC). The public HTTPS HTML,
 versioned AAP CSS, app JavaScript and scenario JavaScript matched the checked
 local bytes exactly. Browser-rendered appearance remains unverified.
+
+
+## 2026-11-15 14:43 UTC — Bring the datacenter together
+
+The owner’s screenshot and request identify excess empty space around the
+left-mounted content sources. Move Microsoft Update and Application Repository
+sync above the networks, make both rectangles slightly shorter, and bring the
+whole datacenter closer together. This supersedes the left-column placement
+chosen earlier on November 15 while retaining the existing typography, card
+sizes, stage ordering, interactions and separate content/control routes.
+
+Use a 1036×652 frame instead of 1280×660, removing the 244-unit source column.
+Both zones run from y70 to638, height568 instead of634. AAP and repository
+cards are separated by 16 units; content tiles and IIS remain below the external
+repository. Managed hosts stay near the secure-zone bottom, with the blue
+content junction at the midpoint of the repository/host gap. Limit render width
+to 1036–1068.375px so reducing the frame cannot enlarge text or cards. The two
+source boxes retain 212×50 dimensions and reveal together in action 4.
+
+Version 1.2.3 records this user-authorized presentation revision. No runtime
+automation, component, dependency, schedule or environment configuration changes.
+Root reviews the layout child’s focused HTML/CSS changes and owns documentation,
+versioning and publication. Existing Node tests and bounded source/geometry
+checks will verify the revision; browser appearance remains unverified under
+the prior decision to proceed without a browser installation.
+
+At 2026-11-15 14:47 UTC, source review found that the first compact draft left only
+six units between the purple branch and its endpoint, less than its arrowhead
+length. Keep 14 additional vertical units for arrow clearance: managed cards
+start at476 and end624, the blue midpoint is452, and purple arrows run from456
+to474. Both rectangles remain 66 units shorter; the frame remains 244 units
+narrower and 8 units shorter. No card or font scaling is used for this correction.
+
+Final verification: the corrected geometry passes independent root bounds,
+source placement, midpoint, arrowhead-clearance, semantic/text preservation,
+motion-reference and unchanged card-scale checks. All three existing Node
+walkthrough test files and JavaScript syntax checks passed. Git whitespace
+checks passed. Only the AAP edition HTML/CSS, version metadata and documentation
+change; runtime automation and both editions’ JavaScript remain unchanged.
+Publication and exact implementation evidence follow in a documentation commit.

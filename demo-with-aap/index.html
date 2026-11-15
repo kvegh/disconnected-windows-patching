@@ -7,7 +7,7 @@
     <meta name="color-scheme" content="light">
     <title>Disconnected Windows + AAP · Interactive demo</title>
     <link rel="stylesheet" href="src/styles.css">
-    <link rel="stylesheet" href="src/aap.css?v=1.2.2">
+    <link rel="stylesheet" href="src/aap.css?v=1.2.3">
     <script src="src/scenario.js?v=1.2.2" defer></script>
     <script src="src/orchestration.js" defer></script>
     <script src="src/app.js?v=1.2.2" defer></script>
@@ -36,7 +36,7 @@
           <div class="panel-heading"><div><h2 id="architecture-title">Datacenter</h2></div><div class="execution-banner" aria-live="polite"><span class="execution-indicator" aria-hidden="true"></span><span id="execution-caption">AAP schedules. The execution node runs locally.</span></div></div>
           <div class="architecture-canvas" id="architecture-canvas">
             <div class="architecture-empty" id="architecture-empty"><div class="empty-cross" aria-hidden="true">+</div><p>The Windows environment will appear here.</p></div>
-            <svg class="architecture" viewBox="0 0 1280 660" preserveAspectRatio="xMidYMin meet" role="img" aria-labelledby="diagram-title diagram-description">
+            <svg class="architecture" viewBox="0 0 1036 652" preserveAspectRatio="xMidYMin meet" role="img" aria-labelledby="diagram-title diagram-description">
               <title id="diagram-title">Disconnected Windows datacenter</title>
               <desc id="diagram-description">The architecture fills as you advance the walkthrough. AAP is in the connected network. A proposed Linux execution node initiates outbound mesh connectivity from the secure network. Each internal action highlights that inside-out connection, followed by job dispatch and local Windows execution. Later actions reuse the established mesh.</desc>
               <defs>
@@ -61,29 +61,29 @@
                   <path d="M7 2h7l5 5v15H5V2zm7 0v6h5M11 11h3m-3 4h3m-3 4h3" />
                 </symbol>
               </defs>
-              <rect width="1280" height="660" fill="url(#dots)" />
+              <rect width="1036" height="652" fill="url(#dots)" />
               <g class="reveal" data-at="0" style="--delay:0ms">
-                <rect class="network-zone connected-zone" x="260" y="14" width="360" height="634" rx="22" />
-                <text class="zone-label" x="282" y="42">CONNECTED NETWORK</text>
-                <text class="zone-subtitle" x="282" y="62">Content enters here</text>
+                <rect class="network-zone connected-zone" x="16" y="70" width="360" height="568" rx="22" />
+                <text class="zone-label" x="38" y="98">CONNECTED NETWORK</text>
+                <text class="zone-subtitle" x="38" y="118">Content enters here</text>
               </g>
               <g class="reveal" data-at="0" style="--delay:45ms">
-                <rect class="network-zone isolated-zone" x="660" y="14" width="604" height="634" rx="22" />
-                <text class="zone-label" x="682" y="42">SECURE CLIENT NETWORK</text>
-                <text class="zone-subtitle" x="682" y="62">Local execution. Internal update sources.</text>
+                <rect class="network-zone isolated-zone" x="416" y="70" width="604" height="568" rx="22" />
+                <text class="zone-label" x="438" y="98">SECURE CLIENT NETWORK</text>
+                <text class="zone-subtitle" x="438" y="118">Local execution. Internal update sources.</text>
               </g>
               <g id="aap-layer">
                 <g id="mesh-channels" class="mesh-channels">
-                  <text class="mesh-label mesh-outbound-label" x="570" y="100">Outbound mesh</text>
-                  <path class="mesh-request-path" id="mesh-request-path" d="M698 114H560" marker-end="url(#arrow)" />
-                  <circle class="control-particle mesh-connect-particle" cx="698" cy="114" r="3" />
-                  <path class="mesh-dispatch-path" id="mesh-dispatch-path" d="M560 147H698" marker-end="url(#arrow)" />
-                  <rect class="control-particle mesh-job-particle" x="553" y="140" width="14" height="14" rx="3" />
-                  <text class="mesh-label" x="570" y="170">Job dispatch</text>
+                  <text class="mesh-label mesh-outbound-label" x="326" y="156">Outbound mesh</text>
+                  <path class="mesh-request-path" id="mesh-request-path" d="M454 170H316" marker-end="url(#arrow)" />
+                  <circle class="control-particle mesh-connect-particle" cx="454" cy="170" r="3" />
+                  <path class="mesh-dispatch-path" id="mesh-dispatch-path" d="M316 203H454" marker-end="url(#arrow)" />
+                  <rect class="control-particle mesh-job-particle" x="309" y="196" width="14" height="14" rx="3" />
+                  <text class="mesh-label" x="326" y="226">Job dispatch</text>
                 </g>
                 <g class="job-command external-control">
-                  <path class="command-path" id="external-command-path" d="M299 184V236" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="308" y="215">WinRM</text>
+                  <path class="command-path" id="external-command-path" d="M55 240V252" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="64" y="250">WinRM</text>
                   <circle class="control-particle command-particle" r="3">
                     <animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze">
                       <mpath href="#external-command-path" />
@@ -91,8 +91,8 @@
                   </circle>
                 </g>
                 <g class="job-command repository-control">
-                  <path class="command-path" id="internal-command-path" d="M846 184V236" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="860" y="215">WinRM · internal work</text>
+                  <path class="command-path" id="internal-command-path" d="M602 240V252" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="616" y="250">WinRM · internal work</text>
                   <circle class="control-particle command-particle" r="3">
                     <animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze">
                       <mpath href="#internal-command-path" />
@@ -100,9 +100,9 @@
                   </circle>
                 </g>
                 <g class="job-command client-control">
-                  <path class="command-path" id="managed-command-path" d="M994 133H1250V466H900V484" marker-end="url(#command-arrow)" />
-                  <path class="command-path" id="managed-command-path-2025" d="M994 133H1250V466H1200V484" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="1070" y="430">WinRM · job control</text>
+                  <path class="command-path" id="managed-command-path" d="M750 189H1006V456H656V474" marker-end="url(#command-arrow)" />
+                  <path class="command-path" id="managed-command-path-2025" d="M750 189H1006V456H956V474" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="826" y="433">WinRM · job control</text>
                   <circle class="control-particle command-particle" r="3">
                     <animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze">
                       <mpath href="#managed-command-path" />
@@ -115,8 +115,8 @@
                   </circle>
                 </g>
                 <g class="job-command deployment-external-control">
-                  <path class="command-path" id="deploy-external-path" d="M299 184V236" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="308" y="215">Deploy</text>
+                  <path class="command-path" id="deploy-external-path" d="M55 240V252" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="64" y="250">Deploy</text>
                   <circle class="control-particle command-particle" r="3">
                     <animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze">
                       <mpath href="#deploy-external-path" />
@@ -124,11 +124,11 @@
                   </circle>
                 </g>
                 <g class="job-command deployment-internal-control">
-                  <path class="command-path" id="deploy-internal-repository-path" d="M846 184V236" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="860" y="215">Deploy repository</text>
-                  <path class="command-path" id="deploy-internal-2022-path" d="M994 133H1250V466H900V484" marker-end="url(#command-arrow)" />
-                  <path class="command-path" id="deploy-internal-2025-path" d="M994 133H1250V466H1200V484" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="1070" y="430">Deploy internal VMs</text>
+                  <path class="command-path" id="deploy-internal-repository-path" d="M602 240V252" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="616" y="250">Deploy repository</text>
+                  <path class="command-path" id="deploy-internal-2022-path" d="M750 189H1006V456H656V474" marker-end="url(#command-arrow)" />
+                  <path class="command-path" id="deploy-internal-2025-path" d="M750 189H1006V456H956V474" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="826" y="433">Deploy internal VMs</text>
                   <circle class="control-particle command-particle" r="3">
                     <animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze">
                       <mpath href="#deploy-internal-repository-path" />
@@ -145,7 +145,7 @@
                     </animateMotion>
                   </circle>
                 </g>
-                <g transform="translate(244 -18)">
+                <g transform="translate(0 38)">
                   <g class="reveal server-node aap-controller" data-at="0" data-node="controller" tabindex="0" role="button" aria-label="Explore external AAP">
                     <rect class="server-shadow" x="41" y="106" width="270" height="98" rx="17" />
                     <rect class="server-surface control-surface" x="38" y="102" width="276" height="98" rx="17" />
@@ -156,7 +156,7 @@
                     <text class="node-status" id="controller-status" x="56" y="184">Ready to schedule jobs</text>
                   </g>
                 </g>
-                <g transform="translate(200 -18)">
+                <g transform="translate(-44 38)">
                   <g class="reveal server-node aap-execution" data-at="0" data-node="execution" tabindex="0" role="button" aria-label="Explore the proposed internal execution node">
                     <rect class="server-shadow" x="503" y="106" width="286" height="98" rx="17" />
                     <rect class="server-surface proposed-node" x="500" y="102" width="292" height="98" rx="17" />
@@ -170,15 +170,15 @@
               </g>
               <g id="workload-layer">
                 <g class="reveal" data-at="2">
-                  <path class="network-link" d="M846 412V449M846 449H821V484M846 449H1121V484" />
-                  <circle cx="846" cy="449" r="4" fill="#afc5df" />
-                  <text class="connection-label" x="930" y="443">Updates + applications</text>
+                  <path class="network-link" d="M602 428V452M602 452H577V474M602 452H877V474" />
+                  <circle cx="602" cy="452" r="4" fill="#afc5df" />
+                  <text class="connection-label" x="686" y="446">Updates + applications</text>
                 </g>
                 <g class="reveal management-connection" data-at="2">
-                  <path class="management-link" d="M558 280H698" />
-                  <text class="connection-label" x="570" y="264">Management link</text>
+                  <path class="management-link" d="M314 296H454" />
+                  <text class="connection-label" x="326" y="280">Management link</text>
                 </g>
-                <g transform="translate(-52 89)">
+                <g transform="translate(-30 -97)">
                   <g class="reveal" data-at="4" style="--delay:0ms">
                     <rect class="publisher" x="68" y="105" width="212" height="50" rx="12" />
                     <use href="#windows-mark" x="83" y="121" width="18" height="18" class="microsoft-mark" />
@@ -187,10 +187,10 @@
                   </g>
                 </g>
                 <g class="reveal" data-at="4" style="--delay:0ms">
-                  <rect class="publisher" x="16" y="280" width="212" height="50" rx="12" />
-                  <text class="publisher-title" x="31" y="301">Application Repository <tspan x="31" dy="17">sync</tspan></text>
+                  <rect class="publisher" x="272" y="8" width="212" height="50" rx="12" />
+                  <text class="publisher-title" x="287" y="29">Application Repository <tspan x="287" dy="17">sync</tspan></text>
                 </g>
-                <g transform="translate(244 41)">
+                <g transform="translate(0 57)">
                   <g class="reveal server-node" data-at="1" data-node="external" tabindex="-1" role="button" aria-label="Explore the external repository" style="--delay:70ms">
                     <rect class="server-shadow" x="41" y="201" width="270" height="174" rx="17" />
                     <rect class="server-surface" x="38" y="197" width="276" height="174" rx="17" />
@@ -213,35 +213,35 @@
                     <text class="tiny-label" x="56" y="361" id="external-detail">Prepared Windows base image</text>
                   </g>
                 </g>
-                <g transform="translate(244 50)">
+                <g transform="translate(0 48)">
                   <g class="reveal" data-at="4" style="--delay:50ms">
                     <rect class="content-item" x="46" y="390" width="125" height="47" rx="10" />
                     <text class="content-label" x="59" y="410">Windows</text>
                     <text class="tiny-label" x="59" y="426">OS updates</text>
                   </g>
                 </g>
-                <g transform="translate(244 50)">
+                <g transform="translate(0 48)">
                   <g class="reveal" data-at="4" style="--delay:105ms">
                     <rect class="content-item" x="181" y="390" width="125" height="47" rx="10" />
                     <text class="content-label" x="194" y="410">.NET</text>
                     <text class="tiny-label" x="194" y="426">Runtime updates</text>
                   </g>
                 </g>
-                <g transform="translate(244 50)">
+                <g transform="translate(0 45)">
                   <g class="reveal" data-at="4" style="--delay:160ms">
                     <rect class="content-item" x="46" y="445" width="125" height="47" rx="10" />
                     <text class="content-label" x="59" y="465">7-Zip</text>
                     <text class="tiny-label" x="59" y="481">Two pinned releases</text>
                   </g>
                 </g>
-                <g transform="translate(244 50)">
+                <g transform="translate(0 45)">
                   <g class="reveal" data-at="4" style="--delay:215ms">
                     <rect class="content-item" x="181" y="445" width="125" height="47" rx="10" />
                     <text class="content-label" x="194" y="465">Git</text>
                     <text class="tiny-label" x="194" y="481">Two pinned releases</text>
                   </g>
                 </g>
-                <g transform="translate(244 52)">
+                <g transform="translate(0 39)">
                   <g class="reveal" data-at="5">
                     <rect class="export-bundle" x="46" y="508" width="260" height="64" rx="11" />
                     <use href="#file-mark" class="file-icon" x="59" y="524" width="24" height="28" />
@@ -249,7 +249,7 @@
                     <text class="tiny-label" x="95" y="551">.xml.gz + manifest + update files</text>
                   </g>
                 </g>
-                <g transform="translate(200 71)">
+                <g transform="translate(-44 87)">
                   <g class="reveal server-node" data-at="1" data-node="internal" tabindex="-1" role="button" aria-label="Explore the internal repository" style="--delay:120ms">
                     <rect class="server-shadow" x="503" y="171" width="286" height="174" rx="17" />
                     <rect class="server-surface" x="500" y="167" width="292" height="174" rx="17" />
@@ -273,20 +273,20 @@
                   </g>
                 </g>
                 <g class="reveal" data-at="6">
-                  <text class="flow-label" x="570" y="268">PULL · HTTP GET</text>
-                  <path class="flow-path pull-request-flow" id="pull-request-path" d="M698 284H560" marker-end="url(#arrow)" />
-                  <circle class="flow-particle pull-request-particle" data-flow="6" cx="698" cy="284" r="2.8" />
-                  <path class="flow-path transfer-flow" id="transfer-path" d="M559 310H698" marker-end="url(#arrow)" />
+                  <text class="flow-label" x="326" y="284">PULL · HTTP GET</text>
+                  <path class="flow-path pull-request-flow" id="pull-request-path" d="M454 300H316" marker-end="url(#arrow)" />
+                  <circle class="flow-particle pull-request-particle" data-flow="6" cx="454" cy="300" r="2.8" />
+                  <path class="flow-path transfer-flow" id="transfer-path" d="M315 326H454" marker-end="url(#arrow)" />
                   <g class="flow-particle pull-data-particle" data-flow="6">
-                    <rect class="moving-package" x="552" y="303" width="14" height="14" rx="3" />
+                    <rect class="moving-package" x="308" y="319" width="14" height="14" rx="3" />
                   </g>
-                  <rect class="transfer-caption" x="564" y="327" width="128" height="39" rx="9" />
-                  <text class="flow-label" x="574" y="344">Export data returned</text>
-                  <text class="tiny-label" x="574" y="358">SHA256 verified</text>
+                  <rect class="transfer-caption" x="320" y="343" width="128" height="39" rx="9" />
+                  <text class="flow-label" x="330" y="360">Export data returned</text>
+                  <text class="tiny-label" x="330" y="374">SHA256 verified</text>
                 </g>
                 <g class="reveal" data-at="8">
-                  <path class="flow-path client-flow" id="client-path-2022" d="M846 412V449H821V484" marker-end="url(#arrow)" />
-                  <path class="flow-path client-flow" id="client-path-2025" d="M846 412V449H1121V484" marker-end="url(#arrow)" />
+                  <path class="flow-path client-flow" id="client-path-2022" d="M602 428V452H577V474" marker-end="url(#arrow)" />
+                  <path class="flow-path client-flow" id="client-path-2025" d="M602 428V452H877V474" marker-end="url(#arrow)" />
                   <circle class="flow-particle" data-flow="8,9,10" r="3.2">
                     <animateMotion dur="1.8s" repeatCount="indefinite">
                       <mpath href="#client-path-2022" />
@@ -298,7 +298,7 @@
                     </animateMotion>
                   </circle>
                 </g>
-                <g transform="translate(305 61)">
+                <g transform="translate(61 51)">
                   <g class="reveal server-node" data-at="1" data-node="server2022" tabindex="-1" role="button" aria-label="Explore Windows Server 2022" style="--delay:170ms">
                     <rect class="server-shadow" x="398" y="429" width="236" height="148" rx="17" />
                     <rect class="server-surface client-surface" x="395" y="425" width="242" height="148" rx="17" />
@@ -320,7 +320,7 @@
                     <text class="tiny-label" id="server2022-detail" x="413" y="559">Managed Windows endpoint</text>
                   </g>
                 </g>
-                <g transform="translate(316 61)">
+                <g transform="translate(72 51)">
                   <g class="reveal server-node" data-at="1" data-node="server2025" tabindex="-1" role="button" aria-label="Explore Windows Server 2025" style="--delay:220ms">
                     <rect class="server-shadow" x="687" y="429" width="236" height="148" rx="17" />
                     <rect class="server-surface client-surface" x="684" y="425" width="242" height="148" rx="17" />
@@ -342,7 +342,7 @@
                     <text class="tiny-label" id="server2025-detail" x="702" y="559">Managed Windows endpoint</text>
                   </g>
                 </g>
-                <g transform="translate(616 -338)">
+                <g transform="translate(372 -322)">
                   <g class="reveal" data-at="11">
                     <rect class="verification-strip" x="394" y="612" width="230" height="76" rx="11" />
                     <circle cx="416" cy="633" r="9" fill="#16845b" />
@@ -355,9 +355,10 @@
                   </g>
                 </g>
                 <g class="reveal" data-at="4">
-                  <path class="flow-path download-flow" id="download-path" d="M228 219H268V255H280" marker-end="url(#arrow)" />
-                  <path class="flow-path download-flow" id="application-download-path" d="M228 305H280" marker-end="url(#arrow)" />
-                  <text class="flow-label" x="48" y="270">Download</text>
+                  <!-- Source feeds use separate left lanes so both enter the repository rightward without crossing AAP or mesh. -->
+                  <path class="flow-path download-flow" id="download-path" d="M38 33H26V271H36" marker-end="url(#arrow)" />
+                  <path class="flow-path download-flow" id="application-download-path" d="M378 58V66H8V287H36" marker-end="url(#arrow)" />
+                  <text class="flow-label" x="42" y="82">Download</text>
                   <circle class="flow-particle" data-flow="4" r="3.2">
                     <animateMotion dur="1.25s" repeatCount="indefinite">
                       <mpath href="#download-path" />

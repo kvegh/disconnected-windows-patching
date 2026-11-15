@@ -9,30 +9,29 @@ The original `demo/` assets remain independent.
 
 The changing execution-status message sits beside Datacenter on wide windows
 and wraps below it on narrower ones. The redundant host-count and environment
-labels remain omitted. The wide layout spreads content sources and export tiles across the connected
-section, reducing vertical stacking while leaving the transfer corridor clear. The title and
-action area use less vertical space. Diagram cards and text retain their
-readable dimensions; the entire drawing is not forced into the remaining
-viewport height. The drawing uses a 1280×660 landscape viewBox and renders at 1280–1320px
-wide, so large windows do not inflate the cards. On narrower screens, the
-diagram scrolls horizontally to preserve readable text. Page scrolling remains
-available vertically.
+labels remain omitted. The title and action area use less vertical space.
+The drawing uses a 1036×652 landscape viewBox and renders at 1036–1068.375px
+wide, preserving the card and text scale of the previous 1280–1320px drawing.
+On narrower screens it scrolls horizontally; normal vertical page scrolling
+remains available. The entire drawing is not forced into the remaining
+viewport height.
 
-This layout revision replaces the earlier width-only and viewport-fit attempts,
-which the owner's screenshots showed were respectively too large and too small.
-Microsoft Update and a matching Application Repository sync box appear outside
-the connected network on the left, together in action 4. Both arrows point into
-the external repository. Repository service labels say Chocolatey application
-repository. Blue content arrows branch halfway between the internal repository
-and managed hosts; purple dashed WinRM control arrows use different server
-entry points. Explicit labels identify content delivery and job control. Moving IIS
-export below the content tiles lets that network rectangle become narrower.
-The two managed Windows hosts sit near the secure network’s bottom edge; the
-final verification badge sits beside the internal repository. The server-inspection
-hint uses larger, darker text. Colors, walkthrough ordering, execution phases,
-server details and code previews remain. Browser rendering remains unverified under the owner's choice to proceed
-without installing a browser. Source checks and publication verification do not
-establish observed visual readability.
+Microsoft Update and Application Repository sync sit above the network
+rectangles and appear together in action 4. Removing their former left column
+brings both networks together. Each network is 568 units tall, 66 shorter than
+the previous 634-unit rectangles; tighter gaps preserve the existing card sizes.
+IIS export remains below the content tiles, and managed Windows hosts sit near
+the secure rectangle’s bottom. Blue content arrows branch halfway between the
+internal repository and managed hosts; purple dashed WinRM control arrows use
+separate server entry points and labels. Repository service labels say Chocolatey
+application repository. The larger, darker hint highlights server inspection.
+
+Walkthrough ordering, execution phases, server details and code previews remain.
+Browser rendering remains unverified under the owner’s choice to proceed without
+installing a browser. Source checks and publication verification do not establish
+observed visual readability. This compact layout supersedes the previous source
+column while retaining the card scale restored after the earlier too-small and
+too-large layout attempts.
 
 The existing GitHub Pages root continues to show the original demo. This edition
 is published at `/demo-with-aap/` underneath the same project Pages origin. Each
@@ -151,3 +150,7 @@ Browser appearance remains unverified.
 Version 1.2.2 adds parallel application synchronization, descriptive application
 repository labels and distinct, balanced client routes. Publication evidence is
 recorded in the project decision history after verification.
+
+Version 1.2.3 moves synchronization above shorter network rectangles and removes
+the empty source column. Implementation and publication evidence are recorded
+in the project decision history after verification.

@@ -1,4 +1,4 @@
-/* A landscape diagram keeps the existing cards and text readable without a viewport-fit scale. */
+/* Preserve the landscape diagram’s original card and text scale as its empty columns and gaps shrink. */
 .edition-name { color:#477fce; font-weight:450; }
 .app { width:100%; padding:20px 24px 16px; }
 .masthead { gap:18px; margin-bottom:14px; }
@@ -10,10 +10,10 @@ h1 { font-size:30px; }
 .action-context h2 { font-size:22px; margin-bottom:6px; }
 .action-context > p:last-child { max-width:960px; font-size:14px; line-height:1.45; }
 .next-button { min-height:60px; }
-.architecture { width:100%; min-width:1280px; max-width:1320px; height:auto; min-height:0; max-height:none; margin-inline:auto; }
+.architecture { width:100%; min-width:1036px; max-width:1068.375px; height:auto; min-height:0; max-height:none; margin-inline:auto; }
 .architecture-canvas { min-height:0; flex:initial; overflow:auto; }
 /* Keep the initial empty-state caption in the secure half of the scrollable drawing. */
-.architecture-empty { width:100%; min-width:1280px; max-width:1320px; margin-inline:auto; padding-left:660px; }
+.architecture-empty { width:100%; min-width:1036px; max-width:1068.375px; margin-inline:auto; padding-left:416px; }
 .workflow-scroll { height:600px; }
 .architecture-footer .server-hint { font-size:16px; font-weight:650; color:#223d62; }
 .architecture-panel > .panel-heading { padding-top:14px; padding-bottom:4px; align-items:start; display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:20px; }

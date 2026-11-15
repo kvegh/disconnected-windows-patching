@@ -8,18 +8,16 @@
   <img src="docs/screenshots/windows-aap-visualization.png" alt="Screenshot of the Windows plus AAP visualization; open from the beginning" width="640">
 </a>
 
-The AAP edition uses a wide, compact diagram with a shorter title/action area.
-Content sources and export tiles share the wider connected section, while AAP,
-the internal repository and managed Windows hosts remain clearly grouped.
-Microsoft Update and Application Repository sync sit outside the narrower
-connected rectangle and reveal together. Both feed the external repository; IIS export sits
-below its content tiles. Managed Windows hosts align near the secure rectangle’s
-bottom. Repository content branches halfway down the gap; purple dashed WinRM
-control arrows use separate server entry points from blue content arrows.
-Service labels say Chocolatey application repository. A larger, darker hint
-highlights server inspection. Readable cards,
-the changing execution status, growing workflow and interactions are retained. See the
-[walkthrough guide](demo-with-aap/README.md) for layout and verification limits.
+The AAP edition uses a compact diagram with Microsoft Update and Application
+Repository sync above the two network rectangles. Both sources reveal together
+and feed the external repository. Shorter network rectangles and tighter gaps
+bring the datacenter together while preserving readable card and text sizes.
+IIS export sits below its content tiles; managed Windows hosts remain near the
+secure rectangle’s bottom. Purple dashed WinRM control arrows use separate
+server entry points from blue content arrows, whose junction stays midway
+between the internal repository and managed hosts. The larger, darker hint
+highlights server inspection. See the [walkthrough guide](demo-with-aap/README.md)
+for layout and verification limits.
 
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
 in a simulated disconnected environment.
