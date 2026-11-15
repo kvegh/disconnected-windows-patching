@@ -3286,3 +3286,10 @@ walkthrough test files and JavaScript syntax checks passed. Git whitespace
 checks passed. Only the AAP edition HTML/CSS, version metadata and documentation
 change; runtime automation and both editions’ JavaScript remain unchanged.
 Publication and exact implementation evidence follow in a documentation commit.
+
+Implementation: a517cfdb86e2fcb6fb961a5f656797a9f26044c4. SSH push succeeded
+and independent SSH remote readback matched. Existing Publish Windows demo run
+43726400993 completed successfully at 2026-11-15 14:49:14 UTC
+(created14:48:56 UTC). Public HTTPS HTML, versioned AAP CSS and the unchanged
+app/scenario JavaScript matched checked source bytes exactly. Browser-rendered
+appearance remains unverified; no browser or dependency was installed.
