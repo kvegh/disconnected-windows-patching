@@ -3388,3 +3388,9 @@ the incoming history; preserve both decision-history entries and the incoming
 runtime diagnostics unchanged. Advance the layout release to1.2.7 after the
 incoming1.2.6 rather than reuse the initially planned1.2.5. Verify unchanged
 incoming runtime files and rerun the relevant walkthrough checks before push.
+
+Implementation: 02e7095670291b3310864cb48b37bd8b04ef03b0. Normal SSH push
+succeeded after the focused rebase, without force. Existing Publish Windows demo
+run43737976825 completed successfully at2026-11-15 16:53:31 UTC
+(created16:53:13 UTC). Public HTTPS HTML and versioned AAP CSS matched checked
+source bytes exactly. Browser-rendered appearance remains unverified.
