@@ -3405,3 +3405,45 @@ fields unchanged apart from the explicit reviewed dependency reference. Nine
 native Core 2.20.10 initial-run cases passed; the shared Git failure test verifies
 that its error is visible and cleanup continues. Preserve private job output and
 redact reports. Existing running jobs retain their original settings.
+
+
+## 2026-11-15 17:00 UTC — Remove corner labels and reveal more feed arrow
+
+The owner requested removal of Content enters here and Download from the
+connected-network corner, then clarified that the freed space should increase
+the gap between AAP and the external repository so more than arrowheads show.
+Remove both static labels and move only External AAP upward28 units, from
+y140–238 to112–210. The external repository stays at254–428, leaving44 units
+between cards instead of16. Source alignment, card sizes and fonts remain.
+
+Move the external WinRM/deployment loop exit with AAP; retain its return point
+and readable side label. Update mesh endpoints, particle vectors and label
+positions to keep the links horizontal between aligned AAP cards. Preserve
+IDs, reveal stages, controls, feed paint order, the secure network and the
+1036×652 frame. Version 1.2.10 records this focused presentation correction;
+no runtime automation, JavaScript, dependencies or architecture changes. Root
+implements and the existing layout child independently reviews. Browser
+appearance remains unverified under the owner’s prior installation choice.
+
+Before publication, the owner explicitly superseded the staggered network
+placement: no angled arrows; move the secure network down to align with the
+connected network. Both network tops are now y70. Raise both AAP cards to112,
+keeping repository cards at254 and the44-unit gap. Put the secure subtitle
+beside its title on the same row rather than remove its explanatory text.
+Restore secure repositories, managed hosts and verification badge to their
+aligned-network positions. Mesh arrows and their labels are horizontal, with
+zero vertical particle movement; all feed routes use right-angle turns.
+This replaces the earlier staggered/diagonal arrangement in1.2.7.
+
+Final verification: exactly the two requested labels were removed. Root checks
+confirm aligned network/AAP tops,44-unit AAP/repository gaps, horizontal mesh
+paths/labels/vectors, right-angle feed/control routes, matching deployment paths
+and unchanged server card dimensions. All three existing Node walkthrough test
+files, independent read-only review and Git whitespace checks pass. Browser
+appearance remains unverified.
+
+Publication integration: the unpublished layout commit770d1a5 was rejected
+because incoming runtime/logging work advanced main tod9ad3a9/version1.2.9.
+Rebase only this layout commit, preserving both history entries and the incoming
+runtime changes. Advance layout metadata/query to1.2.10 rather than reuse
+the initially planned1.2.8. No force push or runtime operation is performed.

@@ -17,13 +17,16 @@ remains available. The entire drawing is not forced into the remaining
 viewport height.
 
 Microsoft Update and Application Repository sync form an evenly spaced pair
-above the connected network, with their top edges aligned to the secure network.
+above the connected network. The two network rectangles share the same top edge.
 Both reveal in action 4. The two download arrows descend behind External AAP;
 the opaque card covers their middle sections and the arrows reappear as they
-enter the external repository from above. Removing the former source column
+enter the external repository from above. Removing the redundant Content enters
+here and Download corner labels lets External AAP sit 28 units higher. The gap
+above the repository is44 units instead of16, exposing more than the arrowheads. Removing the former source column
 brings both networks together. Each network is 568 units tall, 66 shorter than
-the previous 634-unit rectangles. The secure zone and its contents sit 62 units
-higher than the connected zone; parallel diagonal mesh arrows join the AAP cards.
+the previous 634-unit rectangles. Both AAP cards align horizontally, with straight
+horizontal mesh arrows between them. The secure subtitle shares its title row,
+freeing space above the execution node without dropping its explanation.
 Tighter gaps preserve the existing card sizes.
 IIS export remains below the content tiles, and managed Windows hosts sit near
 the secure rectangle’s bottom. Blue content arrows branch halfway between the
@@ -170,3 +173,7 @@ side loops while retaining the compact layout.
 Version 1.2.7 aligns the source pair with the secure network’s top edge and
 routes download arrows behind External AAP. The pair uses 172×50 boxes with
 unchanged font sizes; server cards keep their existing dimensions.
+
+Version 1.2.10 removes redundant connected-corner labels and raises both AAP cards
+to show longer feed-arrow segments above the external repository. Both network
+rectangles align, and mesh arrows remain horizontal.

@@ -40,8 +40,8 @@ h1 { font-size:30px; }
 .architecture:is([data-phase="connect"],[data-phase="outbound"]) .mesh-outbound-label { fill:#3572d5; }
 .architecture[data-phase="dispatch"] .mesh-job-particle { visibility:visible; animation:mesh-dispatch .45s linear both; }
 @keyframes controller-pulse { 50% { fill:#e9f2ff; stroke:#6e9ce9; } }
-@keyframes mesh-outbound { from { transform:translate(0,0); } to { transform:translate(-138px,62px); } }
-@keyframes mesh-dispatch { from { transform:translate(0,0); } to { transform:translate(138px,-62px); } }
+@keyframes mesh-outbound { from { transform:translate(0,0); } to { transform:translate(-138px,0); } }
+@keyframes mesh-dispatch { from { transform:translate(0,0); } to { transform:translate(138px,0); } }
 .job-command { display:none; }
 .architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-scope="connected"],[data-scope="both"]):not([data-target^="deploy"]) .external-control,
 .architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-target="repository"],[data-target="repositories"],[data-target="all"]) .repository-control,
