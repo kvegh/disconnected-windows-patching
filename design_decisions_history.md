@@ -3520,3 +3520,10 @@ Keep border width, card size, hover backgrounds, focus outlines and navigation
 behavior unchanged. Version1.3.1 records this CSS-only presentation correction.
 Reuse the existing interaction tests of row states and review the focused CSS
 diff; no new test/framework, dependency or browser installation is required.
+
+Implementation: eedfd778a0b172319cb809e3dfe2d3e7d8ab6c8d. SSH push succeeded.
+Three existing interaction tests pass, including current/completed/future states;
+the focused CSS and whitespace checks pass. Existing Publish Windows demo run
+43741314729 succeeded at2026-11-15 17:29:02 UTC (created17:28:42 UTC).
+Public HTML and versioned CSS matched checked local bytes. Browser appearance
+remains unverified.
