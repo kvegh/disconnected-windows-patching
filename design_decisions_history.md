@@ -3205,3 +3205,9 @@ with width360 rather than604. IIS export sits below content atx290,y560.
 Existing paths and particle distances follow the narrower repository corridor.
 Both existing Node walkthrough files, source/geometry/reference checks and
 whitespace checks passed before publication. Browser appearance is unverified.
+
+Implementation: `07b7f718b8da408b37a32fe6442c6ae1b1c023e2`. SSH publication succeeded. Existing
+Publish Windows demo run `43722651699` completed successfully at
+2026-11-15 14:08:11 UTC (created14:07:50 UTC). Public HTML, versioned AAP
+CSS and unchanged app JavaScript matched reviewed local bytes. Browser
+appearance remains unverified.

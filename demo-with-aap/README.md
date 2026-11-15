@@ -137,3 +137,8 @@ Version 1.2.0 was published from implementation `645a8dbd95f5dc44888ad8474187da9
 The existing Pages workflow succeeded on 2026-11-15 at 12:54:59 UTC; served
 HTML, versioned CSS and app JavaScript matched that revision. The source
 checks above passed; browser appearance remains unverified.
+
+Version1.2.1 refines network grouping, managed-host placement and hint visibility
+from implementation `07b7f718b8da408b37a32fe6442c6ae1b1c023e2`. Pages succeeded on
+2026-11-15 at14:08:11 UTC and served assets matched the checked source.
+Browser appearance remains unverified.
