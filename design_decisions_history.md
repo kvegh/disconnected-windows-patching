@@ -3325,3 +3325,9 @@ semantic/motion/marker checks and independent read-only review confirm unchanged
 IDs, visibility rules, card dimensions and text. The final management-label
 correction and whitespace checks pass. Browser rendering is unverified.
 Implementation and actual publication evidence follow after commit/deployment.
+
+Implementation: 87fe4ddcb169e709086d9397b4ee40ccd146b06d. SSH push succeeded.
+Existing Publish Windows demo run43727842713 completed successfully at
+2026-11-15 15:05:05 UTC (created15:04:46 UTC). Public HTTPS HTML and the
+versioned stylesheet matched checked local bytes exactly. Browser-rendered
+appearance remains unverified. No runtime automation or JavaScript changed.
