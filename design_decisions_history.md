@@ -3470,3 +3470,35 @@ Publish Windows demo run43739734653 succeeded, updated2026-11-15 17:12:07 UTC
 exactly one server-hint with “Click a server to look inside!”, no arrow inside
 it, and full HTML equality to that published commit. Four existing AAP page
 tests passed. Browser appearance was not tested.
+
+
+## 2026-11-15 17:21 UTC — Navigate directly from workflow steps
+
+The owner likes the hover explanations and requests clickable workflow stages
+for jumping back/forward. Show all eleven stages from the start, using muted
+future entries, a current marker and completed styling. This supersedes the
+AAP edition’s earlier growing-history-only list; the standard edition remains
+unchanged. Keep each row persistent so clicks do not remove keyboard focus.
+
+Use sibling native buttons: the stage button calls the existing direct
+navigation path, while Explore the Ansible pins/unpins its hover preview.
+Hover/focus explanations and source links remain. Direct jumps invalidate the
+existing animation generation so pending Next phases cannot replace the chosen
+state. Scroll the selected row into view only when needed. Keep the existing
+plain HTML/CSS/JavaScript design and all diagram geometry.
+
+Advance the feature release to1.3.0. Add focused tests of actual app handlers
+using Node’s built-in vm and a small DOM fixture, covering navigation, focus,
+hover/pinning and cancellation without a new dependency. This is modeled DOM
+execution, not browser-rendered or deployed-UI verification; that gap remains
+under the owner’s existing choice not to install a browser. Root authors the
+tests/docs/release and independently reviews the child’s focused UI changes.
+
+Verification: all17 tests across both editions pass, including three interaction
+regressions executing the actual app handlers. They check row states/counter,
+direct backward/forward changes, retained stage-button focus, hover/pin behavior,
+selected-row scroll calculations and cancellation/reset. App syntax, whitespace
+and exact SVG preservation checks pass. Independent read-only review found no
+blocking app mismatch. Fixture limits are documented: no browser rendering,
+native key generation/event bubbling, popup focus restoration or asynchronous
+browser-layout coverage. No dependency or browser installation was performed.

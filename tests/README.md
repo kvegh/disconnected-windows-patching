@@ -125,15 +125,21 @@ to job readers and does not expose deployment credentials.
 
 ## JavaScript walkthrough tests
 
-The three JavaScript test files under `demo/tests/` and `demo-with-aap/tests/`
+The JavaScript test files under `demo/tests/` and `demo-with-aap/tests/`
 exercise the actual browser walkthrough's state and orchestration models using
 Node's built-in runner. They check ordering, cancellation, source links and
-static assets. JavaScript is justified because these are JavaScript presentation
+static assets. The navigation test also executes the real app event handlers in
+a small DOM fixture using Node’s built-in vm module. It verifies forward/back
+jumps, retained focus, hover/code pinning and cancellation of an unfinished Next
+sequence, without installing a browser or DOM library. The fixture models only
+DOM behavior used by these interactions; native browser rendering and keyboard
+event generation remain outside its coverage. The fixture does not model event
+bubbling, popup focus restoration or browser layout/scrolling. JavaScript is justified because these are JavaScript presentation
 components; Ansible does not execute their state transitions.
 
 ```bash
 node --test demo/tests/scenario.test.cjs
-node --test demo-with-aap/tests/scenario.test.cjs demo-with-aap/tests/orchestration.test.cjs
+node --test demo-with-aap/tests/*.test.cjs
 ```
 
 These tests run in the existing GitHub Pages publication workflow. They do not

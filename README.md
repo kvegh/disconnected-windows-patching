@@ -31,7 +31,10 @@ server entry points from blue content arrows. AAP-to-repository control arrows
 loop around the card sides to remain visible with compact spacing. The content
 junction stays midway between the internal repository and managed hosts. The larger, darker “Click a server to look inside!” hint
 highlights server inspection. See the [walkthrough guide](demo-with-aap/README.md)
-for layout and verification limits.
+for layout and verification limits. All workflow steps are available from the start:
+click a step to jump forward/back, hover for its Ansible explanation, or use
+Explore the Ansible to pin that explanation. Next still plays the orchestration
+sequence; a direct jump cancels an unfinished visual sequence.
 
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
 in a simulated disconnected environment.

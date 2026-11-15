@@ -4,7 +4,7 @@
 
 A separate browser walkthrough that adds connected AAP and a proposed Linux
 execution node inside the secure network. It retains the original palette,
-larger typography, growing workflow, server details and in-page code previews.
+larger typography, navigable workflow, server details and in-page code previews.
 The original `demo/` assets remain independent.
 
 The changing execution-status message sits beside Datacenter on wide windows
@@ -48,6 +48,22 @@ too-large layout attempts.
 The existing GitHub Pages root continues to show the original demo. This edition
 is published at `/demo-with-aap/` underneath the same project Pages origin. Each
 page has its own source files and URL; no second repository is needed.
+
+## Workflow navigation
+
+All eleven stages remain visible, including future stages. Click a stage’s
+title/description button to jump directly to that illustrated state, forward
+or backward. Current, completed and future states have distinct styling; the
+selected stage is marked for assistive technology. Native buttons support
+keyboard activation without removing the focused row during navigation.
+
+Hover over a row or focus either of its buttons to preview the Ansible code.
+The separate Explore the Ansible button pins/unpins the preview and keeps its
+real-source link available. Jumping closes the preview. Next retains the staged
+orchestration animation; a direct jump or reset cancels an unfinished visual
+sequence so a delayed phase cannot overwrite the selected stage. None of these
+controls runs real AAP jobs. The list scrolls to the selected row only when it
+is outside the visible area.
 
 ## Sequence and architecture
 
@@ -115,7 +131,7 @@ is not presented as the procedure for this containerized lab.
 - `src/scenario.js`: Windows actions and intended execution locations.
 - `src/orchestration.js`: phase planning and cancellable playback.
 - `src/app.js`: controls, illustrated states, previews and server details.
-- `tests/`: state, source integrity, ordering and cancellation checks.
+- `tests/`: state, source integrity, ordering, cancellation and UI-handler checks.
 
 No dependencies or installation are required. Open `index.html` directly or use
 an already available Python from the repository root:
@@ -140,6 +156,9 @@ git diff --check
 There is no package manager, lockfile, formatter or linter dependency. Retain the
 plain HTML, CSS and JavaScript conventions and run the syntax checks above.
 The existing Pages workflow checks both editions and publishes only page assets.
+The navigation test executes the real app handlers using a small standard-Node
+DOM fixture. It covers direct jumps, focus retention, hover/pin behavior and
+in-flight cancellation. It does not run a browser or verify rendered appearance.
 
 ## Layout rollback
 
@@ -177,3 +196,6 @@ unchanged font sizes; server cards keep their existing dimensions.
 Version 1.2.10 removes redundant connected-corner labels and raises both AAP cards
 to show longer feed-arrow segments above the external repository. Both network
 rectangles align, and mesh arrows remain horizontal.
+
+Version 1.3.0 adds direct stage navigation while retaining hover explanations
+and a separate pinnable code preview.

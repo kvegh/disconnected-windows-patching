@@ -55,7 +55,7 @@
 
   function showCode(step, target, pin = false) {
     clearTimeout(hideTimer);
-    if (pinned && hoverTarget !== target && !pin) return;
+    if (pinned && !pin) return;
     if (hoverTarget && hoverTarget !== target) hoverTarget.setAttribute('aria-expanded', 'false');
     hoverTarget = target;
     pinned = pin;
@@ -81,15 +81,13 @@
 
   function scheduleHide() { clearTimeout(hideTimer); hideTimer = setTimeout(() => hideCode(), 260); }
 
-  function createEntry(step, animate) {
+  function createEntry(step) {
     const li = document.createElement('li');
-    if (animate && !reducedMotion) li.classList.add('arrive');
+    const entry = document.createElement('div');
+    entry.className = 'workflow-entry';
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'workflow-entry';
-    button.setAttribute('aria-haspopup', 'dialog');
-    button.setAttribute('aria-controls', 'code-popover');
-    button.setAttribute('aria-expanded', 'false');
+    button.className = 'workflow-step';
     const number = document.createElement('span');
     number.className = 'step-number';
     number.textContent = String(step.number).padStart(2, '0');
@@ -98,19 +96,41 @@
     title.className = 'step-title'; title.textContent = step.title;
     const description = document.createElement('span');
     description.className = 'step-description'; description.textContent = step.short;
-    const hint = document.createElement('span');
+    const hint = document.createElement('button');
+    hint.type = 'button';
     hint.className = 'step-code-hint'; hint.textContent = '{ } Explore the Ansible';
-    content.append(title, description, hint); button.append(number, content); li.append(button);
-    button.addEventListener('pointerenter', () => showCode(step, button));
-    button.addEventListener('pointerleave', scheduleHide);
-    button.addEventListener('focus', () => { if (!restoringFocus) showCode(step, button); });
-    button.addEventListener('blur', event => { if (!popover.contains(event.relatedTarget)) scheduleHide(); });
-    button.addEventListener('click', event => {
-      if (pinned && hoverTarget === button) { hideCode(true); return; }
-      showCode(step, button, true);
+    hint.setAttribute('aria-label', `Explore Ansible for action ${step.number}: ${step.title}`);
+    hint.setAttribute('aria-haspopup', 'dialog');
+    hint.setAttribute('aria-controls', 'code-popover');
+    hint.setAttribute('aria-expanded', 'false');
+    content.append(title, description); button.append(number, content);
+    entry.append(button, hint); li.append(entry);
+    entry.addEventListener('pointerenter', () => showCode(step, hint));
+    entry.addEventListener('pointerleave', scheduleHide);
+    for (const target of [button, hint]) {
+      target.addEventListener('focus', () => { if (!restoringFocus) showCode(step, hint); });
+      target.addEventListener('blur', event => { if (!popover.contains(event.relatedTarget)) scheduleHide(); });
+    }
+    button.addEventListener('click', () => navigateTo(step.number));
+    hint.addEventListener('click', event => {
+      if (pinned && hoverTarget === hint) { hideCode(true); return; }
+      showCode(step, hint, true);
       if (event.detail === 0) byId('close-code').focus();
     });
     return li;
+  }
+
+  function scrollToStep(stage, smooth = true) {
+    const entry = list.children[stage - 1];
+    if (!entry) return;
+    const scroll = byId('workflow-scroll');
+    const rect = entry.getBoundingClientRect();
+    const viewport = scroll.getBoundingClientRect();
+    let top = scroll.scrollTop;
+    if (rect.top < viewport.top + 12) top += rect.top - viewport.top - 12;
+    else if (rect.bottom > viewport.bottom - 12) top += rect.bottom - viewport.bottom + 12;
+    else return;
+    scroll.scrollTo({ top: Math.max(0, top), behavior: reducedMotion || !smooth ? 'instant' : 'smooth' });
   }
 
   function render(stage) {
@@ -121,19 +141,22 @@
     hideCode(true);
     const rewind = state.stage < previous.stage;
     diagram.classList.toggle('rewinding', rewind);
-    while (list.children.length > state.stage) list.lastElementChild.remove();
-    while (list.children.length < state.stage) list.append(createEntry(steps[list.children.length], !rewind));
     [...list.children].forEach((li, index) => {
-      const button = li.firstElementChild;
+      const entry = li.firstElementChild;
+      const button = entry.firstElementChild;
       const current = index === state.stage - 1;
-      button.classList.toggle('current', current);
+      const completed = index < state.stage - 1;
+      entry.classList.toggle('current', current);
+      entry.classList.toggle('completed', completed);
+      entry.classList.toggle('future', index >= state.stage);
+      button.setAttribute('aria-label', `${current ? 'Current' : completed ? 'Completed' : 'Future'} action ${index + 1}: ${steps[index].title}. Jump to this action.`);
       if (current) button.setAttribute('aria-current', 'step');
       else button.removeAttribute('aria-current');
     });
-    byId('workflow-empty').hidden = state.stage !== 0;
-    // Flex display on the placeholder must not override the HTML hidden state.
-    byId('workflow-empty').style.display = state.stage ? 'none' : '';
-    setText('workflow-count', `${state.stage} ${state.stage === 1 ? 'action' : 'actions'}`);
+    byId('workflow-empty').hidden = true;
+    // Keep all action buttons available, including before the first action.
+    byId('workflow-empty').style.display = 'none';
+    setText('workflow-count', `${state.stage} / ${steps.length} actions`);
     setText('action-count', state.stage ? `Action ${String(state.stage).padStart(2, '0')} / ${steps.length}` : 'Getting started');
     setText('current-title', state.current?.title || 'AAP is ready. Let’s build the datacenter.');
     setText('current-description', state.current?.description || 'Watch AAP dispatch each job before the Windows environment changes. You set the pace.');
@@ -181,10 +204,9 @@
       }
     }
     setText('announcer', state.current ? `Action ${state.stage}: ${state.current.title}. ${state.current.short}` : 'Walkthrough reset. The datacenter is empty.');
-    if (state.stage) requestAnimationFrame(() => {
-      const last = list.lastElementChild;
-      const scroll = byId('workflow-scroll');
-      if (last) scroll.scrollTo({ top: Math.max(0, last.offsetTop - scroll.offsetTop - scroll.clientHeight + last.offsetHeight + 20), behavior: reducedMotion || rewind ? 'instant' : 'smooth' });
+    const selectedStage = state.stage;
+    requestAnimationFrame(() => {
+      if (!busy && state.stage === selectedStage) scrollToStep(selectedStage || 1, !rewind);
     });
   }
 
@@ -234,8 +256,7 @@
           setText('controller-status', phase.key === 'schedule' ? 'Scheduling the next job' : phase.key === 'connect' ? 'Awaiting outbound mesh' : phase.key === 'outbound' ? 'Established mesh · inside → out' : phase.key === 'dispatch' ? 'Dispatching over the mesh' : 'Job running on its executor');
           setText('execution-status', phase.key === 'connect' ? 'Opening outbound mesh' : phase.key === 'outbound' ? 'Reusing outbound mesh' : phase.key === 'dispatch' ? 'Receiving the job over mesh' : phase.key === 'execute' && phase.target === 'deploy-internal' ? 'Deploying three internal VMs' : phase.key === 'execute' && ['internal', 'both'].includes(phase.scope) ? 'Running the internal playbook' : state.stage >= 1 ? 'Mesh connected · ready for work' : 'Ready to initiate outbound mesh');
           setText('announcer', `${phase.title}. ${phase.description}`);
-          const scroll = byId('workflow-scroll');
-          scroll.scrollTo({ top: scroll.scrollHeight, behavior: reducedMotion ? 'instant' : 'smooth' });
+          scrollToStep(targetStage);
           if (phase.key === 'execute' && !reducedMotion) requestAnimationFrame(() => {
             if (generation !== runGeneration) return;
             document.querySelectorAll('[data-job-motion]').forEach(motion => motion.beginElement?.());
@@ -327,5 +348,6 @@
   document.addEventListener('pointerdown', event => { if (!popover.hidden && !popover.contains(event.target) && !hoverTarget?.contains(event.target)) hideCode(true); });
   addEventListener('resize', positionPopover);
   byId('workflow-scroll').addEventListener('scroll', () => { if (pinned) positionPopover(); else hideCode(); });
+  steps.forEach(step => list.append(createEntry(step)));
   render(0);
 })();

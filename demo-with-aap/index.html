@@ -7,10 +7,10 @@
     <meta name="color-scheme" content="light">
     <title>Disconnected Windows + AAP · Interactive demo</title>
     <link rel="stylesheet" href="src/styles.css">
-    <link rel="stylesheet" href="src/aap.css?v=1.2.11">
+    <link rel="stylesheet" href="src/aap.css?v=1.3.0">
     <script src="src/scenario.js?v=1.2.2" defer></script>
     <script src="src/orchestration.js" defer></script>
-    <script src="src/app.js?v=1.2.2" defer></script>
+    <script src="src/app.js?v=1.3.0" defer></script>
   </head>
   <body>
     <div class="app">
@@ -27,9 +27,9 @@
 
       <main class="workspace">
         <section class="workflow-panel" aria-labelledby="workflow-title">
-          <div class="panel-heading"><div><p class="eyebrow">01 / The story</p><h2 id="workflow-title">Workflow</h2></div><span class="counter" id="workflow-count">0 actions</span></div>
-          <div class="workflow-scroll" id="workflow-scroll"><div class="workflow-empty" id="workflow-empty"><span class="empty-stem" aria-hidden="true"></span><h3>One action at a time.</h3><p>Your workflow grows here.<br>Hover over a step to see its Ansible code.</p></div><ol class="workflow-list" id="workflow-list"></ol><div class="execution-pending" id="execution-pending" hidden><span class="pending-mark" aria-hidden="true">A</span><div><strong id="pending-title">AAP schedules the job</strong><p id="pending-description"></p></div></div></div>
-          <p class="panel-footnote"><span aria-hidden="true">⌘</span> Hover or select a step to explore its code.</p>
+          <div class="panel-heading"><div><p class="eyebrow">01 / The story</p><h2 id="workflow-title">Workflow</h2></div><span class="counter" id="workflow-count">0 / 11 actions</span></div>
+          <div class="workflow-scroll" id="workflow-scroll"><div class="workflow-empty" id="workflow-empty" hidden><span class="empty-stem" aria-hidden="true"></span><h3>One action at a time.</h3><p>Your workflow grows here.<br>Hover over a step to see its Ansible code.</p></div><ol class="workflow-list" id="workflow-list"></ol><div class="execution-pending" id="execution-pending" hidden><span class="pending-mark" aria-hidden="true">A</span><div><strong id="pending-title">AAP schedules the job</strong><p id="pending-description"></p></div></div></div>
+          <p class="panel-footnote"><span aria-hidden="true">⌘</span> Click a step to jump. Hover for code; Explore pins it.</p>
         </section>
 
         <section class="architecture-panel" aria-labelledby="architecture-title">
