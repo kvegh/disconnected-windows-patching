@@ -3463,3 +3463,10 @@ mark instead. Change the hint to “Click a server to look inside!” while keep
 its existing class, size, contrast and behavior. Version1.2.11 records this
 text-only correction. Verify exact source/deployed wording and existing page
 asset/ID checks; no browser or dependency installation is needed.
+
+Hint implementation: d8d963fc3ad3697fc8b2a49f04b2896220e66e9c. Existing
+Publish Windows demo run43739734653 succeeded, updated2026-11-15 17:12:07 UTC
+(created17:11:48 UTC). Independent public HTTP verification returned200,
+exactly one server-hint with “Click a server to look inside!”, no arrow inside
+it, and full HTML equality to that published commit. Four existing AAP page
+tests passed. Browser appearance was not tested.
