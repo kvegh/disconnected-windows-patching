@@ -3346,3 +3346,14 @@ Nine native Core 2.20.10 initial-run checks passed, including rejection of the
 previous pin, branch names and foreign repositories. Six diagnostic tests passed
 on the minimal backport. The original workflow and healthy AD branch remain
 separate from the planned focused retry; the live Git cause is still unresolved.
+
+
+### Temporary visible deployment task logging
+
+At the owner's explicit request, implementation `2d05225c87c11714138ae74d90ab544681d7f385` sets
+deployment task no_log controls to false until clean acceptance, and selects the
+matching logging-only shared dependency. YAML-node comparison proves all other
+fields unchanged apart from the explicit reviewed dependency reference. Nine
+native Core 2.20.10 initial-run cases passed; the shared Git failure test verifies
+that its error is visible and cleanup continues. Preserve private job output and
+redact reports. Existing running jobs retain their original settings.
