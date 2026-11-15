@@ -3240,3 +3240,9 @@ changed-JavaScript syntax, SVG parsing, reveal-stage and motion-reference checks
 midpoint and distinct endpoint checks, and Git whitespace validation. Independent
 source review found no blocking issue; both long service rows and detail text
 remain inside the repository cards. Browser appearance is unverified.
+
+Implementation: `997926799c5243f948e9519b521bdd798772e7e5`. SSH push succeeded.
+Existing Publish Windows demo run `43723854079` completed successfully at
+2026-11-15 14:21:10 UTC (created14:20:48 UTC). The public HTTPS HTML,
+versioned AAP CSS, app JavaScript and scenario JavaScript matched the checked
+local bytes exactly. Browser-rendered appearance remains unverified.
