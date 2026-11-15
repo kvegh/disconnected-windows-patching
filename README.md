@@ -14,8 +14,9 @@ and feed the external repository. Shorter network rectangles and tighter gaps
 bring the datacenter together while preserving readable card and text sizes.
 IIS export sits below its content tiles; managed Windows hosts remain near the
 secure rectangle’s bottom. Purple dashed WinRM control arrows use separate
-server entry points from blue content arrows, whose junction stays midway
-between the internal repository and managed hosts. The larger, darker hint
+server entry points from blue content arrows. AAP-to-repository control arrows
+loop around the card sides to remain visible with compact spacing. The content
+junction stays midway between the internal repository and managed hosts. The larger, darker hint
 highlights server inspection. See the [walkthrough guide](demo-with-aap/README.md)
 for layout and verification limits.
 

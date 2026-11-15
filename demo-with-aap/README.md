@@ -23,7 +23,11 @@ the previous 634-unit rectangles; tighter gaps preserve the existing card sizes.
 IIS export remains below the content tiles, and managed Windows hosts sit near
 the secure rectangle’s bottom. Blue content arrows branch halfway between the
 internal repository and managed hosts; purple dashed WinRM control arrows use
-separate server entry points and labels. Repository service labels say Chocolatey
+separate server entry points and labels. Both AAP-to-repository WinRM arrows
+leave the right side of their source card, travel down outside it and return
+into the repository’s right side. These longer side loops and their labels stay
+clear of the compact gap between rows. Matching deployment arrows use the same
+routes. Repository service labels say Chocolatey
 application repository. The larger, darker hint highlights server inspection.
 
 Walkthrough ordering, execution phases, server details and code previews remain.
@@ -154,3 +158,6 @@ recorded in the project decision history after verification.
 Version 1.2.3 moves synchronization above shorter network rectangles and removes
 the empty source column. Implementation and publication evidence are recorded
 in the project decision history after verification.
+
+Version 1.2.4 makes both AAP-to-repository control arrows visible as longer
+side loops while retaining the compact layout.

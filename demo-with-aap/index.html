@@ -7,7 +7,7 @@
     <meta name="color-scheme" content="light">
     <title>Disconnected Windows + AAP · Interactive demo</title>
     <link rel="stylesheet" href="src/styles.css">
-    <link rel="stylesheet" href="src/aap.css?v=1.2.3">
+    <link rel="stylesheet" href="src/aap.css?v=1.2.4">
     <script src="src/scenario.js?v=1.2.2" defer></script>
     <script src="src/orchestration.js" defer></script>
     <script src="src/app.js?v=1.2.2" defer></script>
@@ -81,9 +81,10 @@
                   <rect class="control-particle mesh-job-particle" x="309" y="196" width="14" height="14" rx="3" />
                   <text class="mesh-label" x="326" y="226">Job dispatch</text>
                 </g>
+                <!-- Side loops keep repository control arrows visible despite the compact row gap. -->
                 <g class="job-command external-control">
-                  <path class="command-path" id="external-command-path" d="M55 240V252" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="64" y="250">WinRM</text>
+                  <path class="command-path" id="external-command-path" d="M316 232H354V272H316" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="362" y="256">WinRM</text>
                   <circle class="control-particle command-particle" r="3">
                     <animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze">
                       <mpath href="#external-command-path" />
@@ -91,8 +92,8 @@
                   </circle>
                 </g>
                 <g class="job-command repository-control">
-                  <path class="command-path" id="internal-command-path" d="M602 240V252" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="616" y="250">WinRM · internal work</text>
+                  <path class="command-path" id="internal-command-path" d="M750 232H790V272H750" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="802" y="256">WinRM · internal work</text>
                   <circle class="control-particle command-particle" r="3">
                     <animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze">
                       <mpath href="#internal-command-path" />
@@ -115,8 +116,8 @@
                   </circle>
                 </g>
                 <g class="job-command deployment-external-control">
-                  <path class="command-path" id="deploy-external-path" d="M55 240V252" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="64" y="250">Deploy</text>
+                  <path class="command-path" id="deploy-external-path" d="M316 232H354V272H316" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="362" y="256">Deploy</text>
                   <circle class="control-particle command-particle" r="3">
                     <animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze">
                       <mpath href="#deploy-external-path" />
@@ -124,8 +125,8 @@
                   </circle>
                 </g>
                 <g class="job-command deployment-internal-control">
-                  <path class="command-path" id="deploy-internal-repository-path" d="M602 240V252" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="616" y="250">Deploy repository</text>
+                  <path class="command-path" id="deploy-internal-repository-path" d="M750 232H790V272H750" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="802" y="256">Deploy repository</text>
                   <path class="command-path" id="deploy-internal-2022-path" d="M750 189H1006V456H656V474" marker-end="url(#command-arrow)" />
                   <path class="command-path" id="deploy-internal-2025-path" d="M750 189H1006V456H956V474" marker-end="url(#command-arrow)" />
                   <text class="command-label" x="826" y="433">Deploy internal VMs</text>
@@ -176,7 +177,7 @@
                 </g>
                 <g class="reveal management-connection" data-at="2">
                   <path class="management-link" d="M314 296H454" />
-                  <text class="connection-label" x="326" y="280">Management link</text>
+                  <text class="connection-label" x="326" y="290">Management link</text>
                 </g>
                 <g transform="translate(-30 -97)">
                   <g class="reveal" data-at="4" style="--delay:0ms">

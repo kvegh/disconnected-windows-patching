@@ -3293,3 +3293,35 @@ and independent SSH remote readback matched. Existing Publish Windows demo run
 (created14:48:56 UTC). Public HTTPS HTML, versioned AAP CSS and the unchanged
 app/scenario JavaScript matched checked source bytes exactly. Browser-rendered
 appearance remains unverified; no browser or dependency was installed.
+
+
+## 2026-11-15 15:01 UTC — Make repository control arrows visible
+
+The owner reports that the compact layout’s WinRM and WinRM · internal work
+arrows are too short to see. The source confirms they are only12 SVG units.
+The owner suggested either more row spacing or routing around the box sides.
+Choose the explicitly suggested side routes to preserve the recently requested
+compact datacenter: leave the AAP card’s right side, go down, then enter the
+repository’s right side. The external path is116 units and internal path120;
+final horizontal runs of38/40 units leave room for the12-unit marker.
+
+Place labels beside the vertical runs, below mesh labels and above transfer
+labels or the verification badge. Apply the same geometry to corresponding
+deployment paths so phases remain consistent. Preserve IDs, motion references,
+visibility rules, card sizes, text sizes and the1036×652 frame. Version1.2.4
+records this focused presentation correction. No JavaScript, runtime automation,
+dependencies or architecture changes. Root implements; the existing layout
+child independently reviews geometry/readability. Browser appearance remains
+unverified under the existing decision to proceed without installation.
+
+Independent review caught the external return arrow overlapping the existing
+Management link label at stages2–5. Move that label’s baseline from280 to290,
+above its unchanged line296 and below the arrowhead. The transfer stage already
+hides this management connection, so its pull label remains separate. This
+focused label adjustment preserves the routes and compact spacing.
+
+Verification: all three existing Node walkthrough test files passed. Root
+semantic/motion/marker checks and independent read-only review confirm unchanged
+IDs, visibility rules, card dimensions and text. The final management-label
+correction and whitespace checks pass. Browser rendering is unverified.
+Implementation and actual publication evidence follow after commit/deployment.
