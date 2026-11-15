@@ -32,7 +32,7 @@
           - chocolatey_msi_sha256 | default('') is match('^[A-Fa-f0-9]{64}$')
           - chocolatey_internal_source_url | default('') is match('^https?://[^/\s]+/repository/[A-Za-z0-9._-]+/?$')
         fail_msg: Supply the inventory groups and vaulted internal feed settings; pinned installer defaults are included.
-      no_log: true
+      no_log: false
 
     - name: Download verified Nexus and Chocolatey installers at deployment time
       ansible.builtin.include_tasks: tasks/download_application_installers.yml
@@ -109,7 +109,7 @@
           - nexus_install_root is regex('^[A-Za-z]:\\\\[A-Za-z0-9_.\\\\-]+$', match_type='fullmatch')
           - nexus_data_directory is regex('^[A-Za-z]:\\\\[A-Za-z0-9_.\\\\-]+$', match_type='fullmatch')
         fail_msg: Supply per-server Nexus credentials and allowed source addresses; this initial deployment uses port 8081.
-      no_log: true
+      no_log: false
 
     - name: Wait for Windows management
       tags: [nexus_firewall]
@@ -198,7 +198,7 @@
         profiles: domain,private,public
         enabled: true
         state: present
-      no_log: true
+      no_log: false
 
     - name: Wait for Nexus API readiness
       ansible.windows.win_uri:
@@ -219,7 +219,7 @@
         status_code: [200, 401]
       register: nexus_auth
       changed_when: false
-      no_log: true
+      no_log: false
 
     - name: Initialize administrator password on a new Nexus installation
       ansible.builtin.include_tasks: tasks/initialize_nexus_password.yml
@@ -238,7 +238,7 @@
         return_content: true
       register: nexus_anonymous_access
       changed_when: false
-      no_log: true
+      no_log: false
 
     - name: Require authentication for repository access
       ansible.windows.win_uri:
@@ -252,7 +252,7 @@
         status_code: [200, 204]
       when: nexus_anonymous_access.json.enabled
       changed_when: true
-      no_log: true
+      no_log: false
 
     - name: Configure empty immutable hosted NuGet feeds
       ansible.builtin.include_tasks: tasks/ensure_nexus_nuget_feed.yml
@@ -291,7 +291,7 @@
           - chocolatey_source_username | default('') | length > 0
           - chocolatey_source_password | default('') | length > 0
         fail_msg: Supply internal Nexus package read credentials through AAP or Vault.
-      no_log: true
+      no_log: false
 
     - name: Wait for Windows management
       ansible.builtin.wait_for_connection:
@@ -315,7 +315,7 @@
         update_password: on_create
         priority: 1
         state: present
-      no_log: true
+      no_log: false
 
     - name: Verify only the intended feed is enabled
       # Platform/API reason: [rationale](docs/supporting-code.md#artifact-creation-and-nexus-upload).
@@ -341,4 +341,4 @@
         url_password: "{{ chocolatey_source_password }}"
         force_basic_auth: true
       changed_when: false
-      no_log: true
+      no_log: false

@@ -9,7 +9,7 @@
     status_code: [200, 404]
   register: requested_feed
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Create a missing immutable hosted NuGet feed
   ansible.windows.win_uri:
@@ -31,7 +31,7 @@
         writePolicy: ALLOW_ONCE
   when: requested_feed.status_code == 404
   changed_when: true
-  no_log: true
+  no_log: false
 
 - name: Enforce immutable feed settings
   ansible.builtin.include_tasks: configure_nexus_feed.yml

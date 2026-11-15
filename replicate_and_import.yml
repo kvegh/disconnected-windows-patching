@@ -20,26 +20,26 @@
           - groups.get('wsus_internal', []) | length == 1
           - groups['wsus_external'] | intersect(groups['wsus_internal']) | length == 0
           - wsus_transfer_base_url | default('') is match('^http://[^/\s]+:' ~ (wsus_transfer_port | string) ~ '/?$')
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Read the published snapshot reference over authenticated WinRM
       ansible.builtin.slurp:
         src: "{{ wsus_export_root }}\\current.json"
       delegate_to: "{{ groups['wsus_external'][0] }}"
       register: wsus_current_reference
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Select the immutable snapshot
       ansible.builtin.set_fact:
         wsus_snapshot_reference: "{{ wsus_current_reference.content | b64decode | from_json }}"
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Validate the snapshot identifier
       ansible.builtin.assert:
         that:
           - wsus_snapshot_reference.schemaVersion == 1
           - wsus_snapshot_reference.snapshot is match('^snapshot-[0-9]{8}T[0-9]{6}-[a-f0-9]{32}$')
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Obtain a trusted manifest checksum over authenticated WinRM
       ansible.windows.win_stat:
@@ -48,7 +48,7 @@
         checksum_algorithm: sha256
       delegate_to: "{{ groups['wsus_external'][0] }}"
       register: wsus_manifest_anchor
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Require the published immutable manifest
       ansible.builtin.assert:
@@ -58,7 +58,7 @@
       ansible.windows.win_file:
         path: "{{ wsus_import_root }}\\{{ wsus_snapshot_reference.snapshot }}"
         state: directory
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Download the manifest directly from external to internal WSUS
       ansible.windows.win_get_url:
@@ -70,23 +70,23 @@
         use_proxy: false
         follow_redirects: none
         url_timeout: "{{ wsus_transfer_timeout | int }}"
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Read the verified manifest
       ansible.builtin.slurp:
         src: "{{ wsus_import_root }}\\{{ wsus_snapshot_reference.snapshot }}\\manifest.json"
       register: wsus_downloaded_manifest
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Decode the verified manifest
       ansible.builtin.set_fact:
         wsus_manifest: "{{ wsus_downloaded_manifest.content | b64decode | from_json }}"
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Require the manifest to describe the selected snapshot
       ansible.builtin.assert:
         that: wsus_manifest.snapshot == wsus_snapshot_reference.snapshot
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Validate manifest, matching settings and disk budget before transfer
       # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
@@ -98,14 +98,14 @@
           ManifestPath: "{{ wsus_import_root }}\\{{ wsus_snapshot_reference.snapshot }}\\manifest.json"
           ReserveGB: "{{ wsus_download_reserve_gb | int }}"
       register: wsus_import_preparation
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Create content subdirectories using native Ansible
       ansible.windows.win_file:
         path: "{{ wsus_import_preparation.result.ContentPath }}\\{{ item | replace('/', wsus_path_separator) }}"
         state: directory
       loop: "{{ wsus_import_preparation.result.Directories }}"
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Download and verify update files directly into internal WSUS content
       ansible.windows.win_get_url:
@@ -122,7 +122,7 @@
       loop: "{{ wsus_import_preparation.result.FilesToDownload }}"
       loop_control:
         label: "{{ item.relativePath }}"
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Download and verify the complete metadata export
       ansible.windows.win_get_url:
@@ -134,7 +134,7 @@
         use_proxy: false
         follow_redirects: none
         url_timeout: "{{ wsus_transfer_timeout | int }}"
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Import WSUS metadata after the verified transfer
       # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
@@ -150,7 +150,7 @@
       async: "{{ wsus_transfer_timeout | int }}"
       poll: 0
       register: wsus_operation
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Wait for internal metadata import
       ansible.builtin.include_tasks: tasks/wait_windows_operation.yml
@@ -161,18 +161,18 @@
       ansible.windows.win_copy:
         content: "{{ wsus_manifest.metadata.sha256 }}"
         dest: "{{ wsus_import_root }}\\{{ wsus_snapshot_reference.snapshot }}\\imported.sha256"
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Report imported snapshot
       ansible.builtin.debug:
         var: wsus_operation_status.result
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Inspect the saved internal patch ceiling
       ansible.windows.win_stat:
         path: "{{ wsus_state_root }}\\patch-month-policy.json"
       register: wsus_saved_patch_ceiling
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Reapply an active ceiling after metadata import
       when: wsus_saved_patch_ceiling.stat.exists
@@ -181,12 +181,12 @@
           ansible.builtin.slurp:
             src: "{{ wsus_state_root }}\\patch-month-policy.json"
           register: wsus_saved_patch_ceiling_file
-          no_log: "{{ wsus_no_log | bool }}"
+          no_log: false
 
         - name: Decode the saved patch ceiling
           ansible.builtin.set_fact:
             wsus_saved_patch_ceiling_policy: "{{ wsus_saved_patch_ceiling_file.content | b64decode | from_json }}"
-          no_log: "{{ wsus_no_log | bool }}"
+          no_log: false
 
         - name: Require the supported saved-ceiling format
           ansible.builtin.assert:

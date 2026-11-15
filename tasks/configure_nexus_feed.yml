@@ -8,7 +8,7 @@
     return_content: true
   register: nexus_feed
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Enable feed and prevent package version overwrites
   ansible.windows.win_uri:
@@ -33,4 +33,4 @@
     not nexus_feed.json.online or
     nexus_feed.json.storage.writePolicy != 'ALLOW_ONCE' or
     not nexus_feed.json.storage.strictContentTypeValidation
-  no_log: true
+  no_log: false

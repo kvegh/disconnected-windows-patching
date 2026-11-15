@@ -19,7 +19,7 @@
     unredirected_headers: [Authorization]
   register: selected_asset
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Require a unique asset on the intended external server
   ansible.builtin.assert:
@@ -27,7 +27,7 @@
       - selected_asset.json.continuationToken | default(none) == none
       - selected_asset.json['items'] | length == 1
       - selected_asset.json['items'][0].downloadUrl.startswith(nexus_external_url ~ '/repository/' ~ chocolatey_external_feed_name ~ '/')
-  no_log: true
+  no_log: false
 
 - name: Download the exact synchronized artifact from external Nexus
   ansible.builtin.get_url:
@@ -40,4 +40,4 @@
     mode: '0640'
     timeout: 300
     unredirected_headers: [Authorization]
-  no_log: true
+  no_log: false

@@ -11,7 +11,7 @@
   environment: &ad_controller_tls
     SSL_CERT_FILE: "{{ ad_api_ca.path }}"
     REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
-  no_log: true
+  no_log: false
 
 - name: Keep the inert local inventory host enabled
   block:
@@ -23,7 +23,7 @@
         variables:
           ansible_connection: local
       environment: *ad_controller_tls
-      no_log: true
+      no_log: false
   rescue:
     - name: Report only the failed request status and timeout metadata
       # Keep response bodies, URLs, arguments and credentials protected.
@@ -50,7 +50,7 @@
       username: "{{ active_directory.prefix }}-mock-{{ ad_resource_set.key | lower }}"
       password: "{{ active_directory.mock_passwords[ad_resource_set.key] }}"
   environment: *ad_controller_tls
-  no_log: true
+  no_log: false
 
 - name: Create or rename mock templates with fixed country and access inputs
   ansible.controller.job_template:
@@ -84,7 +84,7 @@
     - {key: read, label: Read}
     - {key: simulate_change, label: Simulate Change}
   environment: *ad_controller_tls
-  no_log: true
+  no_log: false
 
 - name: Grant view-only access to this resource set
   ansible.platform.role_team_assignment:
@@ -104,7 +104,7 @@
   until: ad_reader_grant is succeeded
   retries: 3
   delay: 5
-  no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
+  no_log: false
 
 - name: Give executors project visibility without granting project use
   ansible.platform.role_team_assignment:
@@ -118,7 +118,7 @@
   until: ad_executor_project_grant is succeeded
   retries: 3
   delay: 5
-  no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
+  no_log: false
 
 - name: Grant object-scoped executor and admin access
   ansible.platform.role_team_assignment:
@@ -136,4 +136,4 @@
   retries: 3
   delay: 5
   when: item.0 == 'admin' or item.1.kind != 'project'
-  no_log: "{{ not (ad_configuration_diagnostics | default(false) | bool) }}"
+  no_log: false

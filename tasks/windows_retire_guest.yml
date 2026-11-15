@@ -14,7 +14,7 @@
       - hactar_source_public_ip is string
       - not ansible_check_mode
     quiet: true
-  no_log: true
+  no_log: false
 
 - name: Read the existing fixed shared lifecycle dependency
   ansible.builtin.include_vars:
@@ -25,7 +25,7 @@
   ansible.builtin.assert:
     that:
       - windows_retire_dependency.windows_recovery_release_repository == 'https://github.com/kvegh/aap_autodeploy_configascode.git'
-      - windows_retire_dependency.windows_recovery_release_revision == '6d36ee98cd55abe19b787b1665824f315fd64e32'
+      - windows_retire_dependency.windows_recovery_release_revision == '0c82fb6b177ea3d13938756d91c2e1c34892b37d'
     quiet: true
 
 - name: Allocate one private implementation checkout for this retirement
@@ -39,7 +39,7 @@
   register: windows_retire_checkout
 
 - name: Validate, remove and publish only the exact selected Windows guest
-  no_log: true
+  no_log: false
   block:
     - name: Fetch the same reviewed public lifecycle implementation
       ansible.builtin.git:

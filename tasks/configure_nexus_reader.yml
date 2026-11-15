@@ -8,7 +8,7 @@
     return_content: true
   register: nexus_roles
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Ensure a repository-scoped read role exists
   ansible.windows.win_uri:
@@ -31,7 +31,7 @@
       roles: []
   when: not role_exists or (matching_roles[0].privileges | sort != role_definition.privileges | sort) or matching_roles[0].roles | length > 0
   changed_when: true
-  no_log: true
+  no_log: false
 
 - name: Read Nexus accounts
   ansible.windows.win_uri:
@@ -42,7 +42,7 @@
     return_content: true
   register: nexus_users
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Create the vaulted package reader
   ansible.windows.win_uri:
@@ -65,7 +65,7 @@
       roles: [aap-chocolatey-read]
   when: chocolatey_source_username not in (nexus_users.json | map(attribute='userId') | list)
   changed_when: true
-  no_log: true
+  no_log: false
 
 - name: Enforce scoped access for an existing reader
   ansible.windows.win_uri:
@@ -82,7 +82,7 @@
   loop: "{{ nexus_users.json | selectattr('userId', 'equalto', chocolatey_source_username) | list }}"
   when: item.status != 'active' or item.roles | sort != ['aap-chocolatey-read']
   changed_when: true
-  no_log: true
+  no_log: false
 
 - name: Check the vaulted reader password
   ansible.windows.win_uri:
@@ -93,7 +93,7 @@
     status_code: [200, 401, 403]
   register: nexus_reader_auth
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Reconcile a changed reader password
   ansible.windows.win_uri:
@@ -107,4 +107,4 @@
     status_code: 204
   when: nexus_reader_auth.status_code == 401
   changed_when: true
-  no_log: true
+  no_log: false

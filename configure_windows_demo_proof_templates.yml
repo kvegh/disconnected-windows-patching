@@ -21,7 +21,7 @@
         project: "{{ wsus_controller_project | string }}"
         wait: true
         timeout: 600
-      no_log: true
+      no_log: false
 
     - name: Configure the managed-server proof and regression templates
       ansible.controller.job_template:
@@ -75,7 +75,7 @@
                 default: 'false'
                 required: false
       register: windows_demo_proof_templates
-      no_log: true
+      no_log: false
 
     - name: Report the configured proof templates
       ansible.builtin.debug:

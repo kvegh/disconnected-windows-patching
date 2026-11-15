@@ -35,7 +35,7 @@
                     oauth_token=wsus_controller_token | default(omit),
                     verify_ssl=true, return_all=true,
                     query_params={'workflow_job_template': windows_activation_controller_workflow | string}) }}
-      no_log: true
+      no_log: false
 
     - name: Resolve the two existing deployment handoff nodes
       ansible.builtin.set_fact:
@@ -45,7 +45,7 @@
           {{ windows_activation_existing_nodes | selectattr('identifier', 'equalto', windows_activation_prepare_identifier) | list }}
         windows_activation_prior_nodes: >-
           {{ windows_activation_existing_nodes | selectattr('identifier', 'equalto', windows_activation_node_identifier) | list }}
-      no_log: true
+      no_log: false
 
     - name: Require exactly the existing Windows basics and repository preparation nodes
       ansible.builtin.assert:
@@ -63,7 +63,7 @@
                     host=wsus_controller_host | default(omit),
                     oauth_token=wsus_controller_token | default(omit),
                     verify_ssl=true, return_all=true) }}
-      no_log: true
+      no_log: false
 
     - name: Refuse to overwrite an unexpected workflow branch
       ansible.builtin.assert:
@@ -78,7 +78,7 @@
         wait: true
         timeout: 600
       when: wsus_controller_refresh_project | default(true) | bool
-      no_log: true
+      no_log: false
 
     - name: Configure the activation Job Template with its existing distinct credential sources
       ansible.controller.job_template:
@@ -102,7 +102,7 @@
         verbosity: 0
         state: present
       register: windows_activation_template_configuration
-      no_log: true
+      no_log: false
 
     - name: Insert activation with repository preparation as its success continuation
       ansible.controller.workflow_job_template_node:
@@ -114,7 +114,7 @@
         failure_nodes: []
         always_nodes: []
         state: present
-      no_log: true
+      no_log: false
 
     - name: Route the existing Windows basics success edge through activation
       ansible.controller.workflow_job_template_node:
@@ -122,7 +122,7 @@
         identifier: "{{ windows_activation_basics_identifier }}"
         success_nodes: ["{{ windows_activation_node_identifier }}"]
         state: present
-      no_log: true
+      no_log: false
 
     - name: Report the configured activation handoff
       ansible.builtin.debug:

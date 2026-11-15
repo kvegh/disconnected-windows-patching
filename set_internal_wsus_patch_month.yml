@@ -39,7 +39,7 @@
       check_mode: true
       changed_when: false
       register: wsus_patch_month_preview
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Report the read-only plan
       ansible.builtin.debug:
@@ -103,7 +103,7 @@
           async: "{{ (wsus_download_timeout | int) + 600 }}"
           poll: 0
           register: wsus_operation
-          no_log: "{{ wsus_no_log | bool }}"
+          no_log: false
 
         - name: Wait for verified historical baseline downloads
           ansible.builtin.include_tasks: tasks/wait_windows_operation.yml
@@ -114,7 +114,7 @@
           ansible.windows.win_copy:
             content: "{{ wsus_operation_status.result.selection | to_nice_json }}"
             dest: "{{ wsus_state_root }}\\selection.json"
-          no_log: "{{ wsus_no_log | bool }}"
+          no_log: false
 
         - name: Report completed external content preparation
           ansible.builtin.debug:

@@ -13,7 +13,7 @@
     (wsus_operation_status.failed | default(false) | bool)
   retries: "{{ ((wsus_operation_timeout | int) / 30) | round(0, 'ceil') | int }}"
   delay: 30
-  no_log: "{{ wsus_no_log | bool }}"
+  no_log: false
 
 - name: Remove the completed Windows async result
   ansible.builtin.async_status:
@@ -22,4 +22,4 @@
   become: true
   become_method: ansible.builtin.runas
   become_user: SYSTEM
-  no_log: "{{ wsus_no_log | bool }}"
+  no_log: false

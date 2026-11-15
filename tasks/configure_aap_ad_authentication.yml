@@ -32,18 +32,18 @@
   until: ad_ldap_authenticator is succeeded
   retries: 3
   delay: 5
-  no_log: true
+  no_log: false
 
 - name: Reset the desired login group list before constructing full distinguished names
   ansible.builtin.set_fact:
     ad_allowed_group_dns: []
-  no_log: true
+  no_log: false
 
 - name: Construct the allowed full distinguished names
   ansible.builtin.set_fact:
     ad_allowed_group_dns: "{{ (ad_allowed_group_dns | default([])) + [('CN=' ~ item.name ~ ',' ~ item.path) | lower] }}"
   loop: "{{ active_directory.groups | selectattr('scope', 'equalto', 'DomainLocal') | list }}"
-  no_log: true
+  no_log: false
 
 - name: Restrict LDAP login to the demo's regional access groups
   ansible.platform.authenticator_map:
@@ -59,7 +59,7 @@
   until: ad_ldap_allow_map is succeeded
   retries: 3
   delay: 5
-  no_log: true
+  no_log: false
 
 - name: Map eligible directory users to the demo organization
   ansible.platform.authenticator_map:
@@ -77,7 +77,7 @@
   until: ad_ldap_organization_map is succeeded
   retries: 3
   delay: 5
-  no_log: true
+  no_log: false
 
 - name: Map each regional access group to its scoped AAP team
   ansible.platform.authenticator_map:
@@ -99,7 +99,7 @@
   until: ad_ldap_team_map is succeeded
   retries: 3
   delay: 5
-  no_log: true
+  no_log: false
 
 - name: Enable only the configured regional LDAP authenticator
   ansible.platform.authenticator:
@@ -114,4 +114,4 @@
   until: ad_ldap_authenticator is succeeded
   retries: 3
   delay: 5
-  no_log: true
+  no_log: false

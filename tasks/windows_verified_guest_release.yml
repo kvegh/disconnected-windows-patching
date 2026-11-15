@@ -19,7 +19,7 @@
       - ansible_winrm_server_cert_validation != 'validate' or windows_runtime_ca_file.path is defined
     quiet: true
     fail_msg: Complete the selected Windows baseline over authenticated HTTPS WinRM before releasing its isolation.
-  no_log: true
+  no_log: false
 
 - name: Read the actual authenticated Windows computer and every active NIC
   ansible.windows.win_powershell:
@@ -27,7 +27,7 @@
     error_action: stop
     depth: 4
   register: windows_runtime_computer_identity
-  no_log: true
+  no_log: false
 
 - name: Allocate short-lived pinned hypervisor trust for this verified guest
   ansible.builtin.tempfile:
@@ -40,10 +40,10 @@
     ansible_connection: local
   register: windows_runtime_release_trust
   check_mode: false
-  no_log: true
+  no_log: false
 
 - name: Verify native clone identity and release through the existing lifecycle transaction
-  no_log: true
+  no_log: false
   block:
     - name: Write only independently pinned hypervisor host keys
       ansible.builtin.copy:

@@ -1,7 +1,7 @@
 ---
 - name: Prepare only the selected Windows-owned AAP management connection
   when: windows_runtime_aap_management is defined
-  no_log: true
+  no_log: false
   block:
     - name: Evaluate management diagnostic flags without exposing invalid inputs
       ansible.builtin.set_fact:
@@ -19,7 +19,7 @@
           existing_ssh_password_present: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_PASSWORD') | length > 0 }}"
           existing_ssh_trust_present: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_SSH_KNOWN_HOSTS') | length > 0 }}"
       when: windows_infrastructure_guard_diagnostics | default(false) | bool
-      no_log: true
+      no_log: false
 
     - name: Report only Boolean management guard results when explicitly requested
       ansible.builtin.debug:
@@ -157,7 +157,7 @@
           ansible.builtin.assert:
             that:
               - windows_aap_network_dependency.windows_recovery_release_repository == 'https://github.com/kvegh/aap_autodeploy_configascode.git'
-              - windows_aap_network_dependency.windows_recovery_release_revision == '6d36ee98cd55abe19b787b1665824f315fd64e32'
+              - windows_aap_network_dependency.windows_recovery_release_revision == '0c82fb6b177ea3d13938756d91c2e1c34892b37d'
             quiet: true
 
         - name: Fetch the single reviewed public implementation for this whole job

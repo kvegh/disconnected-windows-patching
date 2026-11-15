@@ -35,7 +35,7 @@
       when:
         - windows_runtime_settings_vault is defined
         - windows_infrastructure_guard_diagnostics | default(false) | bool
-      no_log: true
+      no_log: false
 
     - name: Evaluate selected-clone diagnostic flags without exposing invalid inputs
       ansible.builtin.set_fact:
@@ -57,7 +57,7 @@
       when:
         - windows_runtime_settings_vault is defined
         - windows_infrastructure_guard_diagnostics | default(false) | bool
-      no_log: true
+      no_log: false
 
     - name: Report only Boolean selected-clone guard results when explicitly requested
       ansible.builtin.debug:
@@ -95,7 +95,7 @@
         quiet: true
         fail_msg: The requested clone does not match the selected private instance's owned guest mapping.
       when: windows_runtime_settings_vault is defined
-      no_log: true
+      no_log: false
 
     - name: Validate survey or extra variable inputs
       ansible.builtin.assert:
@@ -223,7 +223,7 @@
       register: windows_runtime_reservations
       changed_when: (windows_runtime_reservations.stdout | from_json).changed
       when: windows_runtime_settings_vault is defined and not ansible_check_mode
-      no_log: true
+      no_log: false
 
     - name: Build Windows VM deployment command
       ansible.builtin.set_fact:

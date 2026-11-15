@@ -20,7 +20,7 @@
       delay: 15
       until: windows_patch_scan_before is succeeded
       changed_when: false
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Reject offered updates with an unknown or later release month
       ansible.builtin.assert:
@@ -28,7 +28,7 @@
           - item.value.title is search(windows_patch_eligibility_filters | join('|'))
         fail_msg: An applicable update is outside the verified monthly ceiling. No installation was started.
       loop: "{{ windows_patch_scan_before.result.updates | dict2items }}"
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Process prerequisite and update passes with fresh license guards
       ansible.builtin.include_tasks: tasks/update_managed_windows_pass.yml
@@ -50,7 +50,7 @@
       delay: 15
       until: windows_patch_scan_after is succeeded
       changed_when: false
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
       when: not ansible_check_mode
 
     - name: Read final installed build and verify the source remains protected
@@ -63,7 +63,7 @@
           ExpectedWsusUrl: "{{ wsus_internal_url }}"
       register: windows_patch_after
       changed_when: false
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Compare the actual installed OS revision with the audited monthly baseline
       ansible.builtin.set_fact:
@@ -71,7 +71,7 @@
           {{ 'below' if (windows_patch_after.result.revision | int) < (windows_patch_expected_baseline.revision | int)
              else ('above' if (windows_patch_after.result.revision | int) > (windows_patch_expected_baseline.revision | int)
              else 'at') }}
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Ensure the saved WSUS ceiling and catalogue policy remained stable
       ansible.builtin.include_tasks: tasks/validate_windows_patch_ceiling.yml
@@ -89,7 +89,7 @@
           pending updates/reboots within the bounded passes. Zero update offers
           alone does not prove baseline compliance. Inspect protected artifacts.
       when: not ansible_check_mode
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Publish installed-state and guarded update-cycle evidence
       ansible.builtin.set_stats:
@@ -111,7 +111,7 @@
             }} }}
         aggregate: true
         per_host: false
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Report the current ceiling and actual installed OS evidence
       ansible.builtin.debug:
@@ -157,7 +157,7 @@
             }} }}
         aggregate: true
         per_host: false
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Stop this patch job after a failed update or policy check
       ansible.builtin.fail:

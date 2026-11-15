@@ -28,7 +28,7 @@
         ansible_connection: local
       register: ad_execution_collections
       changed_when: false
-      no_log: true
+      no_log: false
 
     - name: Inspect OS, networking, servicing, licensing and certificate metadata
       # Platform/API reason: [rationale](docs/supporting-code.md#windows-inspection-and-evidence).
@@ -163,7 +163,7 @@
           }
       register: ad_read_only_inspection
       changed_when: false
-      no_log: true
+      no_log: false
 
     - name: Optionally search Microsoft for remaining updates without installing them
       ansible.windows.win_updates:
@@ -173,7 +173,7 @@
         state: searched
       register: ad_read_only_update_scan
       when: ad_inspect_update_scan | default(false) | bool
-      no_log: true
+      no_log: false
 
     - name: Save the optional read-only software update scan
       ansible.builtin.set_stats:
@@ -184,7 +184,7 @@
             updates: "{{ ad_read_only_update_scan.updates | default({}) }}"
         aggregate: false
       when: ad_inspect_update_scan | default(false) | bool
-      no_log: true
+      no_log: false
 
     - name: Preserve the protected inspection evidence
       ansible.builtin.set_stats:
@@ -192,7 +192,7 @@
           active_directory_guest_inspection: "{{ ad_read_only_inspection.result }}"
           active_directory_execution_collections: "{{ ad_execution_collections.stdout | from_json }}"
         aggregate: false
-      no_log: true
+      no_log: false
 
     - name: Report the inspection outcome without environment identities
       ansible.builtin.debug:

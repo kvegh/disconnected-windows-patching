@@ -25,7 +25,7 @@
         wait: true
         timeout: 600
       when: wsus_controller_refresh_project | default(true) | bool
-      no_log: true
+      no_log: false
 
     - name: Configure the current-ceiling patch template
       ansible.controller.job_template:
@@ -53,7 +53,7 @@
         verbosity: 0
         state: present
       register: windows_patching_template_configuration
-      no_log: true
+      no_log: false
 
     - name: Configure standalone assessment with the same existing Windows credentials
       ansible.controller.job_template:
@@ -80,7 +80,7 @@
         verbosity: 0
         state: present
       register: windows_assessment_template_configuration
-      no_log: true
+      no_log: false
 
     - name: Report configured update and assessment templates
       ansible.builtin.debug:

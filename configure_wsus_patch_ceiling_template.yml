@@ -24,7 +24,7 @@
         wait: true
         timeout: 600
       when: wsus_controller_refresh_project | default(true) | bool
-      no_log: true
+      no_log: false
 
     - name: Configure the template, credential associations and named-month survey
       ansible.controller.job_template:
@@ -51,7 +51,7 @@
         verbosity: 0
         state: present
       register: wsus_ceiling_template_configuration
-      no_log: true
+      no_log: false
 
     - name: Report configured template
       ansible.builtin.debug:

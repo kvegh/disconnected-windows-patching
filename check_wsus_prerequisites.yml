@@ -160,14 +160,14 @@
           }
       register: wsus_external_inspection
       changed_when: false
-      no_log: true
+      no_log: false
 
     - name: Preserve protected external WSUS activity evidence
       ansible.builtin.set_stats:
         data:
           windows_wsus_external_inspection: "{{ wsus_external_inspection.result }}"
         aggregate: false
-      no_log: true
+      no_log: false
 
     - name: Validate pipeline scripts with the Windows PowerShell parser
       # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).
@@ -236,14 +236,14 @@
           $Ansible.Result = @{ ObservedAtUtc=[datetime]::UtcNow.ToString('o'); Workers=$workers; ImportLogs=$logs }
       register: wsus_import_inspection
       changed_when: false
-      no_log: true
+      no_log: false
 
     - name: Preserve protected internal WSUS import evidence
       ansible.builtin.set_stats:
         data:
           windows_wsus_import_inspection: "{{ wsus_import_inspection.result }}"
         aggregate: false
-      no_log: true
+      no_log: false
 
     - name: Report read-only internal WSUS observation completion
       ansible.builtin.debug:

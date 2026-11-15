@@ -15,7 +15,7 @@
     - name: Require existing baseline or current versions before upgrading
       chocolatey.chocolatey.win_chocolatey_facts:
         filter: [packages]
-      no_log: true
+      no_log: false
 
     - name: Verify each selected application is already installed
       ansible.builtin.assert:
@@ -27,7 +27,7 @@
         matching: "{{ ansible_chocolatey.packages | selectattr('package', 'equalto', item) | list }}"
         permitted_versions: "{{ chocolatey_packages | selectattr('id', 'equalto', item) | map(attribute='version') | list }}"
       loop: "{{ chocolatey_packages | map(attribute='id') | unique | list }}"
-      no_log: true
+      no_log: false
 
     - name: Select current packages and upgrade
       ansible.builtin.include_tasks: tasks/deploy_chocolatey_release.yml

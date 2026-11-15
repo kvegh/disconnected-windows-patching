@@ -30,4 +30,4 @@
       [IO.File]::WriteAllText($path, ($receipt | ConvertTo-Json -Depth 5), (New-Object Text.UTF8Encoding($false)))
       $Ansible.Changed = $true
       $Ansible.Result = @{ Track=$Track; VerifiedPackages=$verified.Count; ReceiptRecorded=$true }
-  no_log: true
+  no_log: false

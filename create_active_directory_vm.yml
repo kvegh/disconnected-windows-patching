@@ -12,7 +12,7 @@
     - name: Load the existing encrypted AD profile
       ansible.builtin.include_vars: vars/active_directory_vault.yml
       when: windows_runtime_settings_vault is not defined
-      no_log: true
+      no_log: false
 
 - name: Create the dedicated Server 2025 clone with the existing guarded provisioner
   ansible.builtin.import_playbook: 01-win-vm-setup.yml

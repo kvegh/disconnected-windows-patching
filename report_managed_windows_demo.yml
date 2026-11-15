@@ -34,13 +34,13 @@
       changed_when: false
       failed_when: false
       ignore_unreachable: true
-      no_log: true
+      no_log: false
 
     - name: Retain only the queried report for the final two-server summary
       ansible.builtin.set_fact:
         windows_demo_proof_result: "{{ windows_demo_live_proof.result | default({'error': 'Live server query failed or the host is unreachable.'}) }}"
         windows_demo_proof_collected_utc: "{{ lookup('ansible.builtin.pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
-      no_log: true
+      no_log: false
 
 - name: Display the combined result after querying both servers
   hosts: localhost
@@ -64,7 +64,7 @@
             {{ dict(groups['windows_managed'] |
                zip(groups['windows_managed'] | map('extract', hostvars, 'windows_demo_proof_result') | list)) }}
         aggregate: false
-      no_log: true
+      no_log: false
 
     - name: Require both servers to have returned live query results
       ansible.builtin.assert:

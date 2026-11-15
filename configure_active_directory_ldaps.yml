@@ -28,7 +28,7 @@
           $cs = Get-CimInstance Win32_ComputerSystem
           if ($cs.DomainRole -notin @(4,5) -or $cs.Domain -ne $Domain -or $cs.Name -ne $Hostname) { throw 'Unexpected domain controller.' }
           $Ansible.Changed = $false
-      no_log: true
+      no_log: false
 
     - name: Create the private certificate staging directory
       ansible.windows.win_file:
@@ -67,7 +67,7 @@
               $base64 = $Issuer -replace '-----BEGIN CERTIFICATE-----','' -replace '-----END CERTIFICATE-----','' -replace '\s',''
               [IO.File]::WriteAllBytes((Join-Path $Directory 'issuer.cer'),[Convert]::FromBase64String($base64))
               $Ansible.Changed = $false
-          no_log: true
+          no_log: false
 
         - name: Trust the dedicated issuing CA on the domain controller
           ansible.windows.win_certificate_store:
@@ -76,7 +76,7 @@
             store_name: Root
             state: present
           register: ad_ldaps_ca_import
-          no_log: true
+          no_log: false
 
         - name: Import the LDAPS certificate and nonexportable machine private key
           ansible.windows.win_certificate_store:
@@ -88,7 +88,7 @@
             key_exportable: false
             state: present
           register: ad_ldaps_leaf_import
-          no_log: true
+          no_log: false
       always:
         - name: Remove staged private certificate files
           ansible.windows.win_file:
@@ -123,7 +123,7 @@
           $Ansible.Changed = $false
           $Ansible.Result = @{ LdapsVerified=$true; CertificateVerified=$true }
       register: ad_ldaps_verification
-      no_log: true
+      no_log: false
 
     - name: Preserve LDAPS verification without private material
       ansible.builtin.set_stats:

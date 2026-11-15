@@ -50,7 +50,7 @@ class InitialRunTests(unittest.TestCase):
                     if variant == 'old-pin':
                         selected['windows_recovery_release_revision'] = 'f22171b8ea6635888d280eb317d24863341197af'
                     elif variant == 'previous-pin':
-                        selected['windows_recovery_release_revision'] = 'f9aa8410dc91536a7175141a85878c7055672180'
+                        selected['windows_recovery_release_revision'] = '6d36ee98cd55abe19b787b1665824f315fd64e32'
                     elif variant == 'branch':
                         selected['windows_recovery_release_revision'] = 'main'
                     elif variant == 'foreign-repository':

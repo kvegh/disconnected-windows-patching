@@ -29,7 +29,7 @@
         state: directory
         prefix: aap-windows-regressions-
       register: windows_regression_workspace
-      no_log: true
+      no_log: false
 
     - name: Execute the regressions and always remove their staged sources
       block:
@@ -38,7 +38,7 @@
             src: "{{ item }}/"
             dest: "{{ windows_regression_workspace.path }}\\{{ item }}\\"
           loop: [assets, tests]
-          no_log: true
+          no_log: false
 
         - name: Run each mocked regression in a separate Windows PowerShell process
           # Native Windows mocks: [rationale](tests/README.md#powershell-tests).
@@ -52,7 +52,7 @@
               - "{{ windows_regression_workspace.path }}\\tests\\{{ item }}"
           loop: "{{ windows_regression_scripts }}"
           changed_when: false
-          no_log: "{{ not (windows_regression_diagnostics | default(false) | bool) }}"
+          no_log: false
 
         - name: Run the proof rules with the same Ansible result container as production
           # Native Windows mocks: [rationale](tests/README.md#powershell-tests).
@@ -63,7 +63,7 @@
               ReporterPath: "{{ windows_regression_workspace.path }}\\assets\\show-windows-demo-proof.ps1"
           register: windows_regression_proof
           changed_when: false
-          no_log: "{{ not (windows_regression_diagnostics | default(false) | bool) }}"
+          no_log: false
 
         - name: Require every proof-rule assertion to complete
           ansible.builtin.assert:
@@ -79,4 +79,4 @@
           ansible.windows.win_file:
             path: "{{ windows_regression_workspace.path }}"
             state: absent
-          no_log: true
+          no_log: false

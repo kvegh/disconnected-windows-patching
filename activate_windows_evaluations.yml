@@ -24,7 +24,7 @@
           - windows_activation_targets | map(attribute='inventory_host') | unique | length == windows_activation_targets | length
           - windows_activation_targets | map(attribute='vm_name') | unique | length == windows_activation_targets | length
         fail_msg: Supply approved encrypted activation topology and existing Windows login credentials.
-      no_log: true
+      no_log: false
 
     - name: Validate each protected clone mapping
       ansible.builtin.assert:
@@ -42,7 +42,7 @@
           - item.connection.server_cert_validation in ['validate', 'ignore']
         fail_msg: Activation requires exact existing inventory, domain, version, interfaces and WinRM settings.
       loop: "{{ windows_activation_targets }}"
-      no_log: true
+      no_log: false
 
     - name: Add in-memory connections using the existing encrypted Windows credentials
       ansible.builtin.add_host:
@@ -61,7 +61,7 @@
         windows_activation_settings: "{{ item }}"
         windows_activation_connected_network: "{{ windows_activation_network }}"
       loop: "{{ windows_activation_targets }}"
-      no_log: true
+      no_log: false
       changed_when: false
 
 - name: Activate each evaluation clone and restore its original network topology

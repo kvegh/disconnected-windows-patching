@@ -33,7 +33,7 @@
       register: ad_rbac_verification
       changed_when: false
       failed_when: false
-      no_log: true
+      no_log: false
 
     - name: Require successful verification while keeping credential input protected
       ansible.builtin.assert:

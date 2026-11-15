@@ -27,7 +27,7 @@
           - vm_disk_path is match('^/opt/vms/win-[A-Za-z][A-Za-z0-9-]{0,62}-clone\.disk\.qcow2$')
           - vm_disk_path not in windows_images.values()
         fail_msg: Refusing teardown without an exact approved VM name and its expected Windows clone disk.
-      no_log: true
+      no_log: false
 
     - name: Retire only the selected exact Windows clone through the existing lifecycle
       ansible.builtin.include_tasks: tasks/windows_retire_guest.yml

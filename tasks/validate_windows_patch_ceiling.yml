@@ -24,7 +24,7 @@
   delegate_to: "{{ groups['wsus_internal'][0] }}"
   register: windows_patch_policy_marker
   changed_when: false
-  no_log: "{{ windows_patch_no_log | bool }}"
+  no_log: false
 
 - name: Require a supported ceiling that has not changed during this job
   ansible.builtin.assert:
@@ -32,7 +32,7 @@
       - windows_patch_policy_marker.result.patch_month in wsus_patch_month_choices
       - windows_patch_active_month is not defined or windows_patch_policy_marker.result.patch_month == windows_patch_active_month
     fail_msg: The saved internal WSUS ceiling is unavailable or changed during this patch job. Rerun after policy changes finish.
-  no_log: "{{ windows_patch_no_log | bool }}"
+  no_log: false
 
 - name: Revalidate approvals, declines, readiness and file lengths without changing WSUS
   # Platform/API reason: [rationale](../docs/supporting-code.md#wsus-server-operations).
@@ -51,7 +51,7 @@
   delegate_to: "{{ groups['wsus_internal'][0] }}"
   register: windows_patch_current_policy
   changed_when: false
-  no_log: "{{ windows_patch_no_log | bool }}"
+  no_log: false
 
 - name: Require a verified policy with all required payloads present
   ansible.builtin.assert:
@@ -62,4 +62,4 @@
       - windows_patch_current_policy.result.selected_updates | length > 0
       - windows_patch_allowed_updates is not defined or windows_patch_current_policy.result.selected_updates == windows_patch_allowed_updates
     fail_msg: Internal WSUS is not ready or its selected identities changed. Verify the monthly ceiling before updating clients.
-  no_log: "{{ windows_patch_no_log | bool }}"
+  no_log: false

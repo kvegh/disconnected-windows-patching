@@ -29,7 +29,7 @@
           - windows_demo_vm_names | unique | length == windows_demo_expected_count | int
           - windows_demo_vm_names | sort == teardown_baseline.target_vm_names | sort
           - windows_demo_vm_names | sort == teardown_baseline.windows_owned.keys() | list | sort
-      no_log: true
+      no_log: false
 
     - name: Read remaining VM names
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -44,7 +44,7 @@
         that:
           - remaining_domains.stdout.split() | sort == (teardown_baseline.domains.keys() | list | difference(windows_demo_vm_names) | sort)
         fail_msg: Remaining domains differ from the pre-teardown baseline.
-      no_log: true
+      no_log: false
 
     - name: Read preserved VM definitions
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -54,7 +54,7 @@
       register: preserved_definitions
       changed_when: false
       check_mode: false
-      no_log: true
+      no_log: false
 
     - name: Verify preserved VM definitions are unchanged
       ansible.builtin.assert:
@@ -67,7 +67,7 @@
              teardown_baseline.domains[item.item].xml, windows_runtime_aap_management)))
         fail_msg: A preserved VM definition changed; inspect before redeployment.
       loop: "{{ preserved_definitions.results }}"
-      no_log: true
+      no_log: false
 
     - name: Read preserved VM states
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -83,7 +83,7 @@
         that: item.stdout | trim == teardown_baseline.domains[item.item].state
         fail_msg: A preserved VM state changed; inspect before redeployment.
       loop: "{{ preserved_states.results }}"
-      no_log: true
+      no_log: false
 
     - name: Inspect original Windows base images
       ansible.builtin.stat:
@@ -103,7 +103,7 @@
           - (item.stat.mtime | float - (teardown_baseline.images[item.item].mtime_ns | float / 1000000000)) | abs < 0.001
         fail_msg: A base image is missing or changed; inspect before redeployment.
       loop: "{{ preserved_images.results }}"
-      no_log: true
+      no_log: false
 
     - name: Inspect only the captured Windows clone disk paths
       ansible.builtin.stat:
@@ -119,7 +119,7 @@
         that: not item.stat.exists
         fail_msg: A Windows clone disk remains after teardown.
       loop: "{{ clone_files.results }}"
-      no_log: true
+      no_log: false
 
     - name: Verify every retired Windows guest has no ownership, reservations or permissions remaining
       ansible.builtin.include_tasks: tasks/windows_retire_guest.yml
@@ -151,7 +151,7 @@
           - teardown_baseline.aap_management == windows_runtime_aap_management
         quiet: true
       when: windows_runtime_aap_management is defined
-      no_log: true
+      no_log: false
 
     - name: Remove only the recorded Windows-owned AAP connection after all five clones and disks are absent
       ansible.builtin.include_tasks: tasks/windows_aap_management_network.yml
@@ -166,7 +166,7 @@
       register: windows_final_preserved_definitions
       changed_when: false
       when: windows_runtime_aap_management is defined
-      no_log: true
+      no_log: false
 
     - name: Verify only the recorded supplemental NIC was removed from the selected AAP
       ansible.builtin.assert:
@@ -178,7 +178,7 @@
         quiet: true
       loop: "{{ windows_final_preserved_definitions.results | default([]) }}"
       when: windows_runtime_aap_management is defined
-      no_log: true
+      no_log: false
 
     - name: Report successful teardown verification
       ansible.builtin.debug:

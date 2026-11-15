@@ -35,13 +35,13 @@
           - windows_e2e_target_2022 != windows_e2e_target_2025
           - windows_e2e_patch_month | default('April 2026') == 'April 2026'
         fail_msg: Supply exact Windows workflow/template references, two disjoint host limits and the April 2026 baseline.
-      no_log: true
+      no_log: false
 
     - name: Refuse group-wide managed patch limits
       ansible.builtin.assert:
         that: item.split(':')[0] not in ['all', 'windows', 'windows_managed', 'wsus_internal', 'wsus_external', 'hypervisor']
       loop: "{{ windows_e2e_patch_limits }}"
-      no_log: true
+      no_log: false
 
     - name: Read the selected workflow before changing its content handoff
       ansible.builtin.set_fact:
@@ -51,14 +51,14 @@
                     oauth_token=wsus_controller_token | default(omit),
                     verify_ssl=true, return_all=true,
                     query_params={'workflow_job_template': windows_e2e_workflow | string}) }}
-      no_log: true
+      no_log: false
 
     - name: Require the known deployment and application stages
       ansible.builtin.assert:
         that: windows_e2e_existing_nodes | selectattr('identifier', 'equalto', item) | list | length == 1
         fail_msg: The selected workflow lacks an expected Windows stage.
       loop: "{{ windows_e2e_required_nodes }}"
-      no_log: true
+      no_log: false
 
     - name: Supply the required protected-output answer for Chocolatey synchronization
       ansible.controller.workflow_job_template_node:
@@ -70,7 +70,7 @@
         state: present
       vars:
         sync_node: "{{ windows_e2e_existing_nodes | selectattr('identifier', 'equalto', 'synchronize-external-chocolatey-repo') | first }}"
-      no_log: true
+      no_log: false
 
     - name: Refuse to replace an unexpected import successor
       ansible.builtin.assert:
@@ -89,7 +89,7 @@
           allowed: [[], ["{{ windows_e2e_ceiling_identifier }}"]]
         - identifier: replicate-and-import-chocolatey
           allowed: [[deploy-baseline-applications], ["{{ windows_e2e_ceiling_identifier }}"]]
-      no_log: true
+      no_log: false
 
     - name: Create the monthly ceiling stage with both imports required
       ansible.controller.workflow_job_template_node:
@@ -100,7 +100,7 @@
         extra_data:
           wsus_patch_month: "{{ windows_e2e_patch_month | default('April 2026') }}"
         state: present
-      no_log: true
+      no_log: false
 
     - name: Create two independent host-limited patch jobs before baseline applications
       ansible.controller.workflow_job_template_node:
@@ -114,7 +114,7 @@
         always_nodes: []
         state: present
       loop: "{{ windows_e2e_patch_identifiers | zip(windows_e2e_patch_limits) | list }}"
-      no_log: true
+      no_log: false
 
     - name: Require both patched hosts before baseline installation
       ansible.controller.workflow_job_template_node:
@@ -123,7 +123,7 @@
         all_parents_must_converge: true
         success_nodes: [upgrade-applications]
         state: present
-      no_log: true
+      no_log: false
 
     - name: Start both patch jobs only after the monthly ceiling succeeds
       ansible.controller.workflow_job_template_node:
@@ -133,7 +133,7 @@
         failure_nodes: []
         always_nodes: []
         state: present
-      no_log: true
+      no_log: false
 
     - name: Route both completed imports into the common monthly ceiling
       ansible.controller.workflow_job_template_node:
@@ -142,7 +142,7 @@
         success_nodes: ["{{ windows_e2e_ceiling_identifier }}"]
         state: present
       loop: [replicate-and-import-wsus, replicate-and-import-chocolatey]
-      no_log: true
+      no_log: false
 
     - name: Read the resulting workflow for independent ordering verification
       ansible.builtin.set_fact:
@@ -152,7 +152,7 @@
                     oauth_token=wsus_controller_token | default(omit),
                     verify_ssl=true, return_all=true,
                     query_params={'workflow_job_template': windows_e2e_workflow | string}) }}
-      no_log: true
+      no_log: false
 
     - name: Verify every changed success edge from the controller
       ansible.builtin.assert:
@@ -179,13 +179,13 @@
           success: [deploy-baseline-applications]
         - identifier: deploy-baseline-applications
           success: [upgrade-applications]
-      no_log: true
+      no_log: false
 
     - name: Verify both common stages require every parent to succeed
       ansible.builtin.assert:
         that: (windows_e2e_final_nodes | selectattr('identifier', 'equalto', item) | first).all_parents_must_converge | bool
       loop: ["{{ windows_e2e_ceiling_identifier }}", deploy-baseline-applications]
-      no_log: true
+      no_log: false
 
     - name: Verify the required synchronization survey answer remains protected
       ansible.builtin.assert:
@@ -193,7 +193,7 @@
         quiet: true
       vars:
         sync_node: "{{ windows_e2e_final_nodes | selectattr('identifier', 'equalto', 'synchronize-external-chocolatey-repo') | first }}"
-      no_log: true
+      no_log: false
 
     - name: Report verified end-to-end ordering
       ansible.builtin.debug:

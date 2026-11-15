@@ -1,6 +1,6 @@
 ---
 - name: Remove only the captured dedicated regional demo
-  no_log: true
+  no_log: false
   environment:
     SSL_CERT_FILE: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_CA_FILE') }}"
     REQUESTS_CA_BUNDLE: "{{ lookup('ansible.builtin.env', 'AD_AAP_TARGET_CA_FILE') }}"

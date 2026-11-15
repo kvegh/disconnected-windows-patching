@@ -4,7 +4,7 @@
   become: false
   vars:
     ansible_connection: local
-  no_log: true
+  no_log: false
   block:
     - name: Require whole-file Vault ciphertext and an explicit selected instance
       ansible.builtin.assert:
@@ -56,7 +56,7 @@
 
 - name: Pin the selected hypervisor before its first managed connection
   when: inventory_hostname == windows_runtime_hypervisor.inventory_host
-  no_log: true
+  no_log: false
   block:
     - name: Require exactly the selected hypervisor inventory entry
       ansible.builtin.assert:
@@ -128,13 +128,13 @@
     - inventory_hostname != 'localhost'
     - inventory_hostname != windows_runtime_hypervisor.inventory_host
     - inventory_hostname not in groups.get('ad_trust_targets', [])
-  no_log: true
+  no_log: false
 
 - name: Install the selected WinRM public CA in the execution environment
   when:
     - inventory_hostname in windows_runtime_guests
     - ansible_winrm_server_cert_validation == 'validate'
-  no_log: true
+  no_log: false
   block:
     - name: Allocate private WinRM CA file
       ansible.builtin.tempfile:
@@ -173,4 +173,4 @@
     - windows_runtime_guests[inventory_hostname].role != 'ad'
     - inventory_hostname in groups.get('wsus_external', []) + groups.get('wsus_internal', []) + groups.get('windows_managed', [])
     - inventory_hostname not in groups.get('active_directory', [])
-  no_log: true
+  no_log: false

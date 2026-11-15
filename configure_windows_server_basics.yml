@@ -51,7 +51,7 @@
           - windows_network_interfaces | map(attribute='mac') | unique | length == windows_network_interfaces | length
           - windows_network_interfaces | map(attribute='name') | unique | length == windows_network_interfaces | length
         fail_msg: Supply per-host windows_network_interfaces and windows_connection_address through protected inventory variables.
-      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      no_log: false
 
     - name: Validate each desired interface
       ansible.builtin.assert:
@@ -68,7 +68,7 @@
           - inventory_hostname in groups['wsus_external'] or item.dns_servers | length == 0
         fail_msg: Supply MAC, adapter name, IPv4 address/prefix, gateway (empty for none), and DNS list. Only external WSUS may have a gateway or DNS.
       loop: "{{ windows_network_interfaces }}"
-      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      no_log: false
 
     - name: Validate MAC matches and addresses before changing networking
       # Platform/API reason: [rationale](docs/supporting-code.md#windows-networking-and-activation).
@@ -78,7 +78,7 @@
         parameters:
           ConfigurationJson: "{{ windows_network_interfaces | to_json }}"
           ValidateOnly: true
-      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      no_log: false
 
     - name: Use UTC to match selected Windows virtual hardware clocks
       ansible.windows.win_timezone:
@@ -114,7 +114,7 @@
               GraceMinutes = [int]$license.GracePeriodRemaining
           }
       register: windows_clock_readiness
-      no_log: true
+      no_log: false
       when: windows_runtime_settings_vault is defined
 
     - name: Preserve the actual selected Windows clock and license readback
@@ -122,7 +122,7 @@
         data:
           windows_clock_readiness: "{{ {inventory_hostname: windows_clock_readiness.result} }}"
         aggregate: true
-      no_log: true
+      no_log: false
       when: windows_runtime_settings_vault is defined
 
     - name: Remove an earlier network task before preparing this run
@@ -165,7 +165,7 @@
       ansible.windows.win_copy:
         content: "{{ {'interfaces': windows_network_interfaces, 'disable_forwarding': inventory_hostname in groups['wsus_internal']} | to_json }}"
         dest: "{{ windows_network_task_directory }}\\configuration.json"
-      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      no_log: false
       when: not ansible_check_mode
 
     - name: Copy the scheduled network task runner
@@ -199,13 +199,13 @@
         enabled: true
         state: present
       when: not ansible_check_mode
-      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      no_log: false
 
     - name: Use permanent address for the remainder of this job
       ansible.builtin.set_fact:
         ansible_host: "{{ windows_connection_address }}"
       when: not ansible_check_mode
-      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      no_log: false
 
     - name: Reset connection after network configuration starts
       ansible.builtin.meta: reset_connection
@@ -232,7 +232,7 @@
         that: windows_network_task_complete | bool
         fail_msg: Network task did not complete within the bounded polling period.
       when: not ansible_check_mode
-      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      no_log: false
 
     - name: Inspect the scheduled network task result file
       ansible.windows.win_stat:
@@ -251,7 +251,7 @@
       ansible.builtin.slurp:
         src: "{{ windows_network_task_directory }}\\result.json"
       register: windows_network_result_file
-      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      no_log: false
       when: not ansible_check_mode
 
     - name: Confirm permanent network configuration succeeded
@@ -264,7 +264,7 @@
       vars:
         network_result: "{{ windows_network_result_file.content | b64decode | from_json }}"
       changed_when: network_result.changed | default(false) | bool
-      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      no_log: false
       when: not ansible_check_mode
 
     - name: Remove the completed network task
@@ -278,7 +278,7 @@
         path: "{{ windows_network_task_directory }}"
         state: absent
       when: not ansible_check_mode
-      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      no_log: false
 
     - name: Configure DNS with the Windows DNS client module
       ansible.windows.win_dns_client:
@@ -286,7 +286,7 @@
           - "{{ item.name }}"
         dns_servers: "{{ item.dns_servers }}"
       loop: "{{ windows_network_interfaces }}"
-      no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+      no_log: false
       when: not ansible_check_mode
 
     - name: Disable IP routing on internal repository server

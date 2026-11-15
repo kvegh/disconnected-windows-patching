@@ -84,11 +84,11 @@
                   Select-Object InterfaceAlias, NextHop)
           }
       register: windows_readonly_inspection
-      no_log: true
+      no_log: false
 
     - name: Save protected read-only network and shutdown diagnostics
       ansible.builtin.set_stats:
         data:
           windows_readonly_inspection: "{{ {inventory_hostname: windows_readonly_inspection.result} }}"
         aggregate: true
-      no_log: true
+      no_log: false

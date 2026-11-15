@@ -20,7 +20,7 @@
   become_method: ansible.builtin.runas
   become_user: SYSTEM
   register: wsus_patch_month_policy
-  no_log: "{{ wsus_no_log | bool }}"
+  no_log: false
 
 - name: Create the internal policy state directory
   ansible.windows.win_file:
@@ -39,7 +39,7 @@
       wsus_patch_month_policy: "{{ wsus_patch_month_policy.result }}"
     aggregate: false
     per_host: false
-  no_log: "{{ wsus_no_log | bool }}"
+  no_log: false
 
 - name: Report the successfully enforced internal patch ceiling
   ansible.builtin.debug:

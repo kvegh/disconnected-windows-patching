@@ -23,4 +23,4 @@
             'bind_username': active_directory.bind_username,
             'bind_password': active_directory.bind_password} | to_json }}
   register: ad_identities
-  no_log: true
+  no_log: false

@@ -56,7 +56,7 @@
       async: "{{ (2 * (wsus_sync_timeout | int)) + (wsus_download_timeout | int) + 600 }}"
       poll: 0
       register: wsus_operation
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false
 
     - name: Wait for synchronization and binary downloads
       ansible.builtin.include_tasks: tasks/wait_windows_operation.yml
@@ -66,4 +66,4 @@
     - name: Report downloaded update selection
       ansible.builtin.debug:
         var: wsus_operation_status.result
-      no_log: "{{ wsus_no_log | bool }}"
+      no_log: false

@@ -4,7 +4,7 @@
   become: false
   vars:
     ansible_connection: local
-  no_log: true
+  no_log: false
   block:
     - name: Require an explicit cleanup mode and the reviewed five-guest ownership preview
       ansible.builtin.assert:

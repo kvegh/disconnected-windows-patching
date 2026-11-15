@@ -8,7 +8,7 @@
     validate_certs: true
     ca_path: "{{ ad_api_ca.path }}"
   register: ad_galaxy_source_org
-  no_log: true
+  no_log: false
 
 - name: Require one existing source organization
   ansible.builtin.assert:
@@ -24,14 +24,14 @@
     validate_certs: true
     ca_path: "{{ ad_api_ca.path }}"
   register: ad_existing_galaxy_credentials
-  no_log: true
+  no_log: false
 
 - name: Select only the three existing platform Hub sources
   ansible.builtin.set_fact:
     ad_galaxy_sources: >-
       {{ ad_existing_galaxy_credentials.json.results | selectattr('inputs.url', 'match',
       '^https://[^/]+/api/galaxy/content/(rh-certified|validated|community)/?$') | list }}
-  no_log: true
+  no_log: false
 
 - name: Require reviewed certified, validated and community PAH sources
   ansible.builtin.assert:
@@ -39,7 +39,7 @@
       - ad_galaxy_sources | length == 3
       - ad_galaxy_sources | map(attribute='inputs.url') | map('regex_replace', '/$', '') | map('basename') | sort == ['community', 'rh-certified', 'validated']
     fail_msg: Configure the existing PAH credentials before syncing regional project collections.
-  no_log: true
+  no_log: false
 
 - name: Associate the regional organization with those existing PAH credentials
   ansible.controller.organization:
@@ -49,4 +49,4 @@
   environment:
     SSL_CERT_FILE: "{{ ad_api_ca.path }}"
     REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
-  no_log: true
+  no_log: false

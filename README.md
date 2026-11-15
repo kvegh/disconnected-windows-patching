@@ -1,5 +1,15 @@
 # Disconnected Windows Patching
 
+## Temporary visible deployment logging
+
+At the owner's explicit request, deployment tasks use `no_log: false` until a
+clean deployment is achieved. This temporary direction overrides the earlier
+protected task-logging defaults described below. Keep job output and diagnostic
+captures private, redact reports, and never copy raw logs or secrets into Git.
+Native credential-field redaction, authentication, TLS checks and rollback
+remain in force. Active jobs retain the settings with which they started.
+
+
 **[Open the Windows + AAP visualization](https://kvegh.github.io/disconnected-windows-patching/demo-with-aap/)**
 
 [Open the standard Windows visualization](https://kvegh.github.io/disconnected-windows-patching/)
@@ -91,7 +101,7 @@ activation cleanup, promotion, LDAPS and real regional-access verification.
 A fresh unattended full workflow remains unverified.
 
 The shared lifecycle dependency is pinned to the qualified diagnostic backport
-`6d36ee98cd55abe19b787b1665824f315fd64e32` (AutoDeploy backport 0.63.59), based on the
+`0c82fb6b177ea3d13938756d91c2e1c34892b37d` (AutoDeploy backport 0.63.61), based on the
 previous Core 2.20 implementation `f9aa8410dc91536a7175141a85878c7055672180`.
 It retains the existing lifecycle and allocation behavior and adds encrypted
 capture for the observed central bootstrap Git-read failure. The native artifact

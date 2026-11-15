@@ -10,7 +10,7 @@
   when: windows_aap_nic_job_created
   register: windows_aap_network_nic_rollback
   changed_when: (windows_aap_network_nic_rollback.stdout | from_json).changed
-  no_log: true
+  no_log: false
 
 - name: Remove only this job's unpublished OS profile after its NIC is absent
   ansible.builtin.command:
@@ -25,4 +25,4 @@
   when: windows_aap_nm_job_created
   register: windows_aap_network_os_rollback
   changed_when: (windows_aap_network_os_rollback.stdout | from_json).changed
-  no_log: true
+  no_log: false

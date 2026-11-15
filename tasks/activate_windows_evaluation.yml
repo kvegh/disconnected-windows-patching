@@ -3,7 +3,7 @@
   ansible.builtin.assert:
     that: wsus_internal_url | default('') is match('^https?://[^/\s]+/?$')
   when: inventory_hostname in groups.get('windows_managed', [])
-  no_log: true
+  no_log: false
 
 - name: Inspect existing managed Windows update sources before changing policies
   ansible.windows.win_reg_stat:
@@ -12,7 +12,7 @@
   loop: [WUServer, WUStatusServer]
   register: windows_activation_sources_before
   when: inventory_hostname in groups.get('windows_managed', [])
-  no_log: true
+  no_log: false
 
 - name: Reject an explicitly configured conflicting managed update source
   ansible.builtin.assert:
@@ -23,7 +23,7 @@
     fail_msg: A managed clone has an explicit conflicting WSUS source; review it before allowing activation connectivity.
   loop: "{{ windows_activation_sources_before.results | default([]) }}"
   when: inventory_hostname in groups.get('windows_managed', [])
-  no_log: true
+  no_log: false
 
 - name: Keep automatic Windows updates disabled during the activation exception
   ansible.windows.win_regedit:
@@ -42,7 +42,7 @@
   when:
     - inventory_hostname in groups.get('windows_managed', [])
     - not item.exists | default(false) or item.value | default('') | length == 0
-  no_log: true
+  no_log: false
 
 - name: Require the internal managed update service before activation connectivity
   ansible.windows.win_regedit:
@@ -69,7 +69,7 @@
               selectattr('network', 'equalto', windows_activation_connected_network) | list | length > 0) }}
   vars:
     identifier: "{{ lookup('ansible.builtin.password', '/dev/null', length=12, chars=['hexdigits']) | lower }}"
-  no_log: true
+  no_log: false
 
 - name: Validate the selected existing activation network
   # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
@@ -85,7 +85,7 @@
   when:
     - windows_activation_needs_nic | bool
     - windows_runtime_settings_vault is not defined
-  no_log: true
+  no_log: false
 
 - name: Verify the new NIC MAC is unused on this domain
   ansible.builtin.assert:
@@ -94,7 +94,7 @@
       ((windows_activation_domain_before.stdout | from_json).all_macs | default(
         (windows_activation_domain_before.stdout | from_json).live | map(attribute='mac') | list))
   when: windows_activation_needs_nic | bool
-  no_log: true
+  no_log: false
 
 - name: Prepare the same exact cleanup for the normal path and existing deadline
   # No certified module manages live-only libvirt NICs or nft rule handles.
@@ -158,7 +158,7 @@
   vars:
     domain: "{{ windows_activation_domain_before.stdout | from_json }}"
   when: windows_activation_needs_nic | bool
-  no_log: true
+  no_log: false
 
 - name: Read both existing native deny sets before arming activation access
   ansible.builtin.command:
@@ -184,7 +184,7 @@
     ansible_ssh_host_key_checking: true
   changed_when: false
   when: windows_runtime_settings_vault is defined
-  no_log: true
+  no_log: false
 
 - name: Require both deny sets and the independently protected production destination
   ansible.builtin.assert:
@@ -205,7 +205,7 @@
       {{ (windows_activation_deny_sets.results[1].stdout | from_json).nftables |
          selectattr('set', 'defined') | map(attribute='set') | selectattr('name', 'equalto', 'protected_destinations_v4') | list }}
   when: windows_runtime_settings_vault is defined
-  no_log: true
+  no_log: false
 
 - name: Perform the bounded activation exception with unconditional hypervisor cleanup
   block:
@@ -222,7 +222,7 @@
         delegate_to: "{{ windows_activation_hypervisor }}"
         become: true
         changed_when: true
-        no_log: true
+        no_log: false
       when:
         - windows_activation_needs_nic | bool
         - windows_runtime_settings_vault is not defined
@@ -253,7 +253,7 @@
       vars:
         network: "{{ (windows_activation_domain_before.stdout | from_json).activation_network }}"
       when: windows_runtime_settings_vault is defined
-      no_log: true
+      no_log: false
 
     - name: Validate the temporary rules without applying permissions
       # Rule insertion has no suitable certified module; preserve the existing deny sets.
@@ -266,7 +266,7 @@
       vars: *activation_pinned_ssh
       changed_when: false
       when: windows_runtime_settings_vault is defined
-      no_log: true
+      no_log: false
 
     - name: Apply only the temporary MAC rules under the armed deadline
       # Justification: [activation bounds](../docs/supporting-code.md#windows-networking-and-activation).
@@ -278,7 +278,7 @@
       vars: *activation_pinned_ssh
       changed_when: true
       when: windows_runtime_settings_vault is defined
-      no_log: true
+      no_log: false
 
     - name: Start only the inspected unused activation network when initially inactive
       # Justification: [activation bounds](../docs/supporting-code.md#windows-networking-and-activation).
@@ -291,7 +291,7 @@
       when:
         - windows_runtime_settings_vault is defined
         - not (windows_activation_domain_before.stdout | from_json).activation_network.active | bool
-      no_log: true
+      no_log: false
 
     - <<: &activation_native_attachment
         name: Attach only a live e1000e activation NIC while retaining every original adapter
@@ -313,7 +313,7 @@
         delegate_to: "{{ windows_activation_hypervisor }}"
         become: true
         changed_when: true
-        no_log: true
+        no_log: false
       when:
         - windows_activation_needs_nic | bool
         - windows_runtime_settings_vault is not defined
@@ -340,13 +340,13 @@
       delay: 5
       ignore_unreachable: true
       when: windows_activation_needs_nic | bool
-      no_log: true
+      no_log: false
 
     - name: Require Windows reachability before activation
       ansible.builtin.assert:
         that: not windows_activation_connected.unreachable | default(false)
       when: windows_activation_needs_nic | bool
-      no_log: true
+      no_log: false
 
     - name: Activate only the already-installed evaluation license when automatic activation has not completed
       # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
@@ -361,12 +361,12 @@
       async: 300
       poll: 5
       ignore_unreachable: true
-      no_log: true
+      no_log: false
 
     - name: Require a reachable activation result
       ansible.builtin.assert:
         that: not windows_activation_attempt.unreachable | default(false)
-      no_log: true
+      no_log: false
 
     - name: Verify licensed status before removing temporary connectivity
       # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
@@ -383,7 +383,7 @@
       retries: 36
       delay: 5
       ignore_unreachable: true
-      no_log: true
+      no_log: false
 
     - name: Require verified activation rather than successful command submission
       ansible.builtin.assert:
@@ -391,7 +391,7 @@
           - not windows_activation_licensed.unreachable | default(false)
           - windows_activation_licensed.result.licensed | default(false)
           - windows_activation_licensed.result.grace_minutes | default(0) | int > 0
-      no_log: true
+      no_log: false
 
   always:
     - <<: &activation_native_cleanup_inspection
@@ -402,7 +402,7 @@
         delegate_to: "{{ windows_activation_hypervisor }}"
         become: true
         changed_when: false
-        no_log: true
+        no_log: false
       register: windows_activation_cleanup_before
       when: windows_runtime_settings_vault is not defined
 
@@ -415,7 +415,7 @@
       ansible.builtin.set_fact:
         windows_activation_cleanup_before: "{{ windows_activation_cleanup_before_selected }}"
       when: windows_runtime_settings_vault is defined
-      no_log: true
+      no_log: false
 
     - <<: &activation_native_cleanup_command
         name: Remove this operation's NIC rules and unused network with the same deadline cleanup
@@ -425,7 +425,7 @@
         delegate_to: "{{ windows_activation_hypervisor }}"
         become: true
         changed_when: true
-        no_log: true
+        no_log: false
       when:
         - windows_activation_needs_nic | bool
         - windows_runtime_settings_vault is not defined
@@ -446,7 +446,7 @@
         changed_when: false
         retries: 12
         delay: 5
-        no_log: true
+        no_log: false
       register: windows_activation_cleanup_after
       until:
         - (windows_activation_cleanup_after.stdout | from_json).live == (windows_activation_domain_before.stdout | from_json).live
@@ -465,7 +465,7 @@
       ansible.builtin.set_fact:
         windows_activation_cleanup_after: "{{ windows_activation_cleanup_after_selected }}"
       when: windows_runtime_settings_vault is defined
-      no_log: true
+      no_log: false
 
     - name: Verify original Windows addresses DNS and routes even when licensing failed
       # Platform/API reason: [rationale](../docs/supporting-code.md#windows-networking-and-activation).
@@ -481,14 +481,14 @@
       retries: 12
       delay: 5
       ignore_unreachable: true
-      no_log: true
+      no_log: false
 
     - name: Require successful guest isolation verification
       ansible.builtin.assert:
         that:
           - not windows_activation_guest_restored.unreachable | default(false)
           - windows_activation_guest_restored.result.original_topology_verified | default(false)
-      no_log: true
+      no_log: false
 
     - <<: &activation_native_deadline_stop
         name: Disarm the deadline only after original hypervisor and Windows topology is verified
@@ -498,7 +498,7 @@
           state: stopped
         delegate_to: "{{ windows_activation_hypervisor }}"
         become: true
-        no_log: true
+        no_log: false
       when:
         - windows_activation_needs_nic | bool
         - windows_runtime_settings_vault is not defined

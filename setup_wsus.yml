@@ -63,7 +63,7 @@
         name: ContentDir
       register: wsus_registered_content
       tags: wsus_diagnostics
-      no_log: "{{ wsus_no_log | default(true) | bool }}"
+      no_log: false
 
     - name: Report registered WSUS content location
       ansible.builtin.debug:
@@ -71,7 +71,7 @@
           configured_content: "{{ wsus_registered_content.value | default('Not configured') }}"
           requested_content: "{{ wsus_content_path }}"
       tags: wsus_diagnostics
-      no_log: "{{ wsus_no_log | default(true) | bool }}"
+      no_log: false
 
     - name: Initialize WSUS database and content location
       # Platform/API reason: [rationale](docs/supporting-code.md#wsus-server-operations).

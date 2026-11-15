@@ -8,7 +8,7 @@
     return_content: true
   register: nexus_eula
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Require explicit approval for the pinned Nexus distribution
   ansible.builtin.assert:
@@ -30,7 +30,7 @@
     status_code: 204
   when: not nexus_eula.json.accepted | bool
   changed_when: true
-  no_log: true
+  no_log: false
 
 - name: Verify Nexus persisted EULA acceptance
   ansible.windows.win_uri:
@@ -41,7 +41,7 @@
     return_content: true
   register: nexus_eula_verified
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Require accepted Nexus EULA before repository transfers
   ansible.builtin.assert:

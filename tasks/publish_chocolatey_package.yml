@@ -11,7 +11,7 @@
     unredirected_headers: [Authorization]
   register: existing_package
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Refuse ambiguous package search results
   ansible.builtin.assert:
@@ -19,7 +19,7 @@
       - existing_package.json.continuationToken | default(none) == none
       - existing_package.json['items'] | length <= 1
     fail_msg: Package search returned ambiguous assets; inspect the repository.
-  no_log: true
+  no_log: false
 
 - name: Upload only a missing package version using the native Nexus Components API
   ansible.builtin.uri:
@@ -38,7 +38,7 @@
     unredirected_headers: [Authorization]
   when: existing_package.json['items'] | length == 0
   changed_when: true
-  no_log: "{{ chocolatey_no_log | default(true) | bool }}"
+  no_log: false
 
 - name: Read the exact published package asset
   ansible.builtin.uri:
@@ -55,7 +55,7 @@
   retries: 12
   delay: 5
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Require a same-server download URL and unambiguous asset
   ansible.builtin.assert:
@@ -64,7 +64,7 @@
       - published_package.json['items'] | length == 1
       - published_package.json['items'][0].downloadUrl.startswith(nexus_external_url ~ '/repository/' ~ chocolatey_external_feed_name ~ '/')
     fail_msg: Unexpected package asset URL or ambiguous repository result.
-  no_log: true
+  no_log: false
 
 - name: Verify the published package bytes match the local offline artifact
   ansible.builtin.get_url:
@@ -78,4 +78,4 @@
     mode: '0640'
     timeout: 300
     unredirected_headers: [Authorization]
-  no_log: true
+  no_log: false

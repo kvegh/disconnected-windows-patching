@@ -23,7 +23,7 @@
           - windows_demo_vm_names | unique | length == windows_demo_expected_count | int
           - teardown_baseline is not defined or teardown_baseline.core_before_deployment is sameas true
         quiet: true
-      no_log: true
+      no_log: false
 
     - name: Check the selected API credential for the protected AD ownership snapshot
       ansible.builtin.include_tasks: tasks/require_active_directory_target.yml
@@ -36,7 +36,7 @@
       changed_when: false
       check_mode: false
       when: teardown_baseline is defined
-      no_log: true
+      no_log: false
 
     - name: Read VM definitions, states and original image metadata
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -62,14 +62,14 @@
       register: windows_teardown_baseline
       changed_when: false
       check_mode: false
-      no_log: true
+      no_log: false
 
     - name: Require selected clones absent before the original core capture
       ansible.builtin.assert:
         that: windows_demo_vm_names | intersect((windows_teardown_baseline.stdout | from_json).domains.keys() | list) | length == 0
         quiet: true
       when: teardown_baseline is not defined
-      no_log: true
+      no_log: false
 
     - name: Inspect selected clone paths before the original core capture
       ansible.builtin.stat:
@@ -80,7 +80,7 @@
       loop: "{{ windows_demo_vm_names }}"
       register: windows_initial_clone_paths
       when: teardown_baseline is not defined
-      no_log: true
+      no_log: false
 
     - name: Refuse an initial baseline with leftover clone storage
       ansible.builtin.assert:
@@ -88,7 +88,7 @@
         quiet: true
       loop: "{{ windows_initial_clone_paths.results | default([]) }}"
       when: teardown_baseline is not defined
-      no_log: true
+      no_log: false
 
     - name: Require the original core images and domains when appending cleanup evidence
       ansible.builtin.assert:
@@ -103,7 +103,7 @@
             (windows_decommission_owned_preview.stdout | from_json).domains
         quiet: true
       when: teardown_baseline is defined
-      no_log: true
+      no_log: false
 
     - name: Require every original core guest unchanged apart from the declared Windows AAP NIC
       ansible.builtin.assert:
@@ -118,7 +118,7 @@
         current_core: "{{ (windows_teardown_baseline.stdout | from_json).domains[item.key] }}"
       loop: "{{ teardown_baseline.domains | default({}) | dict2items }}"
       when: teardown_baseline is defined
-      no_log: true
+      no_log: false
 
     - name: Read exact dedicated AD API ownership without changing the platform
       ansible.builtin.command:
@@ -135,7 +135,7 @@
       become: false
       vars:
         ansible_connection: local
-      no_log: true
+      no_log: false
 
     - name: Require the read-only AD ownership snapshot with a safe failure reason
       ansible.builtin.assert:
@@ -155,7 +155,7 @@
                           'ad_before': windows_ad_ownership.stdout | from_json}) }}
         per_host: false
       when: teardown_baseline is not defined
-      no_log: true
+      no_log: false
 
     - name: Append actual cleanup ownership while retaining the original core snapshot
       ansible.builtin.set_stats:
@@ -166,7 +166,7 @@
           windows_decommission_preview: "{{ windows_decommission_owned_preview.stdout | from_json }}"
         per_host: false
       when: teardown_baseline is defined
-      no_log: true
+      no_log: false
 
     - name: Report the preserved baseline boundary
       ansible.builtin.debug:

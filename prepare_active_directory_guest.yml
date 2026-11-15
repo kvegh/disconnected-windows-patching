@@ -24,7 +24,7 @@
           - ad_windows_hostname | default('') is match('^[A-Za-z][A-Za-z0-9-]{0,14}$')
           - ad_direct_microsoft_updates_approved | default(false) | bool
         fail_msg: Select only the dedicated AD guest and approve its direct Microsoft updates.
-      no_log: true
+      no_log: false
 
     - name: Connect using the valid protected identity before or after promotion
       ansible.builtin.include_tasks: tasks/connect_active_directory_guest.yml
@@ -76,19 +76,19 @@
               ClockOffsetSeconds = $offset
           }
       register: ad_windows_prerequisites
-      no_log: true
+      no_log: false
 
     - name: Retain the actual prerequisite result before its licensing gate
       ansible.builtin.set_stats:
         data:
           active_directory_prerequisites: "{{ ad_windows_prerequisites.result }}"
         aggregate: false
-      no_log: true
+      no_log: false
 
     - name: Retain the current license evidence without changing initial prerequisites
       ansible.builtin.set_fact:
         ad_windows_license: "{{ ad_windows_prerequisites.result }}"
-      no_log: true
+      no_log: false
 
     - name: Activate an invalid selected AD evaluation before its existing license gate
       when:
@@ -97,7 +97,7 @@
         - >-
           ad_windows_prerequisites.result.LicenseStatus != 1 or
           (ad_windows_prerequisites.result.Evaluation and ad_windows_prerequisites.result.GraceMinutes <= 0)
-      no_log: true
+      no_log: false
       block:
         - name: Require the exact selected AD role and permanent interface mapping
           ansible.builtin.assert:
@@ -153,7 +153,7 @@
       ansible.windows.win_hostname:
         name: "{{ ad_windows_hostname }}"
       register: ad_hostname_result
-      no_log: true
+      no_log: false
 
     - name: Finish the hostname change
       ansible.windows.win_reboot:
@@ -189,7 +189,7 @@
       loop: [WUServer, WUStatusServer]
       register: ad_wsus_endpoints_before
       when: windows_runtime_settings_vault is defined
-      no_log: true
+      no_log: false
 
     - name: Remove inherited WSUS URLs from the selected public-update AD guest
       ansible.windows.win_regedit:
@@ -198,7 +198,7 @@
         state: absent
       loop: [WUServer, WUStatusServer]
       when: windows_runtime_settings_vault is defined
-      no_log: true
+      no_log: false
 
     - name: Read back the selected AD guest's public update-source baseline
       ansible.windows.win_reg_stat:
@@ -207,7 +207,7 @@
       loop: [WUServer, WUStatusServer]
       register: ad_wsus_endpoints_after
       when: windows_runtime_settings_vault is defined
-      no_log: true
+      no_log: false
 
     - name: Require inherited WSUS endpoint values absent on the selected AD guest
       ansible.builtin.assert:
@@ -253,7 +253,7 @@
         reboot: true
         reboot_timeout: 1800
       register: ad_windows_updates
-      no_log: "{{ not (ad_update_diagnostics | default(false) | bool) }}"
+      no_log: false
 
     - name: Rescan the public update source after installation
       ansible.windows.win_updates:
@@ -263,7 +263,7 @@
         reject_list: ['^Update for Windows Security platform - KB5007651\b']
         state: searched
       register: ad_windows_update_scan
-      no_log: true
+      no_log: false
 
     - name: Record the unsupported Windows 11 offer separately from Server updates
       ansible.builtin.set_fact:
@@ -271,7 +271,7 @@
           {{ ad_windows_update_scan.filtered_updates | default({}) | dict2items
              | selectattr('value.title', 'match', '^Update for Windows Security platform - KB5007651(?:[ (]|$)')
              | map(attribute='value') | list }}
-      no_log: true
+      no_log: false
 
     - name: Require successful installation and no remaining applicable Server updates
       ansible.builtin.assert:
@@ -279,7 +279,7 @@
           - ad_windows_updates.failed_update_count | default(0) | int == 0
           - ad_windows_update_scan.found_update_count | int == 0
         fail_msg: Applicable Server updates remain or an update failed; inspect the protected result before promotion.
-      no_log: true
+      no_log: false
 
     - name: Save update evidence in authenticated job artifacts
       ansible.builtin.set_stats:
@@ -291,7 +291,7 @@
             reboot_required: "{{ ad_windows_update_scan.reboot_required | default(false) }}"
             nonapplicable_windows11_offers: "{{ ad_windows11_update_offers }}"
         aggregate: false
-      no_log: true
+      no_log: false
 
     - name: Report completion without guest identities or credentials
       ansible.builtin.debug:

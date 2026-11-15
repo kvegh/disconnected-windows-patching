@@ -45,7 +45,7 @@
   ansible.windows.win_copy:
     content: "{{ windows_demo_proof_expected | to_nice_json }}"
     dest: "{{ windows_demo_proof_directory }}\\expected.json"
-  no_log: true
+  no_log: false
 
 - name: Test the report's evidence rules on Windows without changing server state
   # Platform/API reason: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
@@ -112,7 +112,7 @@
       - -AsJson
   register: windows_demo_file_query
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Require a working script and persistent desktop launcher
   ansible.builtin.assert:
@@ -122,4 +122,4 @@
       - (windows_demo_file_query.stdout | from_json).schema_version == 1
     fail_msg: The desktop script did not return a live report through normal file execution.
     quiet: true
-  no_log: true
+  no_log: false

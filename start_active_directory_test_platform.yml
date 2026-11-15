@@ -17,7 +17,7 @@
           - ad_test_vm_name | default('') is match('^[A-Za-z][A-Za-z0-9-]{0,62}$')
           - ad_test_aap_address | default('') | length > 0
         fail_msg: Supply the approved test VM name and its management address.
-      no_log: true
+      no_log: false
 
     - name: Read the test platform state
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -26,12 +26,12 @@
       register: ad_test_state
       changed_when: false
       check_mode: false
-      no_log: true
+      no_log: false
 
     - name: Refuse unexpected VM states
       ansible.builtin.assert:
         that: ad_test_state.stdout | trim in ['running', 'shut off']
-      no_log: true
+      no_log: false
 
     - name: Start the selected test platform
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -39,7 +39,7 @@
         argv: [virsh, start, "{{ ad_test_vm_name }}"]
       when: ad_test_state.stdout | trim == 'shut off'
       changed_when: true
-      no_log: true
+      no_log: false
 
     - name: Wait for the test platform SSH listener
       ansible.builtin.wait_for:
@@ -49,7 +49,7 @@
       delegate_to: localhost
       become: false
       when: not ansible_check_mode
-      no_log: true
+      no_log: false
 
     - name: Report test platform startup
       ansible.builtin.debug:

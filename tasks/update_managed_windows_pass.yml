@@ -16,7 +16,7 @@
         parameters:
           ExpectedWsusUrl: "{{ wsus_internal_url }}"
       changed_when: false
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Discover the next applicable set without accepting licenses
       # Platform/API reason: [rationale](../docs/supporting-code.md#windows-inspection-and-evidence).
@@ -29,7 +29,7 @@
       delay: 15
       until: windows_patch_cycle_scan is succeeded
       changed_when: false
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Require review for hidden updates or unaccepted license terms
       ansible.builtin.assert:
@@ -37,7 +37,7 @@
           - windows_patch_cycle_scan.result.hidden_update_count | int == 0
           - windows_patch_cycle_scan.result.pending_eula_count | int == 0
         fail_msg: Newly applicable updates are hidden or require license review. No installation was started for this pass.
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Reject a newly applicable release beyond the current month or an unknown prerequisite
       ansible.builtin.assert:
@@ -45,14 +45,14 @@
           - item.value.title is search(windows_patch_eligibility_filters | join('|'))
         fail_msg: A newly applicable update is outside the verified monthly ceiling. No installation was started for this pass.
       loop: "{{ windows_patch_cycle_scan.result.updates | dict2items }}"
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Freeze the exact observed license-accepted client titles for this pass
       ansible.builtin.set_fact:
         windows_patch_cycle_accept_list: >-
           {{ windows_patch_cycle_scan.result.updates | dict2items |
              map(attribute='value.accept_pattern') | list }}
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     # win_updates 3.8.0 filters accept_list before AcceptEula(). Restricting the
     # native reboot/install loop to these exact client titles prevents newly
@@ -71,7 +71,7 @@
         # it before the Windows module's argument coercion can take effect.
         maximum_retries_on_failed_updates: "{{ windows_patch_failed_update_retries }}"
       register: windows_patch_install
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
       when: windows_patch_cycle_accept_list | length > 0
 
     # An empty accept_list would mean unrestricted selection in win_updates.
@@ -83,7 +83,7 @@
       when:
         - windows_patch_cycle_accept_list | length == 0
         - windows_patch_cycle_scan.result.reboot_required | bool
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Wait for management after an install or pending reboot pass
       ansible.builtin.wait_for_connection:
@@ -106,4 +106,4 @@
         windows_patch_converged: >-
           {{ (windows_patch_cycle_scan.result.found_update_count | int == 0) and
              not (windows_patch_cycle_scan.result.reboot_required | bool) }}
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false

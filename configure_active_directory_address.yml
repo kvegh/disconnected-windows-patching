@@ -36,7 +36,7 @@
           - "{{ vm_dir }}/win-{{ active_directory.hostname }}-clone.disk.qcow2"
       changed_when: false
       when: ad_address_reservation_before_create | default(false) | bool
-      no_log: true
+      no_log: false
 
     - name: Verify the existing demo-owned domain and its single expected NIC
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -45,7 +45,7 @@
       register: ad_domain_inspection
       changed_when: false
       check_mode: false
-      no_log: true
+      no_log: false
       when: not (ad_address_reservation_before_create | default(false) | bool)
 
     - name: Require the exact dedicated clone and network attachment
@@ -59,7 +59,7 @@
           - ad_domain.live[0].source.network == active_directory.libvirt_network
       vars:
         ad_domain: "{{ ad_domain_inspection.stdout | from_json }}"
-      no_log: true
+      no_log: false
       when: not (ad_address_reservation_before_create | default(false) | bool)
 
     - name: Inspect network address ownership without modifying leases
@@ -106,7 +106,7 @@
       register: ad_reservation_inspection
       changed_when: false
       check_mode: false
-      no_log: true
+      no_log: false
 
     - name: Reconcile selected AD reservations only while its existing clone disk protects the lifecycle lock
       ansible.builtin.command:
@@ -117,7 +117,7 @@
       register: windows_ad_selected_reservations
       changed_when: (windows_ad_selected_reservations.stdout | from_json).changed
       when: windows_runtime_settings_vault is defined
-      no_log: true
+      no_log: false
 
     - name: Publish the exact LDAPS DNS name on the management network
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -135,7 +135,7 @@
         - windows_runtime_settings_vault is not defined
         - not (ad_reservation_inspection.stdout | from_json).dns_exists
       changed_when: true
-      no_log: true
+      no_log: false
 
     - name: Add only the dedicated guest's persistent and live reservation
       # Platform/API reason: [rationale](docs/supporting-code.md#hypervisor-inspection-and-recovery).
@@ -153,7 +153,7 @@
         - windows_runtime_settings_vault is not defined
         - not (ad_reservation_inspection.stdout | from_json).exists
       changed_when: true
-      no_log: true
+      no_log: false
 
     - name: Report stable addressing without environment values
       ansible.builtin.debug:
@@ -173,7 +173,7 @@
           ansible.builtin.command:
             argv: [virsh, reboot, "{{ active_directory.hostname }}", --mode, "{{ ad_promotion_recovery_reboot_mode | default('acpi') }}"]
           changed_when: true
-          no_log: "{{ not (ad_recovery_diagnostics | default(false) | bool) }}"
+          no_log: false
           when: ad_promotion_recovery_reboot_mode | default('acpi') != 'shutdown_start'
 
         - name: Observe the dedicated guest's management listener stop
@@ -184,7 +184,7 @@
             timeout: 180
           delegate_to: localhost
           become: false
-          no_log: true
+          no_log: false
           when: ad_promotion_recovery_reboot_mode | default('acpi') != 'shutdown_start'
 
         - name: Request graceful shutdown when the guest does not support a reboot event
@@ -192,7 +192,7 @@
           ansible.builtin.command:
             argv: [virsh, shutdown, "{{ active_directory.hostname }}", --mode, acpi]
           changed_when: true
-          no_log: "{{ not (ad_recovery_diagnostics | default(false) | bool) }}"
+          no_log: false
           when: ad_promotion_recovery_reboot_mode | default('acpi') == 'shutdown_start'
 
         - name: Require the selected guest to finish shutting down before restarting it
@@ -204,7 +204,7 @@
           until: ad_recovery_power_state.stdout | trim == 'shut off'
           retries: 60
           delay: 5
-          no_log: true
+          no_log: false
           when: ad_promotion_recovery_reboot_mode | default('acpi') == 'shutdown_start'
 
         - name: Start only the verified guest after its completed graceful shutdown
@@ -212,7 +212,7 @@
           ansible.builtin.command:
             argv: [virsh, start, "{{ active_directory.hostname }}"]
           changed_when: true
-          no_log: true
+          no_log: false
           when: ad_promotion_recovery_reboot_mode | default('acpi') == 'shutdown_start'
 
         - name: Wait for the dedicated guest's management listener after recovery
@@ -224,4 +224,4 @@
             timeout: 900
           delegate_to: localhost
           become: false
-          no_log: true
+          no_log: false

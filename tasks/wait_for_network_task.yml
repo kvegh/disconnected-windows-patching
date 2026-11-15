@@ -10,7 +10,7 @@
   # The task may still be changing another NIC after the first WinRM reconnect.
   # Only transport loss is recoverable here; module and script failures still fail.
   ignore_unreachable: true
-  no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+  no_log: false
 
 - name: Reconnect if network configuration interrupted the status request
   ansible.builtin.wait_for_connection:
@@ -25,7 +25,7 @@
          and (windows_network_task_status.task_exists | default(false) | bool)
          and windows_network_task_status.state.status | default('TASK_STATE_RUNNING') != 'TASK_STATE_RUNNING'
          and windows_network_task_status.state.last_task_result | default(267011) != 267011 }}
-  no_log: "{{ windows_no_log | default(wsus_no_log | default(true)) | bool }}"
+  no_log: false
 
 - name: Require completion within the polling limit
   ansible.builtin.assert:

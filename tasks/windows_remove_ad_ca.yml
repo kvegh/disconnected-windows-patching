@@ -1,6 +1,6 @@
 ---
 - name: Remove only the selected test forest's exact owned trust material
-  no_log: true
+  no_log: false
   block:
     - name: Inspect the exact selected public CA anchor
       ansible.builtin.stat:

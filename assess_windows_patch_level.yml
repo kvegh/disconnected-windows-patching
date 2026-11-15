@@ -37,7 +37,7 @@
           Baselines: "{{ windows_patch_baselines }}"
       register: windows_patch_assessment
       changed_when: false
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Publish the installed-state evidence as AAP job artifacts
       ansible.builtin.set_stats:
@@ -45,7 +45,7 @@
           windows_patch_assessments: "{{ {inventory_hostname: windows_patch_assessment.result} }}"
         aggregate: true
         per_host: false
-      no_log: "{{ windows_patch_no_log | bool }}"
+      no_log: false
 
     - name: Report the installed OS build against the selected baseline
       ansible.builtin.debug:

@@ -80,7 +80,7 @@
             dest: "{{ ad_api_ca.path }}"
             content: "{{ ad_target_api_ca }}"
             mode: '0600'
-          no_log: true
+          no_log: false
 
         - name: Verify the complete existing resource baseline before authentication-only recovery
           # Platform/API reason: [rationale](docs/supporting-code.md#active-directory-and-aap-verification).
@@ -95,7 +95,7 @@
           register: ad_authentication_baseline
           changed_when: false
           failed_when: false
-          no_log: true
+          no_log: false
           when: ad_aap_authentication_only | default(false) | bool
 
         - name: Require the existing teams and every scoped grant before resuming authentication
@@ -113,7 +113,7 @@
           until: ad_organization_result is succeeded
           retries: 3
           delay: 5
-          no_log: true
+          no_log: false
           when:
             - not (ad_aap_authentication_only | default(false) | bool)
             - not (ad_aap_resuming_resources | bool)
@@ -137,7 +137,7 @@
           register: ad_migration_inspection
           changed_when: false
           failed_when: false
-          no_log: true
+          no_log: false
           when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Require the owned-object migration inspection to pass
@@ -150,7 +150,7 @@
         - name: Preserve the inspected migration plan without exposing API inputs
           ansible.builtin.set_fact:
             ad_migration: "{{ ad_migration_inspection.stdout | from_json }}"
-          no_log: true
+          no_log: false
           when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Rename owned teams while preserving their membership and grant IDs
@@ -164,7 +164,7 @@
           until: ad_team_result is succeeded
           retries: 3
           delay: 5
-          no_log: true
+          no_log: false
           when:
             - not (ad_aap_authentication_only | default(false) | bool)
             - not (ad_aap_resuming_resources | bool)
@@ -183,7 +183,7 @@
           environment:
             SSL_CERT_FILE: "{{ ad_api_ca.path }}"
             REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
-          no_log: true
+          no_log: false
           when:
             - not (ad_aap_authentication_only | default(false) | bool)
             - not (ad_aap_resuming_resources | bool)
@@ -199,7 +199,7 @@
           until: ad_reader_role_result is succeeded
           retries: 3
           delay: 5
-          no_log: true
+          no_log: false
           when:
             - not (ad_aap_authentication_only | default(false) | bool)
             - not (ad_aap_resuming_resources | bool)
@@ -213,7 +213,7 @@
           environment:
             SSL_CERT_FILE: "{{ ad_api_ca.path }}"
             REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
-          no_log: true
+          no_log: false
           when:
             - not (ad_aap_authentication_only | default(false) | bool)
             - not (ad_aap_resuming_resources | bool)
@@ -239,7 +239,7 @@
           register: ad_migrated_references
           changed_when: false
           failed_when: false
-          no_log: true
+          no_log: false
           when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Require the final resource references before retiring legacy objects
@@ -257,7 +257,7 @@
           environment:
             SSL_CERT_FILE: "{{ ad_api_ca.path }}"
             REQUESTS_CA_BUNDLE: "{{ ad_api_ca.path }}"
-          no_log: true
+          no_log: false
           when:
             - not (ad_aap_authentication_only | default(false) | bool)
             - ad_migration.old_project is not none
@@ -271,7 +271,7 @@
           until: ad_retired_user_result is succeeded
           retries: 3
           delay: 5
-          no_log: true
+          no_log: false
           when: not (ad_aap_authentication_only | default(false) | bool)
 
         - name: Configure LDAP and ordered group maps after LDAPS readiness
@@ -286,4 +286,4 @@
           ansible.builtin.file:
             path: "{{ ad_api_ca.path }}"
             state: absent
-          no_log: true
+          no_log: false

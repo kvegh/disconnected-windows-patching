@@ -11,7 +11,7 @@
         recovery_release_guest: "{{ windows_aap_network_guest }}"
         recovery_release_hypervisor: "{{ windows_runtime_recovery_pin }}"
         recovery_release_trust_file: "{{ windows_runtime_host_keys.path }}"
-      no_log: true
+      no_log: false
 
     - name: Capture primary state and prepare the manual MAC-bound profile before any hotplug
       ansible.builtin.command:
@@ -24,7 +24,7 @@
       become: true
       register: windows_aap_network_prepared
       changed_when: (windows_aap_network_prepared.stdout | from_json).changed
-      no_log: true
+      no_log: false
 
     - name: Wait for an identical unpublished operation without adopting its profile
       ansible.builtin.pause:
@@ -33,7 +33,7 @@
 
     - name: Configure and durably record the exact owned connection
       when: not (windows_aap_network_prepared.stdout | from_json).busy
-      no_log: true
+      no_log: false
       block:
         - name: Retain the pre-hotplug baseline and this job's actual OS creation
           ansible.builtin.set_fact:

@@ -39,7 +39,7 @@
     update_password: on_create
     priority: 1
     state: present
-  no_log: true
+  no_log: false
 
 - name: Verify authenticated access to the selected feed
   ansible.windows.win_uri:
@@ -48,12 +48,12 @@
     url_password: "{{ chocolatey_source_password }}"
     force_basic_auth: true
   changed_when: false
-  no_log: true
+  no_log: false
 
 - name: Read configured sources before installation
   chocolatey.chocolatey.win_chocolatey_facts:
     filter: [sources]
-  no_log: true
+  no_log: false
 
 - name: Require the selected internal feed as the only enabled source
   ansible.builtin.assert:
@@ -63,7 +63,7 @@
       - enabled_sources[0].source == application_source_url
   vars:
     enabled_sources: "{{ ansible_chocolatey.sources | rejectattr('disabled') | list }}"
-  no_log: true
+  no_log: false
 
 - name: Install the pinned selected versions from internal Nexus
   chocolatey.chocolatey.win_chocolatey:
@@ -76,7 +76,7 @@
   loop_control:
     label: "{{ item.id }} {{ item.version }}"
   register: installed_applications
-  no_log: true
+  no_log: false
 
 - name: Read Windows servicing reboot markers after application installation
   ansible.windows.win_reg_stat:
@@ -85,7 +85,7 @@
     - 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
     - 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
   register: application_pending_reboots
-  no_log: true
+  no_log: false
 
 - name: Complete installer or Windows servicing reboot requirements
   ansible.windows.win_reboot: {}
@@ -105,12 +105,12 @@
   retries: 12
   delay: 5
   when: not ansible_check_mode
-  no_log: true
+  no_log: false
 
 - name: Read installed package versions and configured sources
   chocolatey.chocolatey.win_chocolatey_facts:
     filter: [packages, sources]
-  no_log: true
+  no_log: false
 
 - name: Verify each installed application version
   ansible.builtin.assert:
@@ -121,7 +121,7 @@
   vars:
     matching: "{{ ansible_chocolatey.packages | selectattr('package', 'equalto', item.id) | list }}"
   loop: "{{ chocolatey_packages | selectattr('track', 'equalto', application_release_track) | list }}"
-  no_log: true
+  no_log: false
 
 - name: Verify only the selected internal source is enabled
   ansible.builtin.assert:
@@ -131,7 +131,7 @@
       - enabled_sources[0].source == application_source_url
   vars:
     enabled_sources: "{{ ansible_chocolatey.sources | rejectattr('disabled') | list }}"
-  no_log: true
+  no_log: false
 
 - name: Report verified application versions
   ansible.builtin.debug:

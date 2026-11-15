@@ -24,7 +24,7 @@
           - chocolatey_packages | length > 0
           - chocolatey_packages | length <= 10
           - chocolatey_external_feed_name is match('^[A-Za-z0-9][A-Za-z0-9._-]*$')
-      no_log: true
+      no_log: false
 
     - name: Validate pinned vendor installer inputs
       ansible.builtin.assert:
@@ -63,13 +63,13 @@
         unredirected_headers: [Authorization]
       register: external_feed
       changed_when: false
-      no_log: true
+      no_log: false
 
     - name: Refuse a mutable feed
       ansible.builtin.assert:
         that: external_feed.json.storage.writePolicy == 'ALLOW_ONCE'
         fail_msg: External feed must prohibit overwriting existing package versions.
-      no_log: true
+      no_log: false
 
     - name: Create this job's package cache
       ansible.builtin.file:

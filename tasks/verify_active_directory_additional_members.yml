@@ -3,7 +3,7 @@
   ansible.builtin.set_fact:
     ad_extra_member_password: "{{ lookup('ansible.builtin.password', '/dev/null length=32 chars=ascii_letters,digits') ~ 'Aa1!' }}"
   when: ad_extra_member_phase == 'prepare'
-  no_log: true
+  no_log: false
 
 - name: Run the guarded additional-member test phase
   # Platform/API reason: [rationale](../docs/supporting-code.md#active-directory-and-aap-verification).
@@ -21,23 +21,23 @@
       ProbePassword: "{{ ad_extra_member_password | default('') }}"
       FixtureJson: "{{ ad_extra_member_fixture | default({}) | to_json }}"
   register: ad_extra_member_test
-  no_log: true
+  no_log: false
 
 - name: Remember only the protected identifiers of objects created by this test
   ansible.builtin.set_fact:
     ad_extra_member_fixture: "{{ ad_extra_member_test.result }}"
   when: ad_extra_member_phase == 'prepare'
-  no_log: true
+  no_log: false
 
 - name: Preserve the non-sensitive additional-member verification result
   ansible.builtin.set_fact:
     ad_extra_member_verification: "{{ ad_extra_member_test.result }}"
   when: ad_extra_member_phase == 'verify'
-  no_log: true
+  no_log: false
 
 - name: Require successful temporary-object cleanup and clear the temporary password
   ansible.builtin.set_fact:
     ad_extra_member_cleanup_verified: "{{ ad_extra_member_test.result.TemporaryObjectsRemoved | bool }}"
     ad_extra_member_password: ''
   when: ad_extra_member_phase == 'cleanup'
-  no_log: true
+  no_log: false
