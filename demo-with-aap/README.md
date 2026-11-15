@@ -16,10 +16,15 @@ On narrower screens it scrolls horizontally; normal vertical page scrolling
 remains available. The entire drawing is not forced into the remaining
 viewport height.
 
-Microsoft Update and Application Repository sync sit above the network
-rectangles and appear together in action 4. Removing their former left column
+Microsoft Update and Application Repository sync form an evenly spaced pair
+above the connected network, with their top edges aligned to the secure network.
+Both reveal in action 4. The two download arrows descend behind External AAP;
+the opaque card covers their middle sections and the arrows reappear as they
+enter the external repository from above. Removing the former source column
 brings both networks together. Each network is 568 units tall, 66 shorter than
-the previous 634-unit rectangles; tighter gaps preserve the existing card sizes.
+the previous 634-unit rectangles. The secure zone and its contents sit 62 units
+higher than the connected zone; parallel diagonal mesh arrows join the AAP cards.
+Tighter gaps preserve the existing card sizes.
 IIS export remains below the content tiles, and managed Windows hosts sit near
 the secure rectangle’s bottom. Blue content arrows branch halfway between the
 internal repository and managed hosts; purple dashed WinRM control arrows use
@@ -161,3 +166,7 @@ in the project decision history after verification.
 
 Version 1.2.4 makes both AAP-to-repository control arrows visible as longer
 side loops while retaining the compact layout.
+
+Version 1.2.7 aligns the source pair with the secure network’s top edge and
+routes download arrows behind External AAP. The pair uses 172×50 boxes with
+unchanged font sizes; server cards keep their existing dimensions.

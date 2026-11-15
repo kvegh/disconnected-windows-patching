@@ -3346,3 +3346,45 @@ Nine native Core 2.20.10 initial-run checks passed, including rejection of the
 previous pin, branch names and foreign repositories. Six diagnostic tests passed
 on the minimal backport. The original workflow and healthy AD branch remain
 separate from the planned focused retry; the live Git cause is still unresolved.
+
+
+## 2026-11-15 16:47 UTC — Align source boxes with the secure network
+
+The owner requested neater source-box alignment and explicitly allowed their
+arrows to pass underneath the main AAP box. A structured clarification resolved
+the intended alignment: level with the secure network, with both source boxes
+nicely aligned. Place the two sources at y8, x18 and202, using172×50 boxes
+and a12-unit gap above the connected zone. Reposition source icons/subtitles
+within those boxes without reducing any font size.
+
+Move the secure network and all its contents upward62 units, retaining its
+568-unit height and all relative card/control spacing. The secure top at y8
+then aligns with both sources; connected network geometry stays unchanged.
+Parallel diagonal mesh channels join the staggered AAP cards; update their
+particles and labels to match. Keep the established1036×652 frame and render
+scale, compact layout, managed hosts at the secure-zone bottom and WinRM side
+loops. The existing horizontal repository transfer remains inside both cards.
+
+Route the two download paths down at x248/288 and draw them before the AAP
+layer so the opaque External AAP surface naturally covers their middle sections.
+The lines then reappear below AAP and enter the external repository from above.
+This replaces the outside-left detour while preserving step4 reveal, IDs,
+motion references and controls. Version 1.2.7 records this presentation change;
+no runtime automation, JavaScript, dependency or architecture changes. Root
+owns documentation/version/release; the layout child implements HTML/CSS and
+root independently checks the combined revision. Browser appearance remains
+unverified under the existing choice to proceed without installing a browser.
+
+Verification: all three existing Node walkthrough test files pass. Independent
+root and child checks confirm source/secure top alignment, unchanged server
+card dimensions/font sizes, reveal semantics, IDs, motion references, midpoint
+content junction and diagonal mesh particle vectors. SVG feed paint order puts
+External AAP’s opaque surface over both routes. Final bounds and whitespace
+checks pass. No browser rendering was performed.
+
+Publication integration: the first unpublished layout commit48a2c20 was rejected
+because main advanced with3867398/7b75d97. Rebase only that layout commit onto
+the incoming history; preserve both decision-history entries and the incoming
+runtime diagnostics unchanged. Advance the layout release to1.2.7 after the
+incoming1.2.6 rather than reuse the initially planned1.2.5. Verify unchanged
+incoming runtime files and rerun the relevant walkthrough checks before push.
