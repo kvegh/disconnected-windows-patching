@@ -3454,3 +3454,12 @@ Windows demo run43739318499 completed successfully at2026-11-15 17:07:49 UTC
 (created17:07:29 UTC). Public HTTPS HTML and versioned AAP CSS matched checked
 local bytes exactly. Integrated walkthrough tests passed14/14. Browser-rendered
 appearance remains unverified; no browser or dependency was installed.
+
+
+## 2026-11-15 17:11 UTC — Simplify the server-inspection hint
+
+The owner requested removal of the decorative diagonal arrow and an exclamation
+mark instead. Change the hint to “Click a server to look inside!” while keeping
+its existing class, size, contrast and behavior. Version1.2.11 records this
+text-only correction. Verify exact source/deployed wording and existing page
+asset/ID checks; no browser or dependency installation is needed.
