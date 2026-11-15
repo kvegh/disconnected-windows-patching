@@ -279,7 +279,7 @@
     setText('server-dialog-description', repository ? (external ? 'Acquires selected content on the connected network and serves exports requested by the internal repository.' : 'Initiates downloads over its management NIC, verifies the exports and serves the isolated client network.') : 'Receives OS updates and application packages from the internal repository.');
     const rows = [['Operating system', `Windows Server ${year}`], ['Configuration', state.configured ? 'Windows configured' : 'Fresh base image']];
     if (repository) {
-      rows.push(['Services', state.services ? `WSUS + Nexus${external && state.exported ? ' + IIS export' : ''}` : 'Not configured yet']);
+      rows.push(['Services', state.services ? `WSUS + Chocolatey application repository${external && state.exported ? ' + IIS export' : ''}` : 'Not configured yet']);
       rows.push(['Content', external ? (state.acquired ? 'Selected downloads present' : 'Not acquired yet') : (state.imported ? 'Imported and verified' : 'Not imported yet')]);
       if (state.imported) rows.push(['Export transfer', external ? 'Serves internal HTTP GET requests' : 'Initiates the HTTP pull']);
       if (external && state.exported) rows.push(['WSUS export', '.xml.gz metadata + separate files']);

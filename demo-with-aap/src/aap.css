@@ -61,3 +61,9 @@ h1 { font-size:30px; }
 @media(max-width:860px) { .app { padding:18px 16px 14px; } h1 { font-size:26.4px; } .masthead { flex-wrap:wrap; } .workflow-scroll { height:520px; }.architecture-panel > .panel-heading { grid-template-columns:1fr; gap:10px; }.execution-banner { justify-self:stretch; font-size:11px; } }
 @media(max-width:650px) { .app { padding:16px 12px 12px; } .controls { padding:14px; } .workflow-scroll { height:340px; }.execution-banner { font-size:10.8px; }.edition-name { white-space:nowrap; }.architecture-canvas { min-height:0; } }
 @media(prefers-reduced-motion:reduce) { .control-particle { display:none; } }
+
+/* Distinguish WinRM control from repository content by color, dashes and entry point. */
+.client-flow { stroke-dasharray:none; }
+.command-path { stroke:#8553b1; stroke-width:2; stroke-dasharray:6 4; opacity:1; }
+.command-label { fill:#77439f; font-weight:600; }
+.command-particle { fill:#8553b1; }

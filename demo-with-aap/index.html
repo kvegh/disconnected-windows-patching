@@ -7,10 +7,10 @@
     <meta name="color-scheme" content="light">
     <title>Disconnected Windows + AAP · Interactive demo</title>
     <link rel="stylesheet" href="src/styles.css">
-    <link rel="stylesheet" href="src/aap.css?v=1.2.1">
-    <script src="src/scenario.js" defer></script>
+    <link rel="stylesheet" href="src/aap.css?v=1.2.2">
+    <script src="src/scenario.js?v=1.2.2" defer></script>
     <script src="src/orchestration.js" defer></script>
-    <script src="src/app.js?v=1.1.47" defer></script>
+    <script src="src/app.js?v=1.2.2" defer></script>
   </head>
   <body>
     <div class="app">
@@ -47,7 +47,7 @@
                   <path d="M0 0 7 3.5 0 7" fill="none" stroke="#2563eb" stroke-width="1.2" />
                 </marker>
                 <marker id="command-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-                  <path d="M0 0 7 3.5 0 7" fill="none" stroke="#8b69bc" stroke-width="1.2" />
+                  <path d="M0 0 7 3.5 0 7" fill="none" stroke="#8553b1" stroke-width="1.2" />
                 </marker>
                 <symbol id="windows-mark" viewBox="0 0 24 24">
                   <path d="M2 3h9v8H2zm11 0h9v8h-9zM2 13h9v8H2zm11 0h9v8h-9z" fill="currentColor" />
@@ -100,9 +100,9 @@
                   </circle>
                 </g>
                 <g class="job-command client-control">
-                  <path class="command-path" id="managed-command-path" d="M994 133H1250V478H821V484" marker-end="url(#command-arrow)" />
-                  <path class="command-path" id="managed-command-path-2025" d="M994 133H1250V478H1121V484" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="1150" y="390">WinRM</text>
+                  <path class="command-path" id="managed-command-path" d="M994 133H1250V466H900V484" marker-end="url(#command-arrow)" />
+                  <path class="command-path" id="managed-command-path-2025" d="M994 133H1250V466H1200V484" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="1070" y="430">WinRM · job control</text>
                   <circle class="control-particle command-particle" r="3">
                     <animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze">
                       <mpath href="#managed-command-path" />
@@ -126,9 +126,9 @@
                 <g class="job-command deployment-internal-control">
                   <path class="command-path" id="deploy-internal-repository-path" d="M846 184V236" marker-end="url(#command-arrow)" />
                   <text class="command-label" x="860" y="215">Deploy repository</text>
-                  <path class="command-path" id="deploy-internal-2022-path" d="M994 133H1250V478H821V484" marker-end="url(#command-arrow)" />
-                  <path class="command-path" id="deploy-internal-2025-path" d="M994 133H1250V478H1121V484" marker-end="url(#command-arrow)" />
-                  <text class="command-label" x="1090" y="390">Deploy internal VMs</text>
+                  <path class="command-path" id="deploy-internal-2022-path" d="M994 133H1250V466H900V484" marker-end="url(#command-arrow)" />
+                  <path class="command-path" id="deploy-internal-2025-path" d="M994 133H1250V466H1200V484" marker-end="url(#command-arrow)" />
+                  <text class="command-label" x="1070" y="430">Deploy internal VMs</text>
                   <circle class="control-particle command-particle" r="3">
                     <animateMotion data-job-motion="true" begin="indefinite" dur=".45s" fill="freeze">
                       <mpath href="#deploy-internal-repository-path" />
@@ -170,9 +170,9 @@
               </g>
               <g id="workload-layer">
                 <g class="reveal" data-at="2">
-                  <path class="network-link" d="M846 412V470M846 470H821V484M846 470H1121V484" />
-                  <circle cx="846" cy="470" r="4" fill="#afc5df" />
-                  <text class="connection-label" x="1006" y="464">Internal update sources</text>
+                  <path class="network-link" d="M846 412V449M846 449H821V484M846 449H1121V484" />
+                  <circle cx="846" cy="449" r="4" fill="#afc5df" />
+                  <text class="connection-label" x="930" y="443">Updates + applications</text>
                 </g>
                 <g class="reveal management-connection" data-at="2">
                   <path class="management-link" d="M558 280H698" />
@@ -186,6 +186,10 @@
                     <text class="tiny-label" x="113" y="143">Selected OS + .NET content</text>
                   </g>
                 </g>
+                <g class="reveal" data-at="4" style="--delay:0ms">
+                  <rect class="publisher" x="16" y="280" width="212" height="50" rx="12" />
+                  <text class="publisher-title" x="31" y="301">Application Repository <tspan x="31" dy="17">sync</tspan></text>
+                </g>
                 <g transform="translate(244 41)">
                   <g class="reveal server-node" data-at="1" data-node="external" tabindex="-1" role="button" aria-label="Explore the external repository" style="--delay:70ms">
                     <rect class="server-shadow" x="41" y="201" width="270" height="174" rx="17" />
@@ -195,18 +199,18 @@
                     <text class="node-eyebrow" x="102" y="225">WINDOWS SERVER 2022</text>
                     <text class="node-title" x="102" y="245">External repository</text>
                     <line class="card-rule" x1="56" y1="262" x2="295" y2="262" />
-                    <text class="node-status" id="external-status" x="56" y="288">Freshly deployed</text>
+                    <text class="node-status" id="external-status" x="56" y="280">Freshly deployed</text>
                     <g class="reveal" data-at="3">
-                      <rect class="service-pill" x="56" y="304" width="59" height="25" rx="7" />
-                      <text class="service-text" x="68" y="321">WSUS</text>
-                      <rect class="service-pill" x="122" y="304" width="65" height="25" rx="7" />
-                      <text class="service-text" x="134" y="321">Nexus</text>
+                      <rect class="service-pill" x="56" y="290" width="59" height="25" rx="7" />
+                      <text class="service-text" x="68" y="307">WSUS</text>
+                      <rect class="service-pill" x="56" y="321" width="239" height="25" rx="7" />
+                      <text class="service-text" x="68" y="338">Chocolatey application repository</text>
                     </g>
                     <g class="reveal" data-at="5">
-                      <rect class="service-pill export-pill" x="194" y="304" width="101" height="25" rx="7" />
-                      <text class="service-text" x="204" y="321">IIS · export</text>
+                      <rect class="service-pill export-pill" x="122" y="290" width="101" height="25" rx="7" />
+                      <text class="service-text" x="132" y="307">IIS · export</text>
                     </g>
-                    <text class="tiny-label" x="56" y="353" id="external-detail">Prepared Windows base image</text>
+                    <text class="tiny-label" x="56" y="361" id="external-detail">Prepared Windows base image</text>
                   </g>
                 </g>
                 <g transform="translate(244 50)">
@@ -254,18 +258,18 @@
                     <text class="node-eyebrow" x="564" y="195">WINDOWS SERVER 2022</text>
                     <text class="node-title" x="564" y="215">Internal repository</text>
                     <line class="card-rule" x1="518" y1="232" x2="774" y2="232" />
-                    <text class="node-status" id="internal-status" x="518" y="258">Freshly deployed</text>
+                    <text class="node-status" id="internal-status" x="518" y="250">Freshly deployed</text>
                     <g class="reveal" data-at="3">
-                      <rect class="service-pill" x="518" y="274" width="59" height="25" rx="7" />
-                      <text class="service-text" x="530" y="291">WSUS</text>
-                      <rect class="service-pill" x="584" y="274" width="65" height="25" rx="7" />
-                      <text class="service-text" x="596" y="291">Nexus</text>
+                      <rect class="service-pill" x="518" y="260" width="59" height="25" rx="7" />
+                      <text class="service-text" x="530" y="277">WSUS</text>
+                      <rect class="service-pill" x="518" y="291" width="256" height="25" rx="7" />
+                      <text class="service-text" x="530" y="308">Chocolatey application repository</text>
                     </g>
                     <g class="reveal" data-at="7">
-                      <rect class="baseline-pill" x="657" y="274" width="116" height="25" rx="7" />
-                      <text class="baseline-text" x="668" y="291">April baseline</text>
+                      <rect class="baseline-pill" x="584" y="260" width="116" height="25" rx="7" />
+                      <text class="baseline-text" x="595" y="277">April baseline</text>
                     </g>
-                    <text class="tiny-label" x="518" y="323" id="internal-detail">Prepared Windows base image</text>
+                    <text class="tiny-label" x="518" y="331" id="internal-detail">Prepared Windows base image</text>
                   </g>
                 </g>
                 <g class="reveal" data-at="6">
@@ -281,8 +285,8 @@
                   <text class="tiny-label" x="574" y="358">SHA256 verified</text>
                 </g>
                 <g class="reveal" data-at="8">
-                  <path class="flow-path client-flow" id="client-path-2022" d="M846 412V470H821V484" marker-end="url(#arrow)" />
-                  <path class="flow-path client-flow" id="client-path-2025" d="M846 412V470H1121V484" marker-end="url(#arrow)" />
+                  <path class="flow-path client-flow" id="client-path-2022" d="M846 412V449H821V484" marker-end="url(#arrow)" />
+                  <path class="flow-path client-flow" id="client-path-2025" d="M846 412V449H1121V484" marker-end="url(#arrow)" />
                   <circle class="flow-particle" data-flow="8,9,10" r="3.2">
                     <animateMotion dur="1.8s" repeatCount="indefinite">
                       <mpath href="#client-path-2022" />
@@ -352,10 +356,16 @@
                 </g>
                 <g class="reveal" data-at="4">
                   <path class="flow-path download-flow" id="download-path" d="M228 219H268V255H280" marker-end="url(#arrow)" />
+                  <path class="flow-path download-flow" id="application-download-path" d="M228 305H280" marker-end="url(#arrow)" />
                   <text class="flow-label" x="48" y="270">Download</text>
                   <circle class="flow-particle" data-flow="4" r="3.2">
                     <animateMotion dur="1.25s" repeatCount="indefinite">
                       <mpath href="#download-path" />
+                    </animateMotion>
+                  </circle>
+                  <circle class="flow-particle" data-flow="4" r="3.2">
+                    <animateMotion dur="1.25s" repeatCount="indefinite">
+                      <mpath href="#application-download-path" />
                     </animateMotion>
                   </circle>
                 </g>

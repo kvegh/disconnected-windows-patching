@@ -20,7 +20,12 @@ available vertically.
 
 This layout revision replaces the earlier width-only and viewport-fit attempts,
 which the owner's screenshots showed were respectively too large and too small.
-Microsoft Update appears outside the connected network on the left. Moving IIS
+Microsoft Update and a matching Application Repository sync box appear outside
+the connected network on the left, together in action 4. Both arrows point into
+the external repository. Repository service labels say Chocolatey application
+repository. Blue content arrows branch halfway between the internal repository
+and managed hosts; purple dashed WinRM control arrows use different server
+entry points. Explicit labels identify content delivery and job control. Moving IIS
 export below the content tiles lets that network rectangle become narrower.
 The two managed Windows hosts sit near the secure network’s bottom edge; the
 final verification badge sits beside the internal repository. The server-inspection
@@ -65,7 +70,7 @@ a delayed result cannot repopulate a reset diagram. Reduced-motion preferences
 make the phase sequence immediate and hide moving particles.
 
 Execution paths are purple; package/update paths retain blue and amber. Export
-data remains a separate internal-initiated HTTP pull from external IIS/Nexus.
+data remains a separate internal-initiated HTTP pull from external IIS/Chocolatey application repository.
 Neither AAP nor the execution node relays the update payloads.
 
 ## Proposed topology, not a deployed execution node
@@ -142,3 +147,7 @@ Version1.2.1 refines network grouping, managed-host placement and hint visibilit
 from implementation `07b7f718b8da408b37a32fe6442c6ae1b1c023e2`. Pages succeeded on
 2026-11-15 at14:08:11 UTC and served assets matched the checked source.
 Browser appearance remains unverified.
+
+Version 1.2.2 adds parallel application synchronization, descriptive application
+repository labels and distinct, balanced client routes. Publication evidence is
+recorded in the project decision history after verification.

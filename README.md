@@ -11,9 +11,13 @@
 The AAP edition uses a wide, compact diagram with a shorter title/action area.
 Content sources and export tiles share the wider connected section, while AAP,
 the internal repository and managed Windows hosts remain clearly grouped.
-Microsoft Update sits outside the narrower connected rectangle; IIS export sits
+Microsoft Update and Application Repository sync sit outside the narrower
+connected rectangle and reveal together. Both feed the external repository; IIS export sits
 below its content tiles. Managed Windows hosts align near the secure rectangle’s
-bottom, and a larger, darker hint highlights server inspection. Readable cards,
+bottom. Repository content branches halfway down the gap; purple dashed WinRM
+control arrows use separate server entry points from blue content arrows.
+Service labels say Chocolatey application repository. A larger, darker hint
+highlights server inspection. Readable cards,
 the changing execution status, growing workflow and interactions are retained. See the
 [walkthrough guide](demo-with-aap/README.md) for layout and verification limits.
 

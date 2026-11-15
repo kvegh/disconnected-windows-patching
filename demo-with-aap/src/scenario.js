@@ -23,8 +23,8 @@
     },
     {
       title: 'Prepare the repositories',
-      description: 'Prepare Windows features and required reboots, then configure WSUS and Nexus. The internal clients use their internal update and application sources.',
-      short: 'WSUS for Windows. Nexus for applications.',
+      description: 'Prepare Windows features and required reboots, then configure WSUS and Chocolatey application repository. The internal clients use their internal update and application sources.',
+      short: 'WSUS for Windows. Chocolatey application repository for applications.',
       source: 'setup_wsus.yml',
       example: '- name: Install Windows Update Services\n  ansible.windows.win_feature:\n    name:\n      - UpdateServices\n      - UpdateServices-WidDB\n      - UpdateServices-Services\n    state: present\n    include_management_tools: true',
       flow: 'Repository services are ready; content comes next.'
@@ -35,11 +35,11 @@
       short: 'Selected content arrives on the connected side.',
       source: 'sync_external_wsus.yml',
       example: '- name: Synchronize selected Microsoft updates\n  ansible.windows.win_powershell:\n    script: |\n      $wsus = Get-WsusServer\n      $subscription = $wsus.GetSubscription()\n      $subscription.StartSynchronization()\n      # Then wait, select and verify files.',
-      flow: 'Microsoft → external WSUS. Motion illustrates the download path.'
+      flow: 'Microsoft updates + application packages → external repository.'
     },
     {
       title: 'Export and publish through IIS',
-      description: 'Export compressed WSUS metadata and publish its manifest and existing update files through a management-only IIS site. The application export is a separate ZIP served by Nexus.',
+      description: 'Export compressed WSUS metadata and publish its manifest and existing update files through a management-only IIS site. The application export is a separate ZIP served by the Chocolatey application repository.',
       short: 'Compressed metadata and update files become available.',
       source: 'export_external_wsus.yml',
       example: '- name: Export compressed WSUS metadata\n  ansible.windows.win_command:\n    cmd: >-\n      WSUSutil.exe export\n      "{{ metadata_gzip }}" "{{ export_log }}"\n\n- name: Publish the static export\n  microsoft.iis.website:\n    name: WSUS Export\n    physical_path: "{{ export_root }}"\n    state: started',
@@ -47,7 +47,7 @@
     },
     {
       title: 'Pull and import internally',
-      description: 'The internal repository initiates the connection and pulls the published export: WSUS metadata and update files from external IIS, and application packages from external Nexus. It verifies checksums before importing locally.',
+      description: 'The internal repository initiates the connection and pulls the published export: WSUS metadata and update files from external IIS, and application packages from the external Chocolatey application repository. It verifies checksums before importing locally.',
       short: 'Internal requests the export. External returns the data.',
       source: 'replicate_and_import.yml',
       example: '- name: Pull an export from the internal side\n  hosts: internal_repository\n  gather_facts: false\n  tasks:\n    - name: Request and verify the external export\n      ansible.windows.win_get_url:\n        url: "{{ external_export_url }}"\n        dest: "{{ internal_file }}"\n        checksum: "{{ trusted_sha256 }}"\n        checksum_algorithm: sha256\n        use_proxy: false\n        follow_redirects: none',
@@ -71,11 +71,11 @@
     },
     {
       title: 'Install baseline applications',
-      description: 'Install the older pinned 7-Zip and Git packages from the internal Nexus baseline feed. The public Chocolatey source remains disabled.',
+      description: 'Install the older pinned 7-Zip and Git packages from the internal Chocolatey application repository baseline feed. The public Chocolatey source remains disabled.',
       short: 'Known application versions establish the starting point.',
       source: 'deploy_baseline_applications.yml',
       example: '- name: Install a pinned baseline package\n  chocolatey.chocolatey.win_chocolatey:\n    name: "{{ package_id }}"\n    version: "{{ baseline_version }}"\n    source: "{{ internal_baseline_feed }}"\n    state: present',
-      flow: 'Internal Nexus → baseline 7-Zip and Git installations.'
+      flow: 'Internal Chocolatey application repository → baseline 7-Zip and Git installations.'
     },
     {
       title: 'Upgrade the applications',

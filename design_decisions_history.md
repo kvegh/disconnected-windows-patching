@@ -3211,3 +3211,32 @@ Publish Windows demo run `43722651699` completed successfully at
 2026-11-15 14:08:11 UTC (created14:07:50 UTC). Public HTML, versioned AAP
 CSS and unchanged app JavaScript matched reviewed local bytes. Browser
 appearance remains unverified.
+
+
+## 2026-11-15 — Show both content sources and distinguish client control
+
+Recorded at 14:20 UTC (individual user request times unavailable), the
+owner requested a matching Application Repository sync source alongside
+Microsoft Update, both appearing in the same step and feeding the external
+repository. Replace Nexus presentation strings in the AAP edition with
+Chocolatey application repository; use a full-width service row so the longer
+name remains readable. This is presentation wording, not a change to the
+underlying repository software or automation. Historical technical documentation
+and the separate standard edition retain their existing product references.
+
+The owner also requested a midpoint content junction and distinct execution-node
+control arrows. The repository ends at SVG y412 and managed cards begin at486;
+place the junction at449. Use blue content routes and purple dashed WinRM
+control routes with separate entry points and explicit labels. A curved bridge
+was considered during source review but omitted because color, dashes and
+separate endpoints provide the distinction without extra crossing geometry.
+Keep the approved landscape frame, stages, interactions and existing tooling.
+Version 1.2.2 records this focused polish. No component, dependency or runtime
+automation is added. Source checks and actual publication evidence follow;
+browser-rendered appearance remains unverified under the existing user choice.
+
+Verification: all three existing Node walkthrough test files passed, along with
+changed-JavaScript syntax, SVG parsing, reveal-stage and motion-reference checks,
+midpoint and distinct endpoint checks, and Git whitespace validation. Independent
+source review found no blocking issue; both long service rows and detail text
+remain inside the repository cards. Browser appearance is unverified.
