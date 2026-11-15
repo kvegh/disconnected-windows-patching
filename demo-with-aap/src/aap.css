@@ -1,10 +1,20 @@
-/* The edition keeps the original typography and adds a clear control plane. */
+/* A landscape diagram keeps the existing cards and text readable without a viewport-fit scale. */
 .edition-name { color:#477fce; font-weight:450; }
-/* Use the desktop window width before making any separate height adjustment. */
-@media(min-width:1121px) { .app { width:100%; padding-inline:24px; } }
-.architecture { height:auto; min-height:0; max-height:none; }
-.architecture-canvas { min-height:0; flex:initial; }
-.workflow-scroll { height:760px; }
+.app { width:100%; padding:20px 24px 16px; }
+.masthead { gap:18px; margin-bottom:14px; }
+.brand { gap:13px; }
+h1 { font-size:30px; }
+.brand .eyebrow { font-size:10.8px; margin-bottom:4px; }
+.controls { gap:20px; padding:16px 20px; margin-bottom:16px; }
+.action-context { max-width:960px; }
+.action-context h2 { font-size:22px; margin-bottom:6px; }
+.action-context > p:last-child { max-width:960px; font-size:14px; line-height:1.45; }
+.next-button { min-height:60px; }
+.architecture { width:100%; min-width:1280px; max-width:1320px; height:auto; min-height:0; max-height:none; margin-inline:auto; }
+.architecture-canvas { min-height:0; flex:initial; overflow:auto; }
+/* Keep the initial empty-state caption in the secure half of the scrollable drawing. */
+.architecture-empty { width:100%; min-width:1280px; max-width:1320px; margin-inline:auto; padding-left:660px; }
+.workflow-scroll { height:600px; }
 .architecture-panel > .panel-heading { padding-top:14px; padding-bottom:4px; align-items:start; display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:20px; }
 .execution-banner { display:flex; gap:9px; align-items:center; justify-self:end; min-width:0; margin:0; padding:11px 13px; border:1px solid #dce8fa; border-radius:10px; background:#f0f6ff; color:#4873ab; font-size:12px; line-height:1.5; }
 .execution-indicator { width:6px; height:6px; flex-shrink:0; border-radius:50%; background:#548ce0; }
@@ -29,8 +39,8 @@
 .architecture:is([data-phase="connect"],[data-phase="outbound"]) .mesh-outbound-label { fill:#3572d5; }
 .architecture[data-phase="dispatch"] .mesh-job-particle { visibility:visible; animation:mesh-dispatch .45s linear both; }
 @keyframes controller-pulse { 50% { fill:#e9f2ff; stroke:#6e9ce9; } }
-@keyframes mesh-outbound { from { transform:translateX(0); } to { transform:translateX(-182px); } }
-@keyframes mesh-dispatch { from { transform:translateX(0); } to { transform:translateX(182px); } }
+@keyframes mesh-outbound { from { transform:translateX(0); } to { transform:translateX(-382px); } }
+@keyframes mesh-dispatch { from { transform:translateX(0); } to { transform:translateX(382px); } }
 .job-command { display:none; }
 .architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-scope="connected"],[data-scope="both"]):not([data-target^="deploy"]) .external-control,
 .architecture:is([data-phase="execute"],[data-phase="complete"]):is([data-target="repository"],[data-target="repositories"],[data-target="all"]) .repository-control,
@@ -44,7 +54,9 @@
 .architecture[data-phase="execute"] .command-particle { visibility:visible; }
 .architecture[data-target="deploy-internal"] .deployment-external-control .command-particle { visibility:hidden; }
 .architecture[data-phase="execute"] .command-path { opacity:1; }
-@media(min-width:1500px) { .workflow-scroll { height:805px; } }
-@media(max-width:860px) { .workflow-scroll { height:660px; }.architecture-panel > .panel-heading { grid-template-columns:1fr; gap:10px; }.execution-banner { justify-self:stretch; font-size:11px; } }
-@media(max-width:650px) { .workflow-scroll { height:340px; }.execution-banner { font-size:10.8px; }.edition-name { white-space:nowrap; }.architecture-canvas { min-height:0; } }
+/* Transfer particles follow the longer horizontal corridor in the wide drawing. */
+@keyframes pull-request { 0% { opacity:1; transform:translateX(0); } 27% { opacity:1; transform:translateX(-382px); } 28%,100% { opacity:0; transform:translateX(-382px); } }
+@keyframes pull-response { 0%,32% { opacity:0; transform:translateX(0); } 34% { opacity:1; transform:translateX(0); } 88% { opacity:1; transform:translateX(383px); } 90%,100% { opacity:0; transform:translateX(383px); } }
+@media(max-width:860px) { .app { padding:18px 16px 14px; } h1 { font-size:26.4px; } .masthead { flex-wrap:wrap; } .workflow-scroll { height:520px; }.architecture-panel > .panel-heading { grid-template-columns:1fr; gap:10px; }.execution-banner { justify-self:stretch; font-size:11px; } }
+@media(max-width:650px) { .app { padding:16px 12px 12px; } .controls { padding:14px; } .workflow-scroll { height:340px; }.execution-banner { font-size:10.8px; }.edition-name { white-space:nowrap; }.architecture-canvas { min-height:0; } }
 @media(prefers-reduced-motion:reduce) { .control-particle { display:none; } }

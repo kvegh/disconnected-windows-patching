@@ -8,13 +8,12 @@
   <img src="docs/screenshots/windows-aap-visualization.png" alt="Screenshot of the Windows plus AAP visualization; open from the beginning" width="640">
 </a>
 
-The AAP edition keeps the changing execution status beside the Datacenter heading
-and omits the redundant host-count summary and environment eyebrow label.
-The heading and network zones sit closer together, without shrinking the diagram. Wide desktop windows use the full
-page width with 24px side padding. The diagram fills the available
-panel width, keeps the smaller heading gap and permits vertical page scrolling
-rather than shrinking to a single viewport. See its
-[walkthrough guide](demo-with-aap/README.md) for scope and validation limits.
+The AAP edition uses a wide, compact diagram with a shorter title/action area.
+Content sources and export tiles share the wider connected section, while AAP,
+the internal repository and managed Windows hosts remain clearly grouped.
+Readable cards, the changing execution status, growing workflow and server
+interactions are retained. See the
+[walkthrough guide](demo-with-aap/README.md) for layout and verification limits.
 
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
 in a simulated disconnected environment.

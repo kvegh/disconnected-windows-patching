@@ -3138,3 +3138,36 @@ concurrent upstream automation changes through 1.1.54. No JavaScript, diagram
 node coordinates, automation, dependency or publishing workflow changes are
 needed. Browser rendering remains unverified under the existing owner choice.
 Implementation and actual publication checks will be recorded after committing.
+
+
+## 2026-11-15 12:46 UTC — Revise the diagram layout for readable wide screens
+
+The owner's later screenshot showed that the wide page enlarged the original
+tall diagram, while the earlier viewport-fit attempt had made it unreadable.
+The owner explicitly approved the proposed focused revision with “Do it. worst
+case we roll back.” This resumes visualization work after the maintenance hold.
+
+Use a wider diagram arrangement, move connected-side content into the space
+beside the repository, tighten gaps and shorten the title/action area. Retain
+readable card/text sizes, colors, workflow, orchestration and interactions.
+This supersedes scaling the old tall drawing to either panel width or browser
+height. Avoid new frameworks, controls and dependencies. Preserve normal
+scrolling where the full drawing cannot fit legibly. Version 1.2.0 records the
+layout revision; its implementation commit and verification will follow.
+
+Rollback remains an ordinary reviewed Git revert of that focused implementation.
+The pre-revision source is d158dcd872ec1553d85d388a04924fd598f79436, version
+1.1.55. Its existing Pages run 43710825295 succeeded at 11:50:36 UTC on
+2026-11-15. The maintenance break paused its final live-asset/documentation
+follow-up; no browser visual acceptance was established. Earlier failed visual
+approaches remain documented rather than being described as verified fitting.
+
+The final drawing is 1280×660, rendered between 1280px and 1320px wide with
+horizontal canvas scrolling on smaller screens. Card/text dimensions and all
+identified objects retain their original reveal stages. Mesh, transfer and
+WinRM paths/particles follow the repositioned components. Review corrected
+Microsoft Update overlapping the mesh corridor and aligned the initial caption
+to the secure network. Existing two Node walkthrough test files, object-level
+semantic preservation, numeric card/path bounds and whitespace checks passed.
+No browser/renderer was installed or used; observed visual acceptance remains
+unverified. These are development checks, not a formal automation review.

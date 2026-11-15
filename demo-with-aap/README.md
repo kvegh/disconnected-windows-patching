@@ -7,22 +7,23 @@ execution node inside the secure network. It retains the original palette,
 larger typography, growing workflow, server details and in-page code previews.
 The original `demo/` assets remain independent.
 
-The changing execution-status message sits beside the Datacenter heading on
-wide windows and wraps below it on narrower ones. The redundant AAP/Windows-host
-summary and the redundant “02 / The environment” label are omitted.
-The Datacenter heading uses less top padding, and the diagram viewBox trims
-20 units of empty top space so both network zones start closer to the heading.
-The viewBox width and bottom edge stay unchanged, preserving diagram scale and
-all content. On desktops wider than 1120px, the page uses the full
-window width with 24px side padding instead of a 1600px cap. This is the first
-width adjustment; it does not reduce diagram height. The diagram uses the
-available panel width and keeps its
-natural aspect ratio; the page scrolls vertically when needed. It remains
-top-aligned with a smaller gap below the Datacenter heading. The attempted
-single-viewport fit was removed because the owner's screenshot showed that it
-made the diagram too small to read. Typography, diagram coordinates and
-orchestration behavior are unchanged. Browser rendering was not checked under
-the owner's existing choice to proceed without browser installation.
+The changing execution-status message sits beside Datacenter on wide windows
+and wraps below it on narrower ones. The redundant host-count and environment
+labels remain omitted. The wide layout spreads content sources and export tiles across the connected
+section, reducing vertical stacking while leaving the transfer corridor clear. The title and
+action area use less vertical space. Diagram cards and text retain their
+readable dimensions; the entire drawing is not forced into the remaining
+viewport height. The drawing uses a 1280×660 landscape viewBox and renders at 1280–1320px
+wide, so large windows do not inflate the cards. On narrower screens, the
+diagram scrolls horizontally to preserve readable text. Page scrolling remains
+available vertically.
+
+This layout revision replaces the earlier width-only and viewport-fit attempts,
+which the owner's screenshots showed were respectively too large and too small.
+Colors, walkthrough ordering, execution phases, server details and code previews
+remain. Browser rendering remains unverified under the owner's choice to proceed
+without installing a browser. Source checks and publication verification do not
+establish observed visual readability.
 
 The existing GitHub Pages root continues to show the original demo. This edition
 is published at `/demo-with-aap/` underneath the same project Pages origin. Each
@@ -119,3 +120,11 @@ git diff --check
 There is no package manager, lockfile, formatter or linter dependency. Retain the
 plain HTML, CSS and JavaScript conventions and run the syntax checks above.
 The existing Pages workflow checks both editions and publishes only page assets.
+
+## Layout rollback
+
+The layout is a focused Git change; use an ordinary reviewed revert of its
+implementation commit recorded in `../design_decisions_history.md` if the owner
+chooses to roll it back. The pre-revision layout is preserved at
+`d158dcd872ec1553d85d388a04924fd598f79436`; do not reset shared history or revert
+unrelated automation changes.
