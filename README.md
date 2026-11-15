@@ -19,7 +19,9 @@ remain in force. Active jobs retain the settings with which they started.
 </a>
 
 The AAP edition uses a compact diagram with Microsoft Update and Application
-Repository sync above the two network rectangles. Both sources reveal together
+Repository sync above the connected network, aligned with the secure network’s
+top edge. Their feed arrows pass behind the External AAP card and reappear
+at the repository below. Both sources reveal together
 and feed the external repository. Shorter network rectangles and tighter gaps
 bring the datacenter together while preserving readable card and text sizes.
 IIS export sits below its content tiles; managed Windows hosts remain near the
