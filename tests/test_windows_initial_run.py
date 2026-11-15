@@ -44,11 +44,13 @@ class InitialRunTests(unittest.TestCase):
             windows_runtime_recovery_pin={'machine_id': 'a' * 32},
             windows_runtime_release_trust={'path': '/tmp/windows-release-known-hosts-fixture'})
         for context, guard in [('release', role_guard), ('retirement', retire_guard), ('management', network_guard)]:
-            for variant in ['exact', 'old-pin', 'branch', 'foreign-repository']:
+            for variant in ['exact', 'old-pin', 'previous-pin', 'branch', 'foreign-repository']:
                 with self.subTest(context=context, variant=variant), tempfile.TemporaryDirectory() as directory:
                     selected = dict(defaults)
                     if variant == 'old-pin':
                         selected['windows_recovery_release_revision'] = 'f22171b8ea6635888d280eb317d24863341197af'
+                    elif variant == 'previous-pin':
+                        selected['windows_recovery_release_revision'] = 'f9aa8410dc91536a7175141a85878c7055672180'
                     elif variant == 'branch':
                         selected['windows_recovery_release_revision'] = 'main'
                     elif variant == 'foreign-repository':

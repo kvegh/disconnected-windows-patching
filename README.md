@@ -90,8 +90,19 @@ path has focused offline coverage and has passed normal AAP preparation,
 activation cleanup, promotion, LDAPS and real regional-access verification.
 A fresh unattended full workflow remains unverified.
 
-The shared lifecycle dependency is pinned to the reviewed Core 2.20 implementation
-`f9aa8410dc91536a7175141a85878c7055672180` (AutoDeploy 0.63.57). The lifecycle action imports successfully in the actual Core 2.20.10 image;
+The shared lifecycle dependency is pinned to the qualified diagnostic backport
+`6d36ee98cd55abe19b787b1665824f315fd64e32` (AutoDeploy backport 0.63.59), based on the
+previous Core 2.20 implementation `f9aa8410dc91536a7175141a85878c7055672180`.
+It retains the existing lifecycle and allocation behavior and adds encrypted
+capture for the observed central bootstrap Git-read failure. The native artifact
+`aap_guest_source_git_failure_vault` uses the existing labelled CaC key and
+excludes invocation arguments. Missing diagnostics preserve normal rollback
+and cleanup; Git authentication, TLS and protected logging stay unchanged.
+The original live Git error remains unresolved until the focused retry returns.
+Nine native Core 2.20.10 initial-run checks passed, including exact-pin guards,
+previous-pin/branch/repository rejection, lock contexts and unchanged fixed
+diagnostic messages.
+ The lifecycle action imports successfully in the actual Core 2.20.10 image;
 four synthetic protected-YAML tests verify trust separation, literal templates,
 Vault header/value/tag roundtrips and unchanged vendor serialization. The old
 native dumper subclass caused the live loader exception; the pinned implementation
