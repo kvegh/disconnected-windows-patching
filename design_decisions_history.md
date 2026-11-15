@@ -3502,3 +3502,10 @@ and exact SVG preservation checks pass. Independent read-only review found no
 blocking app mismatch. Fixture limits are documented: no browser rendering,
 native key generation/event bubbling, popup focus restoration or asynchronous
 browser-layout coverage. No dependency or browser installation was performed.
+
+Implementation: 477d4ca9d84045f4226907427611fea26bee0cae. SSH push succeeded.
+Existing Publish Windows demo run43740843128 completed successfully at
+2026-11-15 17:23:53 UTC (created17:23:32 UTC). Public HTTPS HTML, versioned
+AAP CSS and app JavaScript matched tested local bytes exactly. All17 automated
+checks passed. Actual browser interaction/rendering remains unverified; the
+new interaction tests execute real handlers against the documented DOM fixture.
