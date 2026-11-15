@@ -7,7 +7,7 @@
     <meta name="color-scheme" content="light">
     <title>Disconnected Windows + AAP · Interactive demo</title>
     <link rel="stylesheet" href="src/styles.css">
-    <link rel="stylesheet" href="src/aap.css?v=1.1.50">
+    <link rel="stylesheet" href="src/aap.css?v=1.1.55">
     <script src="src/scenario.js" defer></script>
     <script src="src/orchestration.js" defer></script>
     <script src="src/app.js?v=1.1.47" defer></script>
@@ -33,10 +33,10 @@
         </section>
 
         <section class="architecture-panel" aria-labelledby="architecture-title">
-          <div class="panel-heading"><div><p class="eyebrow">02 / The environment</p><h2 id="architecture-title">Datacenter</h2></div><div class="execution-banner" aria-live="polite"><span class="execution-indicator" aria-hidden="true"></span><span id="execution-caption">AAP schedules. The execution node runs locally.</span></div></div>
+          <div class="panel-heading"><div><h2 id="architecture-title">Datacenter</h2></div><div class="execution-banner" aria-live="polite"><span class="execution-indicator" aria-hidden="true"></span><span id="execution-caption">AAP schedules. The execution node runs locally.</span></div></div>
           <div class="architecture-canvas" id="architecture-canvas">
             <div class="architecture-empty" id="architecture-empty"><div class="empty-cross" aria-hidden="true">+</div><p>The Windows environment will appear here.</p></div>
-            <svg class="architecture" viewBox="0 0 960 800" preserveAspectRatio="xMidYMin meet" role="img" aria-labelledby="diagram-title diagram-description">
+            <svg class="architecture" viewBox="0 20 960 780" preserveAspectRatio="xMidYMin meet" role="img" aria-labelledby="diagram-title diagram-description">
               <title id="diagram-title">Disconnected Windows datacenter</title><desc id="diagram-description">The architecture fills as you advance the walkthrough. AAP is in the connected network. A proposed Linux execution node initiates outbound mesh connectivity from the secure network. Each internal action highlights that inside-out connection, followed by job dispatch and local Windows execution. Later actions reuse the established mesh.</desc>
               <defs>
                 <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="#d9e3f1"/></pattern>

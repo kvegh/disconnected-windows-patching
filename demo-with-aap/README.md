@@ -9,7 +9,11 @@ The original `demo/` assets remain independent.
 
 The changing execution-status message sits beside the Datacenter heading on
 wide windows and wraps below it on narrower ones. The redundant AAP/Windows-host
-summary is omitted. On desktops wider than 1120px, the page uses the full
+summary and the redundant “02 / The environment” label are omitted.
+The Datacenter heading uses less top padding, and the diagram viewBox trims
+20 units of empty top space so both network zones start closer to the heading.
+The viewBox width and bottom edge stay unchanged, preserving diagram scale and
+all content. On desktops wider than 1120px, the page uses the full
 window width with 24px side padding instead of a 1600px cap. This is the first
 width adjustment; it does not reduce diagram height. The diagram uses the
 available panel width and keeps its

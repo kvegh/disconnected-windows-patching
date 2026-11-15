@@ -3122,3 +3122,19 @@ on 2026-11-14 at 18:25:53 UTC (created 18:25:31 UTC). Both AAP-edition Node
 test files and whitespace checks passed. Public HTTPS HTML, the versioned AAP
 stylesheet and unchanged app JavaScript matched the reviewed local bytes.
 Rendered browser width/readability remains unverified.
+
+
+## 2026-11-15 10:56 UTC — Raise the Datacenter heading and network zones
+
+The owner requested removing “02 / The environment”, moving Datacenter up,
+and bringing both network rectangles farther up. Remove that eyebrow label,
+reduce heading top/bottom padding to 14px/4px, and align the heading to the top
+of its status row. Trim only the first 20 empty SVG units through the viewBox;
+its width and bottom edge remain unchanged, so drawing coordinates, content
+and readable scale are preserved. The wide layout and normal scrolling remain.
+
+Version 1.1.55 records this small presentation adjustment after preserving
+concurrent upstream automation changes through 1.1.54. No JavaScript, diagram
+node coordinates, automation, dependency or publishing workflow changes are
+needed. Browser rendering remains unverified under the existing owner choice.
+Implementation and actual publication checks will be recorded after committing.

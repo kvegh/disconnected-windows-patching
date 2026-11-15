@@ -9,7 +9,8 @@
 </a>
 
 The AAP edition keeps the changing execution status beside the Datacenter heading
-and omits the redundant host-count summary. Wide desktop windows use the full
+and omits the redundant host-count summary and environment eyebrow label.
+The heading and network zones sit closer together, without shrinking the diagram. Wide desktop windows use the full
 page width with 24px side padding. The diagram fills the available
 panel width, keeps the smaller heading gap and permits vertical page scrolling
 rather than shrinking to a single viewport. See its
