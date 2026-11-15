@@ -3447,3 +3447,10 @@ because incoming runtime/logging work advanced main tod9ad3a9/version1.2.9.
 Rebase only this layout commit, preserving both history entries and the incoming
 runtime changes. Advance layout metadata/query to1.2.10 rather than reuse
 the initially planned1.2.8. No force push or runtime operation is performed.
+
+Implementation: de1a0f35bb1ca2ccf923d7e5ef5e16b4881432c1. Normal SSH push
+succeeded after preserving the concurrent incoming changes. Existing Publish
+Windows demo run43739318499 completed successfully at2026-11-15 17:07:49 UTC
+(created17:07:29 UTC). Public HTTPS HTML and versioned AAP CSS matched checked
+local bytes exactly. Integrated walkthrough tests passed14/14. Browser-rendered
+appearance remains unverified; no browser or dependency was installed.
