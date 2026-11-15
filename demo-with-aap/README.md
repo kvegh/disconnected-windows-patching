@@ -54,7 +54,8 @@ page has its own source files and URL; no second repository is needed.
 All eleven stages remain visible, including future stages. Click a stage’s
 title/description button to jump directly to that illustrated state, forward
 or backward. Current, completed and future states have distinct styling; the
-selected stage is marked for assistive technology. Native buttons support
+selected stage is marked for assistive technology. Current and completed rows
+have darker frames, while future rows remain lightly framed. Native buttons support
 keyboard activation without removing the focused row during navigation.
 
 Hover over a row or focus either of its buttons to preview the Ansible code.
@@ -199,3 +200,6 @@ rectangles align, and mesh arrows remain horizontal.
 
 Version 1.3.0 adds direct stage navigation while retaining hover explanations
 and a separate pinnable code preview.
+
+Version 1.3.1 strengthens current/completed workflow frames while future steps
+keep a lighter frame. Navigation and preview behavior are unchanged.

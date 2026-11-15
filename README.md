@@ -33,7 +33,8 @@ junction stays midway between the internal repository and managed hosts. The lar
 highlights server inspection. See the [walkthrough guide](demo-with-aap/README.md)
 for layout and verification limits. All workflow steps are available from the start:
 click a step to jump forward/back, hover for its Ansible explanation, or use
-Explore the Ansible to pin that explanation. Next still plays the orchestration
+Explore the Ansible to pin that explanation. Current/completed steps have
+darker frames; remaining steps keep light frames. Next still plays the orchestration
 sequence; a direct jump cancels an unfinished visual sequence.
 
 AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment

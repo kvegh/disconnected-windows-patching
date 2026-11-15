@@ -15,7 +15,10 @@ h1 { font-size:30px; }
 /* Keep the initial empty-state caption in the secure half of the scrollable drawing. */
 .architecture-empty { width:100%; min-width:1036px; max-width:1068.375px; margin-inline:auto; padding-left:416px; }
 .workflow-scroll { height:600px; }
-.workflow-entry { display:block; padding:0; }
+/* Keep visited/current frames stronger than stages that remain ahead. */
+.workflow-entry { display:block; padding:0; border-color:#e0e7f0; }
+.workflow-entry.completed { border-color:#7088a8; }
+.workflow-entry.current { border-color:#486a99; }
 .workflow-entry:focus-within { background:#f0f6ff; }
 .workflow-step { width:100%; display:grid; grid-template-columns:26px minmax(0,1fr); gap:8px; padding:12px 9px 4px; border:0; border-radius:10px; background:transparent; color:inherit; text-align:left; }
 .workflow-entry .step-code-hint { margin:0 9px 12px 43px; padding:2px 0; border:0; background:transparent; text-align:left; }

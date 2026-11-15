@@ -3509,3 +3509,14 @@ Existing Publish Windows demo run43740843128 completed successfully at
 AAP CSS and app JavaScript matched tested local bytes exactly. All17 automated
 checks passed. Actual browser interaction/rendering remains unverified; the
 new interaction tests execute real handlers against the documented DOM fixture.
+
+
+## 2026-11-15 17:28 UTC — Distinguish visited workflow frames
+
+The owner requested darker frames for the current and previous/completed stages,
+with light frames for remaining stages. Reuse the existing current/completed/
+future row states: current borders #486a99, completed #7088a8, remaining #e0e7f0.
+Keep border width, card size, hover backgrounds, focus outlines and navigation
+behavior unchanged. Version1.3.1 records this CSS-only presentation correction.
+Reuse the existing interaction tests of row states and review the focused CSS
+diff; no new test/framework, dependency or browser installation is required.
