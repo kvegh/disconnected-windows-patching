@@ -51,6 +51,7 @@
             filename: "/tmp/{{ item.item.id }}.{{ item.item.version }}.nupkg"
             mime_type: application/octet-stream
         status_code: 204
+        return_content: true  # TEMPORARY debug
       loop: "{{ fill_search.results }}"
       loop_control:
         label: "{{ item.item.id }} {{ item.item.version }}"
