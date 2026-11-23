@@ -153,3 +153,14 @@ both playbooks share `tasks/nexus-packages-upload.yml`. Verified by Job 95
 (successful).
 
 Implementation commit: `7f492ad` (2.1.2).
+
+## WSUS free-space check counts downloaded content — 2026-11-23
+
+Found when rerunning Workflow 98 on v32 (Job 114 — Disconnected Windows -
+Fill External WSUS): the free-space check failed with 3.9 GB free on the
+40 GB C: volume, because the first run had already put the patch month
+into the WSUS content folder. Agent choice (routine fix): the check adds the
+content folder size (win_stat) to the free space, so a rerun passes and a
+first run checks exactly as before.
+
+Implementation commit: `9b3a878` (2.1.3).
