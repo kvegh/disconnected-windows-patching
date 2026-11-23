@@ -1,6 +1,6 @@
 # Disconnected Windows patching with AAP
 
-Version 2.0.2. Ansible Automation Platform (AAP) patches Windows servers in a
+Version 2.1.0. Ansible Automation Platform (AAP) patches Windows servers in a
 network without Internet access: Microsoft updates and application packages
 are fetched on the connected side, exported, pulled into the isolated side and
 installed from there only. Windows updates go through WSUS, applications
@@ -135,11 +135,16 @@ ansible-playbook --vault-id cac@/dev/stdin \
 Localhost is the only inventory; the playbook loads `aap-infra/*.yml` and
 `env_variables.yml` from the -secrets checkout and adds the hypervisor, the
 AAP VM (through the hypervisor as jump host) and the four Windows VMs itself.
+The AAP VM's address is not configured: AutoDeploy gives its AAP VMs DHCP
+addresses (several AAPs can share the hypervisor), so the playbook reads it
+from the VM's DHCP lease on the hypervisor (`community.libvirt.virt`,
+`get_ifaddresses`) by the name `usecase_target_aap`.
 It is rerunnable and leaves existing networks, entries, NICs and VMs alone.
 
 It needs from the deployer's execution environment (to verify at the first
 deploy): `ansible.windows` (WinRM connection, facts), `redhat.rhel_system_roles`
-(network role), Python `pywinrm`, an SSH client. `collections/requirements.yml`
+(network role), `community.libvirt` (the AAP VM's address), Python `pywinrm`,
+an SSH client. `collections/requirements.yml`
 lists the same pins; the AAP project sync installs it for the job templates.
 
 The deployer must run on the target AAP itself: the OS check at the end

@@ -11,7 +11,8 @@
 #     playbooks/aap-infra.yml
 #
 # It builds its own targets from the -secrets checkout: plain configuration
-# from aap-infra/*.yml, secrets from env_variables.yml (vault ID cac). Then:
+# from aap-infra/*.yml, secrets from env_variables.yml (vault ID cac), and the
+# AAP VM's address from its DHCP lease on the hypervisor. Then:
 #   1. hypervisor: the isolated Windows network (no forwarding, no DNS, DHCP
 #      host entries MAC -> fixed address) and the DHCP host entries of the
 #      repository servers on the management network;
@@ -26,12 +27,20 @@
 # Destroy and snapshots are job templates of the use case, not part of this.
 #
 # Needs in the execution environment: ansible.windows (WinRM connection and
-# facts), redhat.rhel_system_roles (network role), Python pywinrm, an SSH client.
+# facts), redhat.rhel_system_roles (network role), community.libvirt (the AAP
+# VM's address), Python pywinrm, an SSH client.
 
 - name: Build the targets from the -secrets checkout
   hosts: localhost
   connection: local
   gather_facts: false
+  vars:
+    # IPv4 address (type 0) of the AAP VM's DHCP lease on the management
+    # network; its NIC in the isolated network has a static address, no lease.
+    aap_vm_address: >-
+      {{ aap_vm_leases | dict2items | map(attribute='value') | selectattr('addrs', 'defined')
+         | map(attribute='addrs') | flatten | selectattr('type', 'equalto', 0)
+         | map(attribute='addr') | first | default('') }}
   tasks:
     - name: Load the infra configuration
       ansible.builtin.include_vars:
@@ -68,13 +77,31 @@
         ansible_ssh_common_args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
         windows_infra_aap_vm_name: "{{ usecase_target_aap }}"
 
+    # AutoDeploy gives every AAP VM a DHCP address (several AAPs can share
+    # the hypervisor), so the address is looked up by the VM's name.
+    - name: Read the AAP VM's address from its DHCP lease
+      community.libvirt.virt:
+        name: "{{ usecase_target_aap }}"
+        command: get_ifaddresses
+        flags: [lease]
+      register: aap_vm_leases
+      delegate_to: hypervisor
+      # Overrides the play's local connection for the delegated host.
+      connection: ssh
+      become: true
+
+    - name: Require the AAP VM's address
+      ansible.builtin.assert:
+        that: aap_vm_address | length > 0
+        fail_msg: "{{ usecase_target_aap }} has no DHCP lease on the hypervisor; is it running?"
+
     # The AAP VM is reached through the hypervisor as jump host, the way the
     # AutoDeploy deployer reaches it.
     - name: Add the AAP VM
       ansible.builtin.add_host:
         name: "{{ usecase_target_aap }}"
         groups: aap_vm
-        ansible_host: "{{ windows_infra_aap_vm.address }}"
+        ansible_host: "{{ aap_vm_address }}"
         ansible_user: "{{ windows_infra_aap_vm.user }}"
         ansible_ssh_private_key_file: "{{ windows_infra_ssh_key.path }}"
         ansible_ssh_common_args: >-

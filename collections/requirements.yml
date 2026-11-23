@@ -15,3 +15,7 @@ collections:
   # AutoDeploy deployer project, whose job runs that playbook.
   - name: redhat.rhel_system_roles
     version: 1.120.5
+  # Only playbooks/aap-infra.yml (the AAP VM's DHCP address on the
+  # hypervisor). Same pin as the AutoDeploy deployer project.
+  - name: community.libvirt
+    version: 2.4.0
