@@ -105,4 +105,4 @@ User decision (20:41 CET): repo-ext's Nexus also allows anonymous read. The
 export reads (search and the pinned package download into the export folder) no
 longer log in, which removes the unverified login-across-redirect risk of the
 asset download. Writing (uploads to repo-ext) still uses the admin login. Supersedes
-"anonymous read on the repo-int Nexus" (14:37). Commit: see Git log (v2.0.1).
+"anonymous read on the repo-int Nexus" (14:37). Commit: `ec71fef` (v2.0.1).
