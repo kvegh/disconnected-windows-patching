@@ -138,3 +138,18 @@ matched (reproduced locally with ansible-core 2.20.11). Agent choice
 keeps its yes/no choices.
 
 Implementation commit: `b6e2cee` (2.1.1).
+
+## External feed upload from repo-ext — 2026-11-23
+
+Found in the v32 test run (Job 87 — Disconnected Windows - Fill External
+Applications, details from debug Job 89/92): Nexus answered every AAP-side
+upload with HTTP 500 "Missing nuspec". `ansible.builtin.uri` with
+`body_format: form-multipart` base64-encodes file parts (documented in
+`prepare_multipart`), and the Nexus Components API does not decode them.
+Agent choice (routine fix, no new technology): AAP still downloads and
+checks the pinned packages, copies them to repo-ext, and repo-ext uploads
+them with the .NET HttpClient multipart the internal import already used;
+both playbooks share `tasks/nexus-packages-upload.yml`. Verified by Job 95
+(successful).
+
+Implementation commit: `7f492ad` (2.1.2).
