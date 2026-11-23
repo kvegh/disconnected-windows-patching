@@ -106,3 +106,23 @@ export reads (search and the pinned package download into the export folder) no
 longer log in, which removes the unverified login-across-redirect risk of the
 asset download. Writing (uploads to repo-ext) still uses the admin login. Supersedes
 "anonymous read on the repo-int Nexus" (14:37). Commit: `ec71fef` (v2.0.1).
+
+## AAP VM address from its DHCP lease — 2026-11-23
+
+AutoDeploy decision (user, 19 November 2026, CET; approved for implementation
+23 November 2026, CET; AutoDeploy bead bead-wd-0gnz.42): one hypervisor may
+host several AAPs, whose VMs get DHCP-assigned MACs and addresses. The AAP VM
+address is therefore no longer configuration (`windows_infra_aap_vm.address`,
+the old fixed reservation): `playbooks/aap-infra.yml` reads it from the VM's
+DHCP lease on the hypervisor with `community.libvirt.virt`
+(`get_ifaddresses`, source `lease`), by the name `usecase_target_aap`, and
+fails with a clear message if there is no lease. Agent choices: the native
+module (same as the AutoDeploy AAP VM stage, same 2.4.0 pin, added to
+`collections/requirements.yml`) instead of `virsh domifaddr`; the delegated
+task sets `connection: ssh`, because the play's `connection: local` would
+otherwise run it in the execution environment (checked locally). The AAP VM's
+isolated NIC has a static address and no lease, so only the management
+address is found. Still one Windows use case per hypervisor: the Windows VM
+names, the isolated network and the AAP VM's isolated NIC MAC and address are
+fixed. Syntax check passes (ansible-core 2.16.19); not run.
+Commit: `21867e4` (v2.1.0).
