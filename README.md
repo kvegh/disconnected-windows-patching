@@ -1,6 +1,6 @@
 # Disconnected Windows patching with AAP
 
-Version 2.1.2. Ansible Automation Platform (AAP) patches Windows servers in a
+Version 2.1.3. Ansible Automation Platform (AAP) patches Windows servers in a
 network without Internet access: Microsoft updates and application packages
 are fetched on the connected side, exported, pulled into the isolated side and
 installed from there only. Windows updates go through WSUS, applications
