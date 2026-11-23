@@ -1,0 +1,70 @@
+---
+# Approve the patch month on this WSUS server and wait until its files are
+# ready. Used on repo-ext (approval starts the download from Microsoft) and on
+# repo-int (approval offers the imported updates to the managed servers).
+#
+# Selection: the month's cumulative updates (OS and .NET) of the configured
+# products and classifications, without preview, dynamic, hotpatch, arm64 and
+# x86 variants, plus every update they require that carries files (for
+# example the Server 2025 checkpoint update). All approvals go to "All
+# Computers"; unapproved updates are never offered.
+#
+# No module covers the WSUS server API, and the cmdlets have no relationship
+# query, so this is inline PowerShell on the WSUS .NET API.
+# Needs: wsus_patch_month (YYYY-MM), wsus_products, wsus_classifications,
+# wsus_ready_retries (polls, 30 s apart).
+
+- name: Approve the patch month
+  ansible.windows.win_powershell:
+    parameters:
+      Month: "{{ wsus_patch_month }}"
+      Products: "{{ wsus_products }}"
+      Classifications: "{{ wsus_classifications }}"
+    script: |
+      param([string]$Month, [string[]]$Products, [string[]]$Classifications)
+      $Ansible.Changed = $false
+      $server = Get-WsusServer
+      $allComputers = $server.GetComputerTargetGroup([Microsoft.UpdateServices.Administration.ComputerTargetGroupId]::AllComputers)
+      $queue = New-Object System.Collections.Queue
+      $server.GetUpdates() | Where-Object {
+          $_.IsLatestRevision -and -not $_.IsDeclined -and
+          $_.Title -like "$Month Cumulative Update*" -and
+          $_.Title -notmatch '(?i)\b(preview|dynamic|hotpatch|arm64|x86)\b' -and
+          $_.UpdateClassificationTitle -in $Classifications -and
+          @($_.ProductTitles | Where-Object { $_ -in $Products }).Count -gt 0
+      } | ForEach-Object { $queue.Enqueue($_) }
+      if ($queue.Count -eq 0) { throw "No cumulative update of $Month for the configured products" }
+      $selected = @{}
+      while ($queue.Count -gt 0) {
+          $update = $queue.Dequeue()
+          if ($selected.ContainsKey([string]$update.Id.UpdateId)) { continue }
+          $selected[[string]$update.Id.UpdateId] = $update
+          $update.GetRelatedUpdates([Microsoft.UpdateServices.Administration.UpdateRelationship]::UpdatesRequiredByThisUpdate) |
+              Where-Object { @($_.GetInstallableItems()).Count -gt 0 } | ForEach-Object { $queue.Enqueue($_) }
+      }
+      foreach ($update in $selected.Values) {
+          if (-not $update.IsApproved) {
+              $null = $update.Approve([Microsoft.UpdateServices.Administration.UpdateApprovalAction]::Install, $allComputers)
+              $Ansible.Changed = $true
+          }
+      }
+      $Ansible.Result = @($selected.Values | ForEach-Object { $_.Title } | Sort-Object)
+  register: wsus_approved
+
+- name: Show the approved updates
+  ansible.builtin.debug:
+    var: wsus_approved.result
+
+# State Ready = all files of the update are on this server.
+- name: Wait until the approved updates are ready
+  ansible.windows.win_powershell:
+    script: |
+      $Ansible.Changed = $false
+      $approved = @((Get-WsusServer).GetUpdates() | Where-Object { $_.IsApproved })
+      $failed = @($approved | Where-Object { [string]$_.State -eq 'Failed' })
+      if ($failed.Count -gt 0) { throw "Download failed: $(($failed | ForEach-Object { $_.Title }) -join '; ')" }
+      $Ansible.Result = @($approved | Where-Object { [string]$_.State -ne 'Ready' }).Count
+  register: wsus_not_ready
+  until: wsus_not_ready.result == 0
+  retries: "{{ wsus_ready_retries }}"
+  delay: 30

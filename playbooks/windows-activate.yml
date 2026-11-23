@@ -1,0 +1,40 @@
+---
+# Stage 2: activate the Windows Server evaluation licenses online, once,
+# before the first demo snapshot. An unactivated evaluation shuts down
+# hourly after 10 days; activated, reverted snapshots keep working.
+# The managed servers reach the activation service through the temporary NIC
+# of activation-nic.yml (its DHCP route can take a few seconds: retries).
+#
+# No module covers Windows licensing; the CIM method of the installed
+# Windows license (the same as slmgr /ato, but it reports errors) does it.
+
+- name: Activate the Windows evaluation licenses
+  hosts: windows
+  gather_facts: false
+  vars:
+    activate_license_query: >-
+      Get-CimInstance -ClassName SoftwareLicensingProduct
+      -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL"
+      | Where-Object { -not $_.LicenseIsAddon }
+  tasks:
+    - name: Read the license status
+      ansible.windows.win_powershell:
+        script: |
+          $Ansible.Changed = $false
+          $Ansible.Result = [int](@({{ activate_license_query }})[0].LicenseStatus)
+      register: activate_status
+
+    # LicenseStatus 1 = licensed.
+    - name: Activate the license
+      ansible.windows.win_powershell:
+        script: |
+          $license = @({{ activate_license_query }})[0]
+          $result = Invoke-CimMethod -InputObject $license -MethodName Activate
+          if ($result.ReturnValue -ne 0) { throw "Activation failed: $($result.ReturnValue)" }
+          $status = [int](@({{ activate_license_query }})[0].LicenseStatus)
+          if ($status -ne 1) { throw "License status after activation: $status" }
+      register: activate_result
+      retries: 12
+      delay: 10
+      until: activate_result is succeeded
+      when: activate_status.result != 1

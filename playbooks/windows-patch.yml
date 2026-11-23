@@ -1,0 +1,26 @@
+---
+# Stage 6: patch both managed servers (in parallel) from the internal WSUS.
+# win_updates installs, reboots and searches again in rounds until nothing
+# is left and no reboot is pending; the internal WSUS offers only the
+# approved patch month.
+
+- name: Patch the managed servers
+  hosts: windows_managed
+  gather_facts: false
+  tasks:
+    - name: Check that the internal WSUS answers
+      ansible.windows.win_uri:
+        url: "http://{{ hostvars[groups['wsus_internal'][0]].ansible_host }}:{{ wsus_port }}/ClientWebService/client.asmx"
+
+    - name: Install the approved updates
+      ansible.windows.win_updates:
+        server_selection: managed_server
+        category_names: '*'
+        reboot: true
+        reboot_timeout: "{{ windows_update_reboot_timeout }}"
+        maximum_retries_on_failed_updates: "{{ windows_update_failed_retries }}"
+      register: patch_result
+
+    - name: Show the installed updates
+      ansible.builtin.debug:
+        msg: "{{ patch_result.updates | dict2items | map(attribute='value.title') | list }}"

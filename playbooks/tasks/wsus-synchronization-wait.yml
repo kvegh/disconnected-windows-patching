@@ -1,0 +1,19 @@
+---
+# Wait until the running WSUS synchronization has ended, then fail unless it
+# succeeded. Read-only; polled by Ansible instead of a waiting script.
+# Needs: wsus_sync_retries (polls, 30 s apart).
+
+- name: Wait for the WSUS synchronization to end
+  ansible.windows.win_powershell:
+    script: |
+      $Ansible.Changed = $false
+      $subscription = (Get-WsusServer).GetSubscription()
+      $Ansible.Result = @{
+          status = [string]$subscription.GetSynchronizationStatus()
+          result = [string]$subscription.GetLastSynchronizationInfo().Result
+      }
+  register: wsus_sync
+  until: wsus_sync.result.status == 'NotProcessing'
+  retries: "{{ wsus_sync_retries }}"
+  delay: 30
+  failed_when: wsus_sync.result.status | default('') == 'NotProcessing' and wsus_sync.result.result != 'Succeeded'

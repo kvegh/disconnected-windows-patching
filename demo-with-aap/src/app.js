@@ -1,4 +1,4 @@
-/* Browser UI requires JavaScript; [rationale](../../docs/supporting-code.md#browser-walkthroughs). */
+/* Browser UI requires JavaScript: the walkthrough is an interactive static page. */
 (() => {
   'use strict';
   const { steps, stateAt, sourceUrl } = WindowsDemo;
@@ -304,7 +304,7 @@
       rows.push(['Content', external ? (state.acquired ? 'Selected downloads present' : 'Not acquired yet') : (state.imported ? 'Imported and verified' : 'Not imported yet')]);
       if (state.imported) rows.push(['Export transfer', external ? 'Serves internal HTTP GET requests' : 'Initiates the HTTP pull']);
       if (external && state.exported) rows.push(['WSUS export', '.xml.gz metadata + separate files']);
-      if (!external && state.baseline) rows.push(['Patch policy', 'April 2026 ceiling']);
+      if (!external && state.baseline) rows.push(['Patch policy', 'April 2026 approved']);
     } else {
       rows.push(['OS baseline', state.patched ? 'April 2026' : 'Base image']);
       if (state.patched) rows.push(['OS build', year === '2022' ? '20348.5020' : '26100.32690']);

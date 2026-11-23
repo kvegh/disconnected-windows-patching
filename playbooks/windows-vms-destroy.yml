@@ -1,0 +1,50 @@
+---
+# Destroy the four Windows VMs: power off, remove the definitions with their
+# snapshot metadata and NVRAM, delete every VM file (base clone, snapshot
+# overlays, NVRAM copies). Keeps the base images, the isolated network and the
+# AAP VM's NIC (infra, rebuilt by aap-infra.yml). The infra playbook creates
+# the VMs again.
+
+- name: Destroy the Windows VMs
+  hosts: hypervisor
+  gather_facts: false
+  become: true
+  vars:
+    windows_vms: "{{ groups['windows'] }}"
+  tasks:
+    - name: Power the Windows VMs off
+      ansible.builtin.command:
+        argv: [virsh, destroy, "{{ item }}"]
+      loop: "{{ windows_vms }}"
+      register: destroy_power_off
+      changed_when: destroy_power_off.rc == 0
+      failed_when:
+        - destroy_power_off.rc != 0
+        - "'is not running' not in destroy_power_off.stderr"
+        - "'failed to get domain' not in destroy_power_off.stderr"
+
+    # --nvram is required for the UEFI VM; --snapshots-metadata for VMs with
+    # stage snapshots. Both are harmless otherwise.
+    - name: Remove the Windows VM definitions
+      ansible.builtin.command:
+        argv: [virsh, undefine, "{{ item }}", --nvram, --snapshots-metadata]
+      loop: "{{ windows_vms }}"
+      register: destroy_undefine
+      changed_when: destroy_undefine.rc == 0
+      failed_when:
+        - destroy_undefine.rc != 0
+        - "'failed to get domain' not in destroy_undefine.stderr"
+
+    - name: Find the Windows VM files
+      ansible.builtin.find:
+        paths: "{{ windows_vm_dir }}"
+        patterns: "{{ windows_vms | map('regex_replace', '^(.*)$', 'win-\\1*') | list }}"
+      register: destroy_files
+
+    - name: Delete the Windows VM files
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ destroy_files.files }}"
+      loop_control:
+        label: "{{ item.path }}"

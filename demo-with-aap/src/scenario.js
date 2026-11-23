@@ -1,4 +1,4 @@
-/* Browser UI requires JavaScript; [rationale](../../docs/supporting-code.md#browser-walkthroughs). */
+/* Browser UI requires JavaScript: the walkthrough is an interactive static page. */
 /* Public, illustrative data only. This walkthrough does not call AAP. */
 (() => {
   'use strict';
@@ -7,90 +7,90 @@
   const steps = [
     {
       title: 'Deploy the servers',
-      description: 'External AAP deploys the external repository. The internal execution node then deploys the internal repository and the Windows Server 2022 and 2025 VMs. Deployment arrows show who creates each server.',
-      short: 'External AAP: one server. Internal execution: three VMs.',
-      source: '01-win-vm-setup.yml',
-      example: '- name: Deploy the external repository\n  ansible.builtin.import_playbook: 01-win-vm-setup.yml\n  vars:\n    vm_role: wsus\n\n- name: Deploy an internal Windows server\n  ansible.builtin.import_playbook: 01-win-vm-setup.yml\n  vars:\n    vm_role: "{{ server_role }}"\n\n# AAP routes each deployment to its executor.',
-      flow: 'Deployment: external AAP → external repository; internal node → three internal VMs.'
+      description: 'The infra playbook creates the isolated network, gives AAP a NIC in it and starts the external repository, the internal repository and the Windows Server 2022 and 2025 VMs in parallel. Snapshot stage-1-OS-install.',
+      short: 'One infra run: network, AAP NIC, four VMs.',
+      source: 'playbooks/aap-infra.yml',
+      example: '- name: Create and start the Windows VMs\n  ansible.builtin.command:\n    argv: "{{ virt_install_argv + nic_argv + boot_argv }}"\n  loop: "{{ windows_vms }}"\n  when: item.name not in defined_vms.stdout_lines',
+      flow: 'Fixed addresses come from libvirt DHCP host entries.'
     },
     {
-      title: 'Configure Windows',
-      description: 'Set up guest networking and management access. Verify evaluation licensing and restore the intended NIC topology after any activation.',
-      short: 'Networking, management access and licensing.',
-      source: 'configure_windows_server_basics.yml',
-      example: '- name: Configure the Windows hostname\n  ansible.windows.win_hostname:\n    name: "{{ desired_name }}"\n  register: hostname_result\n\n- name: Complete the required restart\n  ansible.windows.win_reboot:\n  when: hostname_result.reboot_required',
-      flow: 'The internal repository has a separate management connection.'
+      title: 'Configure and activate Windows',
+      description: 'Set host names and the Windows Update policy, then activate the evaluation licenses once through a temporary NIC that is detached again.',
+      short: 'Host names, update policy, evaluation activation.',
+      source: 'playbooks/windows-basics.yml',
+      example: '- name: Set the host name\n  ansible.windows.win_hostname:\n    name: "{{ inventory_hostname }}"\n\n- name: Set the Windows Update policy\n  ansible.windows.win_regedit:\n    path: "{{ item.path }}"\n    name: "{{ item.name }}"\n    data: "{{ item.data }}"',
+      flow: 'Managed servers know only the internal WSUS.'
     },
     {
       title: 'Prepare the repositories',
-      description: 'Prepare Windows features and required reboots, then configure WSUS and Chocolatey application repository. The internal clients use their internal update and application sources.',
-      short: 'WSUS for Windows. Chocolatey application repository for applications.',
-      source: 'setup_wsus.yml',
-      example: '- name: Install Windows Update Services\n  ansible.windows.win_feature:\n    name:\n      - UpdateServices\n      - UpdateServices-WidDB\n      - UpdateServices-Services\n    state: present\n    include_management_tools: true',
+      description: 'One sequential setup: features and the Chocolatey CLI with a single reboot, then WSUS and Nexus on both repository servers and the internal feed as the only Chocolatey source. Snapshot stage-2-basics-repos.',
+      short: 'WSUS for Windows. Nexus Chocolatey feed for applications.',
+      source: 'playbooks/repositories-setup.yml',
+      example: '- name: Install WSUS and IIS static content\n  ansible.windows.win_feature:\n    name:\n      - UpdateServices-Services\n      - UpdateServices-WidDB\n      - Web-Static-Content\n    include_management_tools: true',
       flow: 'Repository services are ready; content comes next.'
     },
     {
       title: 'Download selected content',
-      description: 'External WSUS synchronizes with Microsoft and downloads the selected OS and .NET files. The application branch acquires pinned 7-Zip and Git installers.',
-      short: 'Selected content arrives on the connected side.',
-      source: 'sync_external_wsus.yml',
-      example: '- name: Synchronize selected Microsoft updates\n  ansible.windows.win_powershell:\n    script: |\n      $wsus = Get-WsusServer\n      $subscription = $wsus.GetSubscription()\n      $subscription.StartSynchronization()\n      # Then wait, select and verify files.',
-      flow: 'Microsoft updates + application packages → external repository.'
+      description: 'External WSUS synchronizes with Microsoft and downloads only the configured patch month. AAP downloads the pinned public Chocolatey community packages and uploads them to the external feed.',
+      short: 'One patch month and pinned packages arrive on the connected side.',
+      source: 'playbooks/wsus-external-fill.yml',
+      example: '- name: Approve and download the patch month\n  ansible.builtin.include_tasks: tasks/wsus-month-approve.yml\n  vars:\n    wsus_ready_retries: "{{ wsus_download_retries }}"',
+      flow: 'Microsoft updates + community packages → external repository.'
     },
     {
       title: 'Export and publish through IIS',
-      description: 'Export compressed WSUS metadata and publish its manifest and existing update files through a management-only IIS site. The application export is a separate ZIP served by the Chocolatey application repository.',
-      short: 'Compressed metadata and update files become available.',
-      source: 'export_external_wsus.yml',
-      example: '- name: Export compressed WSUS metadata\n  ansible.windows.win_command:\n    cmd: >-\n      WSUSutil.exe export\n      "{{ metadata_gzip }}" "{{ export_log }}"\n\n- name: Publish the static export\n  microsoft.iis.website:\n    name: WSUS Export\n    physical_path: "{{ export_root }}"\n    state: started',
-      flow: 'IIS publishes .xml.gz metadata, a manifest and separate update files.'
+      description: 'Export the WSUS metadata and pack the pinned packages into one archive; the WSUS web site publishes both next to the update files. Snapshot stage-3-external-repo-fill.',
+      short: 'Metadata, update files and the package archive become available.',
+      source: 'playbooks/applications-external-fill.yml',
+      example: '- name: Pack the export archive\n  community.windows.win_zip:\n    src: "{{ fill_package_dir }}\\\\*"\n    dest: "{{ repository_export_dir }}\\\\applications.zip"',
+      flow: 'IIS publishes .xml.gz metadata, update files and applications.zip.'
     },
     {
       title: 'Pull and import internally',
-      description: 'The internal repository initiates the connection and pulls the published export: WSUS metadata and update files from external IIS, and application packages from the external Chocolatey application repository. It verifies checksums before importing locally.',
+      description: 'The internal repository pulls the export over HTTP, checks every file against its checksum and imports WSUS metadata and packages into its own WSUS and Nexus feed. Snapshot stage-4-internal-repo-import.',
       short: 'Internal requests the export. External returns the data.',
-      source: 'replicate_and_import.yml',
-      example: '- name: Pull an export from the internal side\n  hosts: internal_repository\n  gather_facts: false\n  tasks:\n    - name: Request and verify the external export\n      ansible.windows.win_get_url:\n        url: "{{ external_export_url }}"\n        dest: "{{ internal_file }}"\n        checksum: "{{ trusted_sha256 }}"\n        checksum_algorithm: sha256\n        use_proxy: false\n        follow_redirects: none',
+      source: 'playbooks/wsus-internal-import.yml',
+      example: '- name: Download the update files\n  ansible.windows.win_get_url:\n    url: "{{ import_repo_ext_url }}/Content/{{ item.0 }}"\n    dest: "{{ import_content_dir }}\\\\{{ item.0 | replace(\'/\', \'\\\\\') }}"\n    checksum: "{{ item.1.checksum }}"\n    checksum_algorithm: sha1',
       flow: 'PULL: internal requests → external serves → data returns internally.'
     },
     {
-      title: 'Publish the patch baseline',
-      description: 'Apply the named April 2026 WSUS ceiling. Both content imports must be complete before clients receive this controlled baseline.',
-      short: 'A named monthly baseline controls what clients receive.',
-      source: 'set_internal_wsus_patch_month.yml',
-      example: '- name: Apply a named WSUS baseline\n  ansible.builtin.include_tasks:\n    file: tasks/apply_wsus_patch_month.yml\n  vars:\n    wsus_patch_month: "{{ selected_month }}"\n\n# Approvals and content readiness are\n# verified before client patching.',
-      flow: 'Internal policy selects the April 2026 baseline.'
+      title: 'Set the patch level',
+      description: 'Approve only the configured patch month on the internal WSUS; nothing newer is offered. The proof report records the starting level. Snapshot stage-5-patch-level-cutoff-set.',
+      short: 'One approved month controls what clients receive.',
+      source: 'playbooks/patch-level-cutoff.yml',
+      example: '- name: Approve the patch month\n  ansible.builtin.include_tasks: tasks/wsus-month-approve.yml\n  vars:\n    wsus_ready_retries: "{{ wsus_import_ready_retries }}"',
+      flow: 'Internal policy selects the configured month.'
     },
     {
       title: 'Patch the Windows servers',
-      description: 'Each managed server installs the internal WSUS baseline, completes required reboot cycles and rescans. The two hosts can run in separate jobs.',
+      description: 'Both managed servers install the approved updates from the internal WSUS in parallel, with all required reboots. Proof report, snapshot stage-6-OS-patched.',
       short: 'OS and .NET updates come from internal WSUS.',
-      source: 'update_managed_windows.yml',
-      example: '- name: Install updates from managed WSUS\n  ansible.windows.win_updates:\n    server_selection: managed_server\n    category_names:\n      - SecurityUpdates\n      - CriticalUpdates\n      - UpdateRollups\n    state: installed\n    reboot: true',
+      source: 'playbooks/windows-patch.yml',
+      example: '- name: Install the approved updates\n  ansible.windows.win_updates:\n    server_selection: managed_server\n    category_names: \'*\'\n    reboot: true',
       flow: 'Internal WSUS → Windows Server 2022 and 2025.'
     },
     {
       title: 'Install baseline applications',
-      description: 'Install the older pinned 7-Zip and Git packages from the internal Chocolatey application repository baseline feed. The public Chocolatey source remains disabled.',
+      description: 'Install the older pinned 7-Zip and Git community packages from the internal feed. The public Chocolatey source is removed. Proof report, snapshot stage-7-apps-baseline.',
       short: 'Known application versions establish the starting point.',
-      source: 'deploy_baseline_applications.yml',
-      example: '- name: Install a pinned baseline package\n  chocolatey.chocolatey.win_chocolatey:\n    name: "{{ package_id }}"\n    version: "{{ baseline_version }}"\n    source: "{{ internal_baseline_feed }}"\n    state: present',
-      flow: 'Internal Chocolatey application repository → baseline 7-Zip and Git installations.'
+      source: 'playbooks/applications-deploy.yml',
+      example: '- name: Install the pinned application versions of the track\n  chocolatey.chocolatey.win_chocolatey:\n    name: "{{ item.id }}"\n    version: "{{ item.version }}"\n    source: "{{ chocolatey_source_name }}"',
+      flow: 'Internal Chocolatey feed → baseline 7-Zip and Git installations.'
     },
     {
       title: 'Upgrade the applications',
-      description: 'Switch to the internal current feed and upgrade to the newer pinned releases. The version numbers change on both managed servers.',
+      description: 'Upgrade to the newer pinned versions from the same internal feed. Proof report, snapshot stage-8-apps-upgraded.',
       short: '7-Zip 26.03 → 26.04. Git 2.55 → 2.56.',
-      source: 'upgrade_applications.yml',
-      example: '- name: Upgrade to a pinned current package\n  chocolatey.chocolatey.win_chocolatey:\n    name: "{{ package_id }}"\n    version: "{{ current_version }}"\n    source: "{{ internal_current_feed }}"\n    state: latest',
+      source: 'playbooks/applications-deploy.yml',
+      example: '- name: Install the pinned application versions of the track\n  chocolatey.chocolatey.win_chocolatey:\n    name: "{{ item.id }}"\n    version: "{{ item.version }}"\n    state: upgrade',
       flow: 'The application versions update; the source stays internal.'
     },
     {
-      title: 'Verify the final state',
-      description: 'Inspect OS builds, exact application versions and configured sources. Completion also requires that the Windows reboot markers are clear.',
-      short: 'Expected versions. Internal sources. Reboots complete.',
-      source: 'assess_windows_patch_level.yml',
-      example: '- name: Inspect installed Windows updates\n  ansible.windows.win_powershell:\n    script: |\n      $Ansible.Changed = $false\n      Get-HotFix | Select-Object HotFixID\n\n# The actual jobs also inspect build,\n# source policy and reboot markers.',
+      title: 'Show the proof report',
+      description: 'The proof report appends one CSV line per stage (OS build, newest update, application versions) on each managed server and prints the history; a desktop shortcut shows it in colour.',
+      short: 'One line per stage: build, newest update, versions.',
+      source: 'playbooks/proof-report.yml',
+      example: '- name: Append the line of this stage\n  community.windows.win_lineinfile:\n    path: "{{ proof_file }}"\n    line: "{{ proof_line }}"\n    insertafter: EOF',
       flow: 'The complete illustrated environment, ready to explore.'
     }
   ].map((step, index) => Object.freeze({ ...step, number: index + 1, scope: scopes[index], target: targets[index] }));

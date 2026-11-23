@@ -1,0 +1,51 @@
+---
+# Stage 2, first step: host names and the Windows Update client policy.
+#
+# Addresses need no guest configuration: libvirt DHCP hands every NIC its
+# fixed address (aap-infra.yml). The host name reboot is left to the single
+# reboot of the repository setup.
+#
+# The policy is set before the evaluation activation opens a temporary
+# Internet path: automatic updates stay off on all four servers, and the
+# managed servers know only the internal WSUS.
+
+- name: Configure host names and the Windows Update policy
+  hosts: windows
+  gather_facts: false
+  vars:
+    basics_wsus_url: "http://{{ hostvars[groups['wsus_internal'][0]].ansible_host }}:{{ wsus_port }}"
+    basics_update_policy_key: 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    basics_policy_all:
+      - {path: '{{ basics_update_policy_key }}\AU', name: NoAutoUpdate, data: 1, type: dword}
+    basics_policy_managed:
+      - {path: '{{ basics_update_policy_key }}', name: WUServer, data: '{{ basics_wsus_url }}', type: string}
+      - {path: '{{ basics_update_policy_key }}', name: WUStatusServer, data: '{{ basics_wsus_url }}', type: string}
+      - {path: '{{ basics_update_policy_key }}', name: DoNotConnectToWindowsUpdateInternetLocations, data: 1, type: dword}
+      - {path: '{{ basics_update_policy_key }}\AU', name: UseWUServer, data: 1, type: dword}
+  tasks:
+    - name: Wait for WinRM
+      ansible.builtin.wait_for_connection:
+        timeout: "{{ windows_wait_timeout }}"
+
+    - name: Set the host name
+      ansible.windows.win_hostname:
+        name: "{{ inventory_hostname }}"
+
+    # Registry policy values are what a local Group Policy would write; no
+    # module edits local Group Policy itself.
+    - name: Set the Windows Update policy
+      ansible.windows.win_regedit:
+        path: "{{ item.path }}"
+        name: "{{ item.name }}"
+        data: "{{ item.data }}"
+        type: "{{ item.type }}"
+      loop: "{{ basics_policy_all + (basics_policy_managed if inventory_hostname in groups['windows_managed'] else []) }}"
+      loop_control:
+        label: "{{ item.name }}"
+      notify: Restart the Windows Update service
+
+  handlers:
+    - name: Restart the Windows Update service
+      ansible.windows.win_service:
+        name: wuauserv
+        state: restarted

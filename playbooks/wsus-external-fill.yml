@@ -1,0 +1,110 @@
+---
+# Stage 3 (WSUS part): fill the external WSUS on repo-ext from Microsoft and
+# export it for the internal side.
+#   1. one free-disk check before downloading;
+#   2. category synchronization (the product list exists only after it), then
+#      products/classifications and the full metadata synchronization;
+#   3. approve the patch month (download of its files) and wait until ready;
+#   4. export the metadata with WsusUtil into the export folder, published by
+#      the WSUS IIS site as /export (repo-int pulls it in stage 4; the update
+#      files themselves are served by the same site as /Content).
+# Runs as SYSTEM: the WSUS API and WsusUtil are used that way since the
+# first working version (over WinRM the Administrator logon is a network
+# logon).
+
+- name: Fill and export the external WSUS
+  hosts: wsus_external
+  gather_facts: false
+  become: true
+  become_method: ansible.builtin.runas
+  become_user: SYSTEM
+  tasks:
+    - name: Read the volumes
+      community.windows.win_disk_facts:
+        filter: [volumes]
+
+    - name: Check the free space for the update downloads
+      ansible.builtin.assert:
+        that: fill_free_gb | float >= wsus_minimum_free_gb
+        fail_msg: "Only {{ fill_free_gb }} GB free on C:, {{ wsus_minimum_free_gb }} GB needed"
+      vars:
+        # size_remaining (bytes) of the C: volume, in GB.
+        fill_free_gb: >-
+          {{ (ansible_facts.disks | map(attribute='partitions') | flatten
+          | selectattr('drive_letter', 'equalto', 'C') | map(attribute='volumes') | flatten
+          | map(attribute='size_remaining') | first / 1073741824) | round(1) }}
+
+    # BITS downloads the update files; it was found stopped on fresh servers.
+    - name: Start BITS
+      ansible.windows.win_service:
+        name: BITS
+        state: started
+
+    - name: Start the category synchronization
+      ansible.windows.win_powershell:
+        script: |
+          $subscription = (Get-WsusServer).GetSubscription()
+          $subscription.StartSynchronizationForCategoryOnly()
+          # The status changes a moment after the start; the wait task needs it.
+          for ($i = 0; $i -lt 24 -and [string]$subscription.GetSynchronizationStatus() -eq 'NotProcessing'; $i++) { Start-Sleep -Seconds 5 }
+
+    - name: Wait for the category synchronization
+      ansible.builtin.include_tasks: tasks/wsus-synchronization-wait.yml
+
+    - name: Select products and classifications, start the full synchronization
+      ansible.windows.win_powershell:
+        parameters:
+          Products: "{{ wsus_products }}"
+          Classifications: "{{ wsus_classifications }}"
+        script: |
+          param([string[]]$Products, [string[]]$Classifications)
+          $server = Get-WsusServer
+          $categories = New-Object Microsoft.UpdateServices.Administration.UpdateCategoryCollection
+          $server.GetUpdateCategories() | Where-Object { $_.Title -in $Products } | ForEach-Object { $null = $categories.Add($_) }
+          if ($categories.Count -ne $Products.Count) { throw "Not every product was found: $($Products -join ', ')" }
+          $classes = New-Object Microsoft.UpdateServices.Administration.UpdateClassificationCollection
+          $server.GetUpdateClassifications() | Where-Object { $_.Title -in $Classifications } | ForEach-Object { $null = $classes.Add($_) }
+          $subscription = $server.GetSubscription()
+          $subscription.SetUpdateCategories($categories)
+          $subscription.SetUpdateClassifications($classes)
+          $subscription.Save()
+          $subscription.StartSynchronization()
+          for ($i = 0; $i -lt 24 -and [string]$subscription.GetSynchronizationStatus() -eq 'NotProcessing'; $i++) { Start-Sleep -Seconds 5 }
+
+    - name: Wait for the full synchronization
+      ansible.builtin.include_tasks: tasks/wsus-synchronization-wait.yml
+
+    - name: Approve and download the patch month
+      ansible.builtin.include_tasks: tasks/wsus-month-approve.yml
+      vars:
+        wsus_ready_retries: "{{ wsus_download_retries }}"
+
+    - name: Create the export folder
+      ansible.windows.win_file:
+        path: "{{ repository_export_dir }}"
+        state: directory
+
+    - name: Export the WSUS metadata
+      ansible.windows.win_command:
+        argv:
+          - 'C:\Program Files\Update Services\Tools\WsusUtil.exe'
+          - export
+          - "{{ repository_export_dir }}\\wsus-metadata.xml.gz"
+          - "{{ repository_export_dir }}\\wsus-export.log"
+        creates: "{{ repository_export_dir }}\\wsus-metadata.xml.gz"
+      async: 7200
+      poll: 30
+
+    # Anonymous web requests read files as IUSR.
+    - name: Allow anonymous web reads of the export folder
+      ansible.windows.win_acl:
+        path: "{{ repository_export_dir }}"
+        user: IUSR
+        rights: ReadAndExecute
+        type: allow
+
+    - name: Publish the export folder on the WSUS web site
+      microsoft.iis.virtual_directory:
+        site: WSUS Administration
+        name: export
+        physical_path: "{{ repository_export_dir }}"

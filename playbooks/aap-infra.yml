@@ -1,0 +1,315 @@
+---
+# Infra of the disconnected Windows patching use case: everything outside AAP.
+#
+# Run once per target AAP by the AutoDeploy use case deployer (infra node), as
+# a nested ansible-playbook inside the deployer's execution environment, with
+# localhost as the only inventory:
+#
+#   ansible-playbook --vault-id cac@/dev/stdin \
+#     -e usecase_target_aap=<AAP VM name> \
+#     -e usecase_secrets_dir=<absolute path of the -secrets checkout> \
+#     playbooks/aap-infra.yml
+#
+# It builds its own targets from the -secrets checkout: plain configuration
+# from aap-infra/*.yml, secrets from env_variables.yml (vault ID cac). Then:
+#   1. hypervisor: the isolated Windows network (no forwarding, no DNS, DHCP
+#      host entries MAC -> fixed address) and the DHCP host entries of the
+#      repository servers on the management network;
+#   2. AAP VM: a NetworkManager profile with a static address for its NIC in
+#      the isolated network (documented shortcut 1: AAP reaches the isolated
+#      hosts directly, see README);
+#   3. hypervisor: hot-plug of that NIC into the AAP VM, then the four Windows
+#      VMs, all started at once (parallel first boot);
+#   4. Windows: wait for WinRM on all four, check the installed OS version.
+#
+# Rerunnable: an existing network, host entry, NIC or VM is left as it is.
+# Destroy and snapshots are job templates of the use case, not part of this.
+#
+# Needs in the execution environment: ansible.windows (WinRM connection and
+# facts), redhat.rhel_system_roles (network role), Python pywinrm, an SSH client.
+
+- name: Build the targets from the -secrets checkout
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Load the infra configuration
+      ansible.builtin.include_vars:
+        dir: "{{ usecase_secrets_dir }}/aap-infra"
+        extensions: [yml]
+
+    - name: Load the use case secrets
+      ansible.builtin.include_vars:
+        file: "{{ usecase_secrets_dir }}/env_variables.yml"
+      no_log: true
+
+    # SSH needs the private key as a file; it lives only in this run's
+    # temporary directory and the last play removes it.
+    - name: Create a temporary file for the SSH private key
+      ansible.builtin.tempfile:
+        state: file
+        suffix: .key
+      register: windows_infra_ssh_key
+
+    - name: Write the SSH private key
+      ansible.builtin.copy:
+        content: "{{ vaulted_windows_hypervisor_ssh_key_data }}"
+        dest: "{{ windows_infra_ssh_key.path }}"
+        mode: "0600"
+      no_log: true
+
+    - name: Add the hypervisor
+      ansible.builtin.add_host:
+        name: hypervisor
+        ansible_host: "{{ windows_infra_hypervisor.address }}"
+        ansible_port: "{{ windows_infra_hypervisor.port }}"
+        ansible_user: "{{ windows_infra_hypervisor.user }}"
+        ansible_ssh_private_key_file: "{{ windows_infra_ssh_key.path }}"
+        ansible_ssh_common_args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+        windows_infra_aap_vm_name: "{{ usecase_target_aap }}"
+
+    # The AAP VM is reached through the hypervisor as jump host, the way the
+    # AutoDeploy deployer reaches it.
+    - name: Add the AAP VM
+      ansible.builtin.add_host:
+        name: "{{ usecase_target_aap }}"
+        groups: aap_vm
+        ansible_host: "{{ windows_infra_aap_vm.address }}"
+        ansible_user: "{{ windows_infra_aap_vm.user }}"
+        ansible_ssh_private_key_file: "{{ windows_infra_ssh_key.path }}"
+        ansible_ssh_common_args: >-
+          -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+          -o ProxyCommand="ssh -W %h:%p -p {{ windows_infra_hypervisor.port }}
+          -i {{ windows_infra_ssh_key.path }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+          {{ windows_infra_hypervisor.user }}@{{ windows_infra_hypervisor.address }}"
+
+    # The first NIC of each VM is the one AAP connects to.
+    - name: Add the Windows VMs
+      ansible.builtin.add_host:
+        name: "{{ item.name }}"
+        groups: windows
+        ansible_host: "{{ item.nics[0].ip }}"
+        ansible_connection: winrm
+        ansible_port: 5986
+        ansible_winrm_transport: ntlm
+        ansible_winrm_server_cert_validation: ignore
+        ansible_user: "{{ windows_infra_admin_user }}"
+        ansible_password: "{{ vaulted_windows_managed_hosts_password }}"
+        windows_version: "{{ item.version }}"
+      loop: "{{ windows_infra_vms }}"
+      loop_control:
+        label: "{{ item.name }}"
+      no_log: true
+
+- name: Prepare the networks on the hypervisor
+  hosts: hypervisor
+  gather_facts: false
+  become: true
+  vars:
+    isolated_network: "{{ hostvars['localhost'].windows_infra_isolated_network }}"
+    management_network: "{{ hostvars['localhost'].windows_infra_management_network }}"
+    windows_vms: "{{ hostvars['localhost'].windows_infra_vms }}"
+  tasks:
+    # No certified module manages libvirt networks; virsh is the baseline.
+    - name: Read the isolated Windows network
+      ansible.builtin.command:
+        argv: [virsh, net-info, "{{ isolated_network.name }}"]
+      register: isolated_network_info
+      changed_when: false
+      failed_when: false
+
+    - name: Define the isolated Windows network
+      ansible.builtin.command:
+        argv: [virsh, net-define, /dev/stdin]
+        stdin: "{{ lookup('ansible.builtin.template', 'windows-isolated-network.xml.j2') }}"
+      when: isolated_network_info.rc != 0
+      changed_when: true
+
+    - name: Start the isolated Windows network with the host
+      ansible.builtin.command:
+        argv: [virsh, net-autostart, "{{ isolated_network.name }}"]
+      when: isolated_network_info.stdout is not search('Autostart:\s+yes')
+      changed_when: true
+
+    - name: Start the isolated Windows network
+      ansible.builtin.command:
+        argv: [virsh, net-start, "{{ isolated_network.name }}"]
+      when: isolated_network_info.stdout is not search('Active:\s+yes')
+      changed_when: true
+
+    - name: Read the management network
+      ansible.builtin.command:
+        argv: [virsh, net-dumpxml, "{{ management_network }}"]
+      register: management_network_xml
+      changed_when: false
+
+    # The management network belongs to the hypervisor build; only the
+    # entries of this use case's NICs are added, each once.
+    - name: Add the DHCP host entries of the Windows NICs on the management network
+      ansible.builtin.command:
+        argv:
+          - virsh
+          - net-update
+          - "{{ management_network }}"
+          - add-last
+          - ip-dhcp-host
+          - "<host mac='{{ item.1.mac }}' name='{{ item.0.name }}' ip='{{ item.1.ip }}'/>"
+          - --live
+          - --config
+      loop: "{{ windows_vms | subelements('nics') }}"
+      loop_control:
+        label: "{{ item.0.name }} {{ item.1.mac }}"
+      when:
+        - item.1.network == management_network
+        - item.1.mac | lower not in management_network_xml.stdout | lower
+      changed_when: true
+
+# The profile exists before the NIC does: NetworkManager then activates it on
+# the hot-plugged device instead of creating its own DHCP profile.
+- name: Configure the AAP VM's NIC in the isolated network
+  hosts: aap_vm
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Create the static NetworkManager profile of the isolated NIC
+      ansible.builtin.include_role:
+        name: redhat.rhel_system_roles.network
+      vars:
+        network_connections:
+          - name: "{{ hostvars['localhost'].windows_infra_aap_vm.isolated_nic.connection_name }}"
+            type: ethernet
+            mac: "{{ hostvars['localhost'].windows_infra_aap_vm.isolated_nic.mac }}"
+            ip:
+              address:
+                - "{{ hostvars['localhost'].windows_infra_aap_vm.isolated_nic.address }}"
+              dhcp4: false
+              auto6: false
+              ipv6_disabled: true
+              auto_gateway: false
+
+- name: Create the AAP VM's NIC and the Windows VMs
+  hosts: hypervisor
+  gather_facts: false
+  become: true
+  vars:
+    isolated_network: "{{ hostvars['localhost'].windows_infra_isolated_network }}"
+    aap_vm_nic_mac: "{{ hostvars['localhost'].windows_infra_aap_vm.isolated_nic.mac }}"
+    windows_vms: "{{ hostvars['localhost'].windows_infra_vms }}"
+    windows_images: "{{ hostvars['localhost'].windows_infra_images }}"
+    windows_vm_dir: "{{ hostvars['localhost'].windows_infra_vm_dir }}"
+  tasks:
+    - name: Read the AAP VM's NICs
+      ansible.builtin.command:
+        argv: [virsh, domiflist, "{{ windows_infra_aap_vm_name }}"]
+      register: aap_vm_nics
+      changed_when: false
+
+    # --live and --config: the NIC is there at once and after a restart.
+    - name: Attach the AAP VM's NIC to the isolated network
+      ansible.builtin.command:
+        argv:
+          - virsh
+          - attach-interface
+          - "{{ windows_infra_aap_vm_name }}"
+          - network
+          - "{{ isolated_network.name }}"
+          - --mac
+          - "{{ aap_vm_nic_mac }}"
+          - --model
+          - virtio
+          - --live
+          - --config
+      when: aap_vm_nic_mac | lower not in aap_vm_nics.stdout | lower
+      changed_when: true
+
+    - name: List the defined VMs
+      ansible.builtin.command:
+        argv: [virsh, list, --all, --name]
+      register: defined_vms
+      changed_when: false
+
+    # A defined VM is never touched. A disk left by an earlier failed run is
+    # overwritten, so virt-install only ever sees a complete copy.
+    - name: Copy the base images to the VM disks
+      ansible.builtin.command:
+        argv:
+          - qemu-img
+          - convert
+          - -f
+          - qcow2
+          - -O
+          - qcow2
+          - -S
+          - 4k
+          - "{{ windows_images[item.version].path }}"
+          - "{{ windows_vm_dir }}/win-{{ item.name }}.qcow2"
+      loop: "{{ windows_vms }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when: item.name not in defined_vms.stdout_lines
+      changed_when: true
+
+    # e1000e NICs and a SATA disk: the images need no VirtIO drivers.
+    # --noautoconsole returns after the start, so all VMs boot in parallel.
+    - name: Create and start the Windows VMs
+      ansible.builtin.command:
+        argv: "{{ virt_install_argv + nic_argv + boot_argv }}"
+      vars:
+        virt_install_argv:
+          - virt-install
+          - --import
+          - --name
+          - "{{ item.name }}"
+          - --memory
+          - "{{ item.memory_mib }}"
+          - --vcpus
+          - "{{ item.vcpus }}"
+          - --machine
+          - q35
+          - --osinfo
+          - "{{ windows_images[item.version].osinfo }}"
+          - --disk
+          - "path={{ windows_vm_dir }}/win-{{ item.name }}.qcow2,format=qcow2,bus=sata"
+          - --graphics
+          - vnc,listen=127.0.0.1
+          - --noautoconsole
+        # One "--network network=<name>,mac=<mac>,model=e1000e" pair per NIC.
+        nic_argv: >-
+          {%- set argv = [] -%}
+          {%- for nic in item.nics -%}
+          {%- set _ = argv.extend(['--network', 'network=' ~ nic.network ~ ',mac=' ~ nic.mac ~ ',model=e1000e']) -%}
+          {%- endfor -%}
+          {{ argv }}
+        boot_argv: "{{ ['--boot', 'uefi'] if windows_images[item.version].boot == 'uefi' else [] }}"
+      loop: "{{ windows_vms }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when: item.name not in defined_vms.stdout_lines
+      changed_when: true
+
+- name: Wait for the Windows VMs and check their OS version
+  hosts: windows
+  gather_facts: false
+  tasks:
+    - name: Wait for WinRM
+      ansible.builtin.wait_for_connection:
+        timeout: "{{ hostvars['localhost'].windows_infra_wait_timeout }}"
+
+    - name: Read the installed OS
+      ansible.builtin.setup:
+        gather_subset: [distribution]
+
+    - name: Check that the VM runs the configured Windows Server version
+      ansible.builtin.assert:
+        that: ("Windows Server " ~ windows_version) in ansible_facts.distribution
+        fail_msg: "{{ inventory_hostname }} runs {{ ansible_facts.distribution }}, not Windows Server {{ windows_version }}"
+
+- name: Remove the temporary SSH private key
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Remove the SSH private key file
+      ansible.builtin.file:
+        path: "{{ windows_infra_ssh_key.path }}"
+        state: absent

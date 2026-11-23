@@ -1,4 +1,4 @@
-/* Browser UI requires JavaScript; [rationale](../../docs/supporting-code.md#browser-walkthroughs). */
+/* Browser UI requires JavaScript: the walkthrough is an interactive static page. */
 /* Illustrative scheduling only. No platform or infrastructure requests. */
 (() => {
   'use strict';

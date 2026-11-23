@@ -1,0 +1,82 @@
+---
+# Stage 4 (WSUS part): repo-int pulls the export of repo-ext over HTTP and
+# imports it. No updates are approved yet (stage 5).
+#   1. list the update files on repo-ext with their SHA1 (WSUS names every
+#      file after its SHA1) and the metadata export;
+#   2. repo-int downloads every file from the WSUS site of repo-ext
+#      (/Content, /export), each checked against that SHA1;
+#   3. WsusUtil import of the metadata.
+# repo-int reaches repo-ext through its NIC in the management network
+# (documented shortcut 2, see README).
+
+- name: Import the external WSUS export into the internal WSUS
+  hosts: wsus_internal
+  gather_facts: false
+  become: true
+  become_method: ansible.builtin.runas
+  become_user: SYSTEM
+  vars:
+    import_repo_ext: "{{ groups['wsus_external'][0] }}"
+    import_repo_ext_url: "http://{{ hostvars[import_repo_ext].ansible_host }}:{{ wsus_port }}"
+    import_content_dir: "{{ wsus_content_dir }}\\WsusContent"
+  tasks:
+    # Update files lie in WsusContent\<2 hex digits>\<SHA1>.<extension>.
+    - name: List the update files on repo-ext
+      ansible.windows.win_find:
+        paths: "{{ import_content_dir }}"
+        recurse: true
+        use_regex: true
+        patterns: ['^[0-9A-Fa-f]{40}\..+$']
+        get_checksum: true
+        checksum_algorithm: sha1
+      delegate_to: "{{ import_repo_ext }}"
+      register: import_content
+
+    - name: Read the checksum of the metadata export on repo-ext
+      ansible.windows.win_stat:
+        path: "{{ repository_export_dir }}\\wsus-metadata.xml.gz"
+        get_checksum: true
+        checksum_algorithm: sha1
+      delegate_to: "{{ import_repo_ext }}"
+      register: import_metadata
+
+    - name: Create the content subfolders
+      ansible.windows.win_file:
+        path: "{{ import_content_dir }}\\{{ item }}"
+        state: directory
+      loop: "{{ import_content.files | map(attribute='path') | map('win_dirname') | map('win_basename') | unique }}"
+
+    - name: Download the update files
+      ansible.windows.win_get_url:
+        url: "{{ import_repo_ext_url }}/Content/{{ import_subfolder }}/{{ item.filename }}"
+        dest: "{{ import_content_dir }}\\{{ import_subfolder }}\\{{ item.filename }}"
+        checksum: "{{ item.checksum }}"
+        checksum_algorithm: sha1
+      vars:
+        import_subfolder: "{{ item.path | win_dirname | win_basename }}"
+      loop: "{{ import_content.files }}"
+      loop_control:
+        label: "{{ import_subfolder }}/{{ item.filename }}"
+
+    - name: Create the import folder
+      ansible.windows.win_file:
+        path: "{{ repository_import_dir }}"
+        state: directory
+
+    - name: Download the metadata export
+      ansible.windows.win_get_url:
+        url: "{{ import_repo_ext_url }}/export/wsus-metadata.xml.gz"
+        dest: "{{ repository_import_dir }}\\wsus-metadata.xml.gz"
+        checksum: "{{ import_metadata.stat.checksum }}"
+        checksum_algorithm: sha1
+
+    - name: Import the WSUS metadata
+      ansible.windows.win_command:
+        argv:
+          - 'C:\Program Files\Update Services\Tools\WsusUtil.exe'
+          - import
+          - "{{ repository_import_dir }}\\wsus-metadata.xml.gz"
+          - "{{ repository_import_dir }}\\wsus-import.log"
+        creates: "{{ repository_import_dir }}\\wsus-import.log"
+      async: 7200
+      poll: 30

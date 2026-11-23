@@ -1,4 +1,4 @@
-// Test the JavaScript presentation model; see [rationale](../../tests/README.md#javascript-walkthrough-tests).
+// Test the JavaScript presentation model (plain Node test runner, no browser).
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

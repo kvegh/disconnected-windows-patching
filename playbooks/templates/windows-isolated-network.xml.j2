@@ -1,0 +1,16 @@
+<!-- Isolated Windows network: no <forward>, so no route out of it; no DNS
+     from libvirt. DHCP hands every Windows NIC its fixed address. -->
+<network>
+  <name>{{ isolated_network.name }}</name>
+  <dns enable='no'/>
+  <ip address='{{ isolated_network.address }}' netmask='{{ isolated_network.netmask }}'>
+    <dhcp>
+      <range start='{{ isolated_network.dhcp_start }}' end='{{ isolated_network.dhcp_end }}'/>
+{% for vm in windows_vms %}
+{% for nic in vm.nics if nic.network == isolated_network.name %}
+      <host mac='{{ nic.mac }}' name='{{ vm.name }}' ip='{{ nic.ip }}'/>
+{% endfor %}
+{% endfor %}
+    </dhcp>
+  </ip>
+</network>

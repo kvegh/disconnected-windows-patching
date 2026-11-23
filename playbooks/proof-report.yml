@@ -1,0 +1,95 @@
+---
+# Proof report: record the patch and application level of each managed server
+# and show the whole history.
+# Variable (workflow node): proof_stage, for example before-patching,
+# os-patched, apps-baseline, apps-upgraded.
+#
+# Each run appends one CSV line (UTC time, host, stage, OS build, newest
+# installed cumulative update, version of every application) to a log file on
+# the server, then prints the file. The workflow runs it before each stage
+# snapshot, so every snapshot carries the history up to its own state.
+# A desktop shortcut on the server shows the same file in colour.
+
+- name: Record and show the proof report
+  hosts: windows_managed
+  gather_facts: false
+  vars:
+    proof_file: "{{ proof_dir }}\\proof-log.csv"
+    proof_applications: "{{ chocolatey_packages | rejectattr('track', 'equalto', 'dependency') | map(attribute='id') | unique }}"
+  tasks:
+    # CurrentBuild.UBR is the full build; gathered facts carry no UBR.
+    - name: Read the OS build
+      ansible.windows.win_reg_stat:
+        path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+      register: proof_os
+
+    # Gap: no module reads the Windows Update history. As SYSTEM, because the
+    # update session API refuses some calls over a network logon.
+    - name: Read the newest installed cumulative update
+      ansible.windows.win_powershell:
+        script: |
+          $Ansible.Changed = $false
+          $searcher = (New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher()
+          $count = $searcher.GetTotalHistoryCount()
+          $newest = @($searcher.QueryHistory(0, [Math]::Max($count, 1)) |
+              Where-Object { $_.ResultCode -eq 2 -and $_.Title -match 'Cumulative Update for Microsoft server' } |
+              Sort-Object Date -Descending)[0]
+          $Ansible.Result = if ($newest -and $newest.Title -match '(KB\d+)') { $Matches[1] } else { '-' }
+      become: true
+      become_method: ansible.builtin.runas
+      become_user: SYSTEM
+      register: proof_kb
+
+    - name: Read the installed Chocolatey packages
+      chocolatey.chocolatey.win_chocolatey_facts:
+        filter: [packages]
+
+    - name: Create the proof folder
+      ansible.windows.win_file:
+        path: "{{ proof_dir }}"
+        state: directory
+
+    - name: Write the CSV header
+      community.windows.win_lineinfile:
+        path: "{{ proof_file }}"
+        regex: '^utc,'
+        line: "{{ (['utc', 'host', 'stage', 'os_build', 'newest_kb'] + proof_applications) | join(',') }}"
+        insertbefore: BOF
+        create: true
+
+    - name: Append the line of this stage
+      community.windows.win_lineinfile:
+        path: "{{ proof_file }}"
+        line: "{{ ([now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ'), inventory_hostname, proof_stage,
+          proof_os.properties.CurrentBuild.value ~ '.' ~ proof_os.properties.UBR.value, proof_kb.result]
+          + proof_versions) | join(',') }}"
+        insertafter: EOF
+      vars:
+        proof_installed: "{{ ansible_facts.chocolatey.packages | items2dict(key_name='package', value_name='version') }}"
+        # The installed version of each application, "-" if not installed.
+        proof_versions: >-
+          {%- set versions = [] -%}
+          {%- for application in proof_applications -%}
+          {%- set _ = versions.append(proof_installed[application] | default('-')) -%}
+          {%- endfor -%}
+          {{ versions }}
+
+    - name: Read the proof history
+      ansible.builtin.slurp:
+        src: "{{ proof_file }}"
+      register: proof_history
+
+    - name: Show the proof history
+      ansible.builtin.debug:
+        msg: "{{ (proof_history.content | b64decode).splitlines() }}"
+
+    - name: Copy the proof viewer
+      ansible.windows.win_copy:
+        src: files/show-proof-log.ps1
+        dest: "{{ proof_dir }}\\show-proof-log.ps1"
+
+    - name: Put the proof viewer on the public desktop
+      community.windows.win_shortcut:
+        src: 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+        arguments: "-NoExit -ExecutionPolicy Bypass -File \"{{ proof_dir }}\\show-proof-log.ps1\""
+        dest: 'C:\Users\Public\Desktop\Patch and application proof.lnk'

@@ -1,0 +1,30 @@
+---
+# Stages 7 and 8: install the baseline application versions, later upgrade
+# to the newer ones, from the internal feed only.
+# Variable (job template): app_track = baseline | upgrade.
+# Dependencies (track "dependency") come from the same feed automatically.
+
+- name: Install or upgrade the applications
+  hosts: windows_managed
+  gather_facts: false
+  tasks:
+    # upgrade: win_chocolatey "present" refuses a different installed version.
+    - name: Install the pinned application versions of the track
+      chocolatey.chocolatey.win_chocolatey:
+        name: "{{ item.id }}"
+        version: "{{ item.version }}"
+        source: "{{ chocolatey_source_name }}"
+        state: "{{ 'upgrade' if app_track == 'upgrade' else 'present' }}"
+        timeout: 1800
+      loop: "{{ chocolatey_packages | selectattr('track', 'equalto', app_track) }}"
+      loop_control:
+        label: "{{ item.id }} {{ item.version }}"
+
+    - name: Read whether a reboot is pending
+      ansible.windows.win_reboot_info:
+      register: apps_reboot_info
+
+    - name: Reboot
+      ansible.windows.win_reboot:
+        reboot_timeout: 1800
+      when: apps_reboot_info.reboot_required

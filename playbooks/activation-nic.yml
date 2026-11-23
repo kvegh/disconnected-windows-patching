@@ -1,0 +1,58 @@
+---
+# Stage 2: temporary Internet path for the evaluation activation.
+#
+# The managed servers sit only in the isolated network. For the activation
+# each gets a NIC on the management network (NAT, DHCP) for a few minutes:
+# attach before, detach after the activation (nic_state attach | detach).
+# A separate job from the activation because a job template carries one
+# machine credential (hypervisor here, Windows there). The NIC is live-only,
+# so the cold shutdown of the next snapshot removes it anyway.
+#
+# Hosts with windows_activation_mac get the NIC; the repository servers
+# already reach the Internet through the management network.
+
+- name: Attach or detach the temporary activation NICs
+  hosts: hypervisor
+  gather_facts: false
+  become: true
+  vars:
+    activation_vms: "{{ groups['windows'] | map('extract', hostvars) | selectattr('windows_activation_mac', 'defined') }}"
+  tasks:
+    - name: Attach the activation NICs
+      ansible.builtin.command:
+        argv:
+          - virsh
+          - attach-interface
+          - "{{ item.inventory_hostname }}"
+          - network
+          - "{{ windows_activation_network }}"
+          - --mac
+          - "{{ item.windows_activation_mac }}"
+          - --model
+          - e1000e
+          - --live
+      loop: "{{ activation_vms }}"
+      loop_control:
+        label: "{{ item.inventory_hostname }}"
+      changed_when: true
+      when: nic_state == 'attach'
+
+    - name: Detach the activation NICs
+      ansible.builtin.command:
+        argv:
+          - virsh
+          - detach-interface
+          - "{{ item.inventory_hostname }}"
+          - network
+          - --mac
+          - "{{ item.windows_activation_mac }}"
+          - --live
+      loop: "{{ activation_vms }}"
+      loop_control:
+        label: "{{ item.inventory_hostname }}"
+      register: activation_detach
+      changed_when: activation_detach.rc == 0
+      failed_when:
+        - activation_detach.rc != 0
+        - "'no matching network device' not in activation_detach.stderr"
+      when: nic_state == 'detach'

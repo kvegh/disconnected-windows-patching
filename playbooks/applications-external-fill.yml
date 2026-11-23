@@ -1,0 +1,94 @@
+---
+# Stage 3 (application part): fill the external Chocolatey feed on repo-ext
+# and export it for the internal side.
+#   1. AAP downloads the pinned public community packages (nupkg as
+#      published, dependencies included) and checks each SHA512 pin;
+#   2. AAP uploads the missing ones to the repo-ext Nexus feed;
+#   3. repo-ext exports exactly the pinned versions out of its feed into one
+#      archive in the export folder (published by IIS as /export, see
+#      wsus-external-fill.yml); repo-int pulls it in stage 4.
+# Credentials: the Windows machine credential and "Nexus admin".
+
+- name: Fill the external Chocolatey feed
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    fill_nexus_api: "http://{{ hostvars[groups['wsus_external'][0]].ansible_host }}:{{ nexus_port }}/service/rest/v1"
+  tasks:
+    - name: Download the pinned community packages
+      ansible.builtin.get_url:
+        url: "{{ chocolatey_community_feed_url }}/package/{{ item.id }}/{{ item.version }}"
+        dest: "/tmp/{{ item.id }}.{{ item.version }}.nupkg"
+        checksum: "sha512:{{ item.sha512 }}"
+        mode: "0644"
+      loop: "{{ chocolatey_packages }}"
+      loop_control:
+        label: "{{ item.id }} {{ item.version }}"
+      register: fill_download
+      retries: 3
+      until: fill_download is succeeded
+
+    - name: Look for the packages in the external feed
+      ansible.builtin.uri:
+        url: "{{ fill_nexus_api }}/search?repository={{ nexus_feed_name }}&name={{ item.id }}&version={{ item.version }}"
+        url_username: admin
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+      loop: "{{ chocolatey_packages }}"
+      loop_control:
+        label: "{{ item.id }} {{ item.version }}"
+      register: fill_search
+      no_log: true
+
+    # Components API, the documented Nexus upload; one multipart field.
+    - name: Upload the missing packages to the external feed
+      ansible.builtin.uri:
+        url: "{{ fill_nexus_api }}/components?repository={{ nexus_feed_name }}"
+        method: POST
+        url_username: admin
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        body_format: form-multipart
+        body:
+          nuget.asset:
+            filename: "/tmp/{{ item.item.id }}.{{ item.item.version }}.nupkg"
+            mime_type: application/octet-stream
+        status_code: 204
+      loop: "{{ fill_search.results }}"
+      loop_control:
+        label: "{{ item.item.id }} {{ item.item.version }}"
+      when: item.json['items'] | length == 0
+      no_log: true
+
+- name: Export the pinned packages from the external feed
+  hosts: wsus_external
+  gather_facts: false
+  vars:
+    fill_package_dir: "{{ repository_export_dir }}\\applications"
+    fill_local_api: "http://localhost:{{ nexus_port }}/service/rest/v1"
+  tasks:
+    - name: Create the package export folder
+      ansible.windows.win_file:
+        path: "{{ fill_package_dir }}"
+        state: directory
+
+    # The same SHA512 pin as the download: the feed returns the exact bytes.
+    - name: Read the pinned packages out of the feed
+      ansible.windows.win_get_url:
+        url: "{{ fill_local_api }}/search/assets/download?repository={{ nexus_feed_name }}&name={{ item.id }}&version={{ item.version }}"
+        dest: "{{ fill_package_dir }}\\{{ item.id }}.{{ item.version }}.nupkg"
+        checksum: "{{ item.sha512 }}"
+        checksum_algorithm: sha512
+        url_username: admin
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+      loop: "{{ chocolatey_packages }}"
+      loop_control:
+        label: "{{ item.id }} {{ item.version }}"
+      no_log: true
+
+    - name: Pack the export archive
+      community.windows.win_zip:
+        src: "{{ fill_package_dir }}\\*"
+        dest: "{{ repository_export_dir }}\\applications.zip"

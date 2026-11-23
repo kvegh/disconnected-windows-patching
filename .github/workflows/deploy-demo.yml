@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
     paths:
-      - 'demo/**'
       - 'demo-with-aap/**'
       - '.github/workflows/deploy-demo.yml'
   workflow_dispatch:
@@ -31,9 +30,6 @@ jobs:
         uses: actions/checkout@v6
       - name: Check the walkthrough
         run: |
-          node --check demo/src/scenario.js
-          node --check demo/src/app.js
-          node --test demo/tests/scenario.test.cjs
           node --check demo-with-aap/src/scenario.js
           node --check demo-with-aap/src/orchestration.js
           node --check demo-with-aap/src/app.js
@@ -42,9 +38,10 @@ jobs:
         uses: actions/configure-pages@v5
       - name: Prepare only public demo assets
         run: |
+          # Site root and /demo-with-aap/ (earlier links) show the same page.
           mkdir -p "${RUNNER_TEMP}/windows-demo/src"
-          cp demo/index.html "${RUNNER_TEMP}/windows-demo/index.html"
-          cp demo/src/*.js demo/src/*.css "${RUNNER_TEMP}/windows-demo/src/"
+          cp demo-with-aap/index.html "${RUNNER_TEMP}/windows-demo/index.html"
+          cp demo-with-aap/src/*.js demo-with-aap/src/*.css "${RUNNER_TEMP}/windows-demo/src/"
           mkdir -p "${RUNNER_TEMP}/windows-demo/demo-with-aap/src"
           cp demo-with-aap/index.html "${RUNNER_TEMP}/windows-demo/demo-with-aap/index.html"
           cp demo-with-aap/src/*.js demo-with-aap/src/*.css "${RUNNER_TEMP}/windows-demo/demo-with-aap/src/"

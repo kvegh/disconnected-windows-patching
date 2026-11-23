@@ -1,0 +1,122 @@
+---
+# Cold, disk-only snapshot of all four Windows VMs with one stage name, or
+# revert of all four to such a snapshot (the demo starts from a stage).
+#
+# Variables (workflow node or launch):
+#   snapshot_stage    stage name, for example stage-2-basics-repos
+#   snapshot_action   create (default) or revert
+#   take_snapshots    workflow survey: "no" skips create (full test run
+#                     without snapshots); revert ignores it
+#
+# Create: shut every VM down (ACPI), wait until all are off, take an external
+# disk-only snapshot (libvirt writes a new overlay file, the VM continues on
+# it), copy the UEFI VM's NVRAM next to it, start the VMs, wait for WinRM.
+# libvirt does not capture the NVRAM in an offline external snapshot; the copy
+# keeps firmware variables (Secure Boot updates of later patches) in step with
+# the disk.
+# Revert: power off, revert to the snapshot, restore the NVRAM copy, start.
+# Rerunnable: an existing overlay file of the stage is not taken again.
+
+- name: Snapshot or revert the Windows VMs
+  hosts: hypervisor
+  gather_facts: false
+  become: true
+  vars:
+    snapshot_action: create
+    windows_vms: "{{ groups['windows'] }}"
+    # Group windows_uefi: VMs with UEFI firmware; each carries its libvirt
+    # NVRAM file as windows_nvram_file.
+    snapshot_nvram_vms: "{{ groups['windows_uefi'] | default([]) }}"
+  tasks:
+    - name: Skip the snapshot when the workflow runs without snapshots
+      ansible.builtin.meta: end_play
+      when:
+        - snapshot_action == 'create'
+        - take_snapshots | default('yes') == 'no'
+
+    - name: Shut the Windows VMs down
+      ansible.builtin.command:
+        argv: [virsh, shutdown, "{{ item }}"]
+      loop: "{{ windows_vms }}"
+      register: snapshot_shutdown
+      changed_when: snapshot_shutdown.rc == 0
+      failed_when: snapshot_shutdown.rc != 0 and 'is not running' not in snapshot_shutdown.stderr
+      when: snapshot_action == 'create'
+
+    - name: Power the Windows VMs off before the revert
+      ansible.builtin.command:
+        argv: [virsh, destroy, "{{ item }}"]
+      loop: "{{ windows_vms }}"
+      register: snapshot_destroy
+      changed_when: snapshot_destroy.rc == 0
+      failed_when: snapshot_destroy.rc != 0 and 'is not running' not in snapshot_destroy.stderr
+      when: snapshot_action == 'revert'
+
+    - name: Wait until every Windows VM is shut off
+      ansible.builtin.command:
+        argv: [virsh, domstate, "{{ item }}"]
+      loop: "{{ windows_vms }}"
+      register: snapshot_state
+      until: snapshot_state.stdout | trim == 'shut off'
+      retries: "{{ snapshot_shutdown_retries }}"
+      delay: 10
+      changed_when: false
+
+    # sda: the disk is attached on the SATA bus (see aap-infra.yml).
+    - name: Take the disk-only snapshot
+      ansible.builtin.command:
+        argv:
+          - virsh
+          - snapshot-create-as
+          - "{{ item }}"
+          - "{{ snapshot_stage }}"
+          - --disk-only
+          - --atomic
+          - --diskspec
+          - "sda,file={{ windows_vm_dir }}/win-{{ item }}-{{ snapshot_stage }}.qcow2"
+        creates: "{{ windows_vm_dir }}/win-{{ item }}-{{ snapshot_stage }}.qcow2"
+      loop: "{{ windows_vms }}"
+      when: snapshot_action == 'create'
+
+    - name: Copy the NVRAM of the UEFI VMs next to the snapshot
+      ansible.builtin.copy:
+        src: "{{ hostvars[item].windows_nvram_file }}"
+        dest: "{{ windows_vm_dir }}/win-{{ item }}-{{ snapshot_stage }}.nvram"
+        remote_src: true
+        force: false
+        mode: preserve
+      loop: "{{ snapshot_nvram_vms }}"
+      when: snapshot_action == 'create'
+
+    - name: Revert the disks to the snapshot
+      ansible.builtin.command:
+        argv: [virsh, snapshot-revert, "{{ item }}", "{{ snapshot_stage }}"]
+      loop: "{{ windows_vms }}"
+      changed_when: true
+      when: snapshot_action == 'revert'
+
+    - name: Restore the NVRAM of the UEFI VMs from the snapshot
+      ansible.builtin.copy:
+        src: "{{ windows_vm_dir }}/win-{{ item }}-{{ snapshot_stage }}.nvram"
+        dest: "{{ hostvars[item].windows_nvram_file }}"
+        remote_src: true
+        mode: preserve
+      loop: "{{ snapshot_nvram_vms }}"
+      when: snapshot_action == 'revert'
+
+    - name: Start the Windows VMs
+      ansible.builtin.command:
+        argv: [virsh, start, "{{ item }}"]
+      loop: "{{ windows_vms }}"
+      changed_when: true
+
+    # The job runs on AAP, which reaches every Windows host; a port check needs
+    # no Windows credential in this hypervisor job.
+    - name: Wait for WinRM on the Windows VMs
+      ansible.builtin.wait_for:
+        host: "{{ hostvars[item].ansible_host }}"
+        port: 5986
+        timeout: "{{ windows_wait_timeout }}"
+      loop: "{{ windows_vms }}"
+      delegate_to: localhost
+      become: false

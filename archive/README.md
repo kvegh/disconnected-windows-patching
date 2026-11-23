@@ -1,0 +1,1479 @@
+# Disconnected Windows Patching
+
+## Temporary visible deployment logging
+
+At the owner's explicit request, deployment tasks use `no_log: false` until a
+clean deployment is achieved. This temporary direction overrides the earlier
+protected task-logging defaults described below. Keep job output and diagnostic
+captures private, redact reports, and never copy raw logs or secrets into Git.
+Native credential-field redaction, authentication, TLS checks and rollback
+remain in force. Active jobs retain the settings with which they started.
+
+
+**[Open the Windows + AAP visualization](https://kvegh.github.io/disconnected-windows-patching/demo-with-aap/)**
+
+[Open the standard Windows visualization](https://kvegh.github.io/disconnected-windows-patching/)
+
+<a href="https://kvegh.github.io/disconnected-windows-patching/demo-with-aap/">
+  <img src="docs/screenshots/windows-aap-visualization.png" alt="Screenshot of the Windows plus AAP visualization; open from the beginning" width="640">
+</a>
+
+The AAP edition uses a compact diagram with Microsoft Update and Application
+Repository sync above the connected network. Both network rectangles and AAP
+cards align, with horizontal mesh arrows between the AAP cards. Their feed arrows pass behind the External AAP card and reappear
+at the repository below. Redundant corner labels are omitted so External AAP
+can sit higher and expose more of both feed arrows. Both sources reveal together
+and feed the external repository. Shorter network rectangles and tighter gaps
+bring the datacenter together while preserving readable card and text sizes.
+IIS export sits below its content tiles; managed Windows hosts remain near the
+secure rectangle’s bottom. Purple dashed WinRM control arrows use separate
+server entry points from blue content arrows. AAP-to-repository control arrows
+loop around the card sides to remain visible with compact spacing. The content
+junction stays midway between the internal repository and managed hosts. The larger, darker “Click a server to look inside!” hint
+highlights server inspection. See the [walkthrough guide](demo-with-aap/README.md)
+for layout and verification limits. All workflow steps are available from the start:
+click a step to jump forward/back, hover for its Ansible explanation, or use
+Explore the Ansible to pin that explanation. Current/completed steps have
+darker frames; remaining steps keep light frames. Next still plays the orchestration
+sequence; a direct jump cancels an unfinished visual sequence.
+
+AAP, WSUS, Chocolatey and Nexus demo for Windows patching and application deployment
+in a simulated disconnected environment.
+
+Start with the [TLDR](TLDR.md) for scope, execution and the demonstration sequence.
+The [supporting-code guide](docs/supporting-code.md) explains the retained Python,
+PowerShell and command usage; the [test guide](tests/README.md) states what the
+offline suites prove and what still needs live AAP validation.
+
+The supplemental AAP connection validator accepts Ansible's native tagged
+integer prefix lengths while retaining Boolean, string, float and range
+rejection. Native YAML regression checks exercise the production validator;
+this correction preserves the existing network declaration and ownership rules.
+Seven focused profile checks pass in the actual Core 2.20.10 execution image,
+and all forty-three management tests pass on local Core 2.16.19. These checks
+do not provision Windows or replace the complete functional workflow.
+
+For a diagnosed infrastructure preflight failure, the existing creation template
+accepts `windows_infrastructure_guard_diagnostics: true`. This reports only
+Boolean results for the selected-clone and management guards, marks the run as
+diagnostic only, and stops before provisioning or management changes. It never
+prints the underlying names, addresses, MACs, credentials or trust material.
+A fixed protected selection assertion runs before indexed diagnostic expressions;
+this avoids templating tracebacks that native `no_log` alone cannot suppress.
+Six native initial-run regressions pass in the actual Core 2.20.10 image, covering
+the default path, protected invalid inputs, missing SSH values and the pre-mutation
+stop. Core 2.20 represents run tags as a tuple; infrastructure and release guards
+normalize the collection before requiring exactly one `all` entry. Partial, extra
+and duplicate entries remain rejected. Default runs retain their protected guards and normal
+behavior; a successful diagnostic inspection is not provisioning success.
+
+
+The live controller can supply `null` for an empty optional secondary-network
+survey answer. VM creation converts only null secondary-network and secondary-MAC
+inputs to empty strings, then requires string inputs and the exact declared
+interface count, networks and MACs. Boolean, numeric, mapping and foreign-network
+inputs remain invalid. Actual Core 2.20 tests cover single-NIC null/empty values,
+exact dual-NIC values and refusal of missing or mismatched secondary interfaces.
+
+Native firewall callers require the reviewed Hactar source revision in
+`aap_hactar_source_revision` and the independently recorded production identity in
+`hactar_source_public_ip`, supplied by the existing protected CaC. The calling
+execution environment must have `redhat.rhel_system_roles:1.120.5` prepared through
+PAH. Shared native Ansible tasks compare actual firewall state with current CaC
+before disk operations; preflight never applies firewall changes. Drift stops the
+job and requires explicit reconciliation. The existing source checkout remains
+available until the guarded clone and its read-only transaction finish.
+Unconfigured cleanup uses the same native readback before its VM-only checks.
+Neither path reads host JSON or invokes the retired isolation helper. UUID,
+storage, NIC, source-image and production boundaries remain mandatory. This
+consumer migration has offline checks; a fresh complete AAP workflow remains
+required after source-pin and protected-input integration.
+The private Hactar task checkout also requires `hactar_source_git_token` in the
+existing encrypted selected-instance runtime profile. The normal native Vault
+loader binds that one reviewed setting without changing guest provenance or
+adding credentials. It uses the existing source-only reader; the allocation
+writer's `CAC_GIT_TOKEN` is preserved. Never put this secret in ordinary launch
+variables or saved plaintext defaults.
+Source version 1.1.19 adds the encrypted source-reader setting and selects the
+corrected shared private checkout. The original native migration is implemented
+by `6f9479d` (1.1.17); saved AAP imports and fresh execution remain unverified.
+
+Selected AD preparation reuses the complete guarded evaluation-activation tasks
+before its license gate when the installed evaluation license is invalid. The
+four regular activation targets and workflow graph stay unchanged.
+Licensed AD reruns keep their current path; invalid guests must match the exact
+pre-promotion NIC/address/gateway/DNS topology before temporary access. This
+path has focused offline coverage and has passed normal AAP preparation,
+activation cleanup, promotion, LDAPS and real regional-access verification.
+A fresh unattended full workflow remains unverified.
+
+The shared lifecycle dependency is pinned to the qualified diagnostic backport
+`0c82fb6b177ea3d13938756d91c2e1c34892b37d` (AutoDeploy backport 0.63.61), based on the
+previous Core 2.20 implementation `f9aa8410dc91536a7175141a85878c7055672180`.
+It retains the existing lifecycle and allocation behavior and adds encrypted
+capture for the observed central bootstrap Git-read failure. The native artifact
+`aap_guest_source_git_failure_vault` uses the existing labelled CaC key and
+excludes invocation arguments. Missing diagnostics preserve normal rollback
+and cleanup; Git authentication, TLS and protected logging stay unchanged.
+The original live Git error remains unresolved until the focused retry returns.
+Nine native Core 2.20.10 initial-run checks passed, including exact-pin guards,
+previous-pin/branch/repository rejection, lock contexts and unchanged fixed
+diagnostic messages.
+ The lifecycle action imports successfully in the actual Core 2.20.10 image;
+four synthetic protected-YAML tests verify trust separation, literal templates,
+Vault header/value/tag roundtrips and unchanged vendor serialization. The old
+native dumper subclass caused the live loader exception; the pinned implementation
+uses Ansible's factory without changing the shared Windows role or guest runtime.
+The pinned private-source read retries an interrupted Git read twice, retaining
+its exact-SHA check before policy locking or VM changes. No launch or mutation
+is retried. Authentication, TLS, logging and native ownership checks stay the
+same. The original transfer interruption remains unexplained, and a focused
+recovery does not make the current full candidate clean. Native Core 2.20.10
+checks verify the three caller guards and unchanged five-context lock budget;
+22 shared instance-key and 34 protected-YAML/lifecycle/interface checks pass.
+Three legacy tests use a removed internal conditional API; the current native
+fixture runs the actual production guards instead. Live adoption remains separate.
+Windows callers declare an integer native-lock retry budget of 1800 through the
+existing common variables and Windows release-role defaults. This lets parallel
+setup jobs queue at the same exclusive lock; its one-second retry delay, ownership
+rules and invocation-only cleanup remain unchanged. Other callers retain the
+shared default of five retries. The bounded wait never adopts or deletes another
+operation's lock, and no new parallel physical deployment is claimed from tests.
+Firewall policy
+comes from existing encrypted CaC and is applied through native Hactar Ansible;
+temporary Python validators retain only their VM/resource checks. A bounded
+native transaction lock serializes the operation. The precise cause of the
+earlier live deployment failure remains unproved. See the
+[dependency details](docs/selected-instance-runtime.md#release-after-verified-per-vm-configuration).
+The shared reader now expects application permissions inside the existing
+Zabbix VM's `configuration.firewall` section. Migrate that protected AIOps data
+and keep older callers stopped before running the new pin; a source update
+alone neither migrates data nor applies firewall policy.
+
+For prepared versioned environments, read the
+[selected-instance runtime contract](docs/selected-instance-runtime.md). Its
+private encrypted profiles pin the hypervisor, guest names and network mapping;
+the selected demo retains its existing HTTPS/5986 and NTLM WinRM policy, including
+the owner-approved `ignore` certificate-validation setting. Normal authenticated
+connection tests remain required; no extra certificate or image-inspection gate
+is added. AAP HTTPS and hypervisor SSH validation are unchanged.
+Regular guests finish their baseline in Windows basics and retain isolation.
+The following evaluation-activation job verifies licensing and restored topology,
+then reads fresh Windows/native identity and invokes the existing AutoDeploy
+release role before content downloads. AD preparation retains its own verified release.
+They reuse existing credentials and report the actual Windows certificate policy. Offline
+checks do not establish a live guest deployment or successful release.
+The existing Windows infrastructure job also prepares the selected AAP VM's
+Windows-owned isolated NIC and persistent static connection before creating
+clones. It preserves the primary network, uses existing SSH credentials, records
+exact ownership through the same shared publisher, and removes only its owned
+connection after all five test clones and disks are absent. Exact selected clone
+inputs and cheap read-only destination/image checks precede this preparation,
+so an obsolete or invalid VM request cannot change AAP networking. No extra job or
+wrapper is introduced. The same guide describes this transaction and the guarded
+LDAP/CA cleanup component. Selected live functional acceptance and Windows-only
+teardown have passed; a fresh unattended full workflow remains unverified.
+The common VM network default stays at play-variable precedence, so the AD
+entrypoint’s explicit network is preserved. OS SSH requires at least one recorded
+guest host key pinned at its private address and rejects any unregistered key
+for the selected aliases. It reports only a safe reason and numeric coverage;
+key material remains protected. Strict SSH checking and native guest identity
+verification remain required.
+If shared ownership preflight fails, the infrastructure rescue displays only its
+controlled failure reason; action arguments, complete results and private errors
+remain protected.
+The network retry block also checks completion when each queued attempt executes,
+so a successful publication prevents all later attempts from repeating it.
+Networks with DNS explicitly disabled retain exact DHCP hostname reservations
+without DNS host records; release and cleanup verify that same native policy.
+An interrupted pre-boot copy can be reused only after the existing read-only role
+proves no canonical/main-inventory ownership and native checks prove an unused,
+standalone, byte-identical golden copy without guest permissions. The existing
+lock covers comparison and reuse; no file is overwritten or deleted. Other
+existing disks remain a stop. The selected AD public-update baseline also removes
+inherited WSUS URL values and records only numeric before/after evidence.
+Windows/native provenance failures expose only their controlled validation reason;
+the actual computer, disk and network evidence stays protected.
+The native PowerShell query preserves nested NIC address arrays with explicit
+serialization depth; strict address comparisons continue to use their real list values.
+Windows basics configures guests serially without releasing isolation. Activation
+also runs serially, completing verification and release for one guest before the
+next, preserving each policy preflight.
+The read-only AD inspection records recent System shutdown events alongside
+license status, so an interrupted update can be diagnosed before changing configuration.
+The existing Windows network inspection provides the same bounded shutdown and
+license readback for managed guests; use an exact host limit. Detailed diagnostics
+stay in the protected job artifact and do not change licensing or configuration.
+AD preparation requires a licensed installed OS and positive remaining grace for
+an evaluation before updates; a fully licensed non-evaluation edition needs no
+evaluation grace. This check does not activate, rearm or change licensing.
+Selected regular Windows guests use UTC in both their virtual hardware and
+guest timezone. The normal basics job corrects drift over two minutes from the
+automation runtime, then records licensing. An expired evaluation can therefore
+finish permanent networking and hostname setup before the existing activation
+stage. Licensing must pass there before isolation is released. Basics does not
+activate or rearm the guest. Selected AD preparation also corrects UTC before
+reading licensing; legacy runs retain their existing clock handling.
+Fresh staged functional verification passed on `c54d4d4` (1.1.14): regular
+basics/activation, AD preparation/promotion/LDAPS, 12 real LDAP logins,
+75 scoped grants and 360 permission checks. WSUS synchronization, export/import
+and the April ceiling passed. Server 2022 reached exactly 20348.5020 / KB5082142;
+Server 2025 reached exactly 26100.32690 / KB5082063. Both have no remaining
+approved updates or pending reboot. The four-package synchronization/export/import
+path, baseline installation and upgrades passed. The combined live report confirms
+7-Zip 26.04 and Git 2.56.0.windows.2, baseline-to-upgrade history and one enabled
+internal package source on both servers, with no report errors.
+
+The first combined workflow attempt failed and was continued through only its
+failed or downstream normal jobs using retained inputs. This proves the staged
+demo result; an unattended fresh full workflow remains unverified. Normal reset
+on `a11695c` (1.1.15) then passed all five guest retirements and final verification:
+clone disks, static reservations, published ownership/policy and captured AD
+resources were absent, and the owned AAP secondary connection was removed last.
+Original core guests and golden images were preserved. No manual orphan cleanup
+was needed. This verifies ordinary cleanup with the updated dependency; no live
+lock contention was injected. Version 1.1.12's existing basics → activation graph
+and completion/release correction have now passed with fresh guests.
+
+Configuration reproduction itself has passed on a fresh AAP: the existing
+selected-use-case job prepared PAH content and installed thirty-five templates,
+the twenty-nine-node workflow and six existing activation credentials, with all
+saved runtime settings bound to that instance. A standalone importer requires
+the PAH preparation first; see the [selected-instance guide](docs/selected-instance-runtime.md).
+The metadata import itself does not create or run Windows guests.
+For an approved activation in a prepared environment, the existing activation
+job verifies the exact clone and uses an unused IPv4 NAT network. Its generated
+temporary MAC receives only public HTTP/HTTPS and DNS to that network's gateway;
+the existing private/production deny set and IPv6 block remain enforced.
+The normal cleanup and existing 15-minute deadline share the same cleanup:
+isolate/remove that adapter, remove only its tagged MAC rules, then stop a network
+that was initially inactive only if no adapter references it. Legacy deployments
+retain their existing connected-network path. See the
+[activation instructions](docs/windows-evaluation-activation.md#prepared-environments).
+The activation network inspection ignores blank separators in native libvirt
+name output, so an otherwise valid preflight does not query an empty domain.
+Cleanup uses libvirt's running-interface link command without `--config`;
+`domif-setlink` does not accept the `--live` option used by interface detachment.
+A live readback confirmed licensed status with about 180 days remaining. Native
+checks verified original NICs, no temporary rules, an inactive unused activation
+network and the original cleanup deadline disarmed after verification. The normal
+activation rerun also passed its licensed skip and original DNS/routes checks.
+The existing workflow runs basics before activation. Basics finishes permanent
+networking while retaining isolation; activation verifies licensing and restored
+topology before release. These fresh-guest stages have passed. Unattended full
+workflow acceptance remains pending.
+The AD resource-stage resume accepts an incomplete initial creation plan while
+retaining ownership/source/link checks. The final strict completeness check
+still precedes retirement and authentication. A failed native inventory-host
+request reports only its numeric HTTP status and timeout metadata.
+The focused AD continuation passed, followed by independent verification of all
+12 LDAP logins, 75 scoped grants and 360 permission checks. All 36 permitted
+inert jobs completed on localhost; no cross-region grants were present. The
+earlier intermittent Controller outage's initiating cause remains unproved.
+External WSUS synchronization now stops before approval/download if any selected
+update or prerequisite requires agreement acceptance. It never accepts licenses;
+existing accepted or agreement-free selections proceed. The earlier completed
+sync's historical agreement-acceptance behavior is unknown. Use the existing
+Verify PowerShell Regressions template to exercise this guard with synthetic
+updates; it invokes no real licensing operation.
+That normal template passed all six suites on both selected managed guests,
+including pending, ordinary and already-accepted guard cases and temporary-file
+cleanup. The completed content sync was preserved rather than repeated; the
+remaining content/patch/application stages still require their live results.
+
+## Review release
+
+The first tracked major version is **1.0.0**, representing the review and cleanup
+baseline under the [agent-generated code review requirements](https://github.com/kvegh/Agent_generated_code_review#readme).
+The current project version is recorded in [VERSION](VERSION). Work proceeds directly on `main`, as
+requested by the owner; `VERSION` identifies this project independently of the
+other umbrella projects. Implementation changes and their reasons are recorded
+in [the decision history](design_decisions_history.md).
+
+The cleanup replaces deprecated IIS modules, uses the native AD forest/reboot
+module, pins dependencies to the actual AAP core version, fixes strict lint,
+and documents the retained supporting code. Native Ansible orchestrates all six
+PowerShell regression suites. Guarded preservation supports four core Windows
+clones or an explicitly selected fifth AD clone, with ownership checks and a
+fresh target-bound baseline. Public presenter guides use identity placeholders;
+resolve the actual deployment prefix and credentials through protected sources.
+
+Workflow configuration explicitly supplies the required protected-output answer
+for Chocolatey synchronization. Controller connection defaults cover the modules
+actually used, including included task files, so configuring them does not load
+the collection's unused deprecated role plugin. Review validation keeps warnings
+enabled and checks the actual workflow launch configuration before recreation.
+
+Strict production lint passes 116 processed files and all 109 Python tests pass
+on the 1.0.8 source. The six PowerShell suites passed on both managed
+Windows servers on their recorded revision, including normal protected-output execution;
+the live IIS/WSUS export test also passed on its recorded earlier revision.
+Both the separate core run and all 21 core stages within the complete workflow
+passed on the 1.0.7 functional revision. The complete 29-stage run failed because
+an AD prerequisite project sync could not download collection metadata during
+the platform outage; that sync subsequently passed on retry. AD creation did
+not execute. No complete Windows-and-AD end-to-end pass or full functional
+acceptance is claimed.
+
+The 1.0.8 source assessment also found that the AD verifier used urllib's default
+redirect handling and did not require an HTTPS platform root. Its client now
+rejects both unsafe target roots and all redirects, matching the existing
+migration inspector. Focused offline tests exercise the real urllib handler
+chain with synthetic responses; this does not replace a live AD/AAP rerun.
+
+See the [quality assessment](docs/review-quality-assessment.md) and
+[requirements/deviation record](docs/review-requirements-and-deviations.md) for
+explicit verdicts and evidence. These records distinguish source assessment,
+prior functional results, accepted limitations and owner-owned functional acceptance.
+
+The owner accepted the existing lab's WinRM certificate-validation exception
+and WSUS HTTP transport, and closed the historical-username concern. These
+scoped decisions are recorded in the requirements/deviation record; no
+production security compliance is claimed. The combined functional test is
+owned by the user and remains separate from the agent's source-review work.
+The [2026-11-01 review report](Code_Review_2026-11-01.md) closes the agreed
+**code-only review with documented deviations and deferred checks**. It records
+exact revisions, available results and missing functional evidence; it is not a
+full end-to-end acceptance certificate. The earlier incomplete report is
+retained as history.
+Review closeout is tracked in workspace Beads issue `bead-wd-jgw`
+(`bd show bead-wd-jgw`). The [earlier review checklist](TODO.md#code-review-checklist)
+is a historical snapshot; current task state belongs in Beads.
+The owner skipped further idempotency/CaC reconstruction verification and
+declined release-reference locking and additional CI gates, and skipped further
+complete rollback verification for this demo environment.
+Existing checks and GitHub protection remain in place. Unperformed checks are not
+represented as passed tests. The list distinguishes
+missing evidence and process decisions from code defects.
+
+On 2026-11-01 the owner excluded further service-account access auditing for
+this demo, assigned credential rotation to umbrella task `bead-wd-8ee`, and
+accepted the existing network boundaries. These decisions are recorded as
+D18–D20. The owner also skipped further EE image-security assessment for this
+demo (D21). All nine CoP discussion topics now have recorded dispositions;
+unperformed image scans and other skipped checks are not reported as passed.
+
+The owner clarified that this is a review of the project's Ansible and
+supporting code. Windows/AD hardening and CIS host-compliance assessments are
+outside this review (D22). Windows and AD deployment code remains included;
+code-level credential, command, path and failure-handling checks still apply.
+Further triage of the 321 possible-undefined-variable observations, including
+Vault-definition verification, is owner-deferred for now (D23). Those warnings
+are retained as unverified rather than reported as fixed or false positives.
+
+A [focused review of 101 APME security observations](docs/apme-security-triage.md)
+records an individual disposition for each command, transfer, privilege and path
+warning: 97 authored operations retain their existing controls, and four cases
+belong to upstream collection test fixtures. No additional executable correction
+was justified within this review's scope. This does not clear the other APME
+observations or establish a clean dependency audit; version remains 1.0.8.
+
+The final report accounts for all 855 APME observations, separating individual
+security assessment, grouped advisory dispositions and owner-deferred variables.
+The failed dependency backend and vendor `crypt` warning are recorded limitations
+(D24/D25), not clean scan results. No further confirmed source defect remains on
+the current review list. Full functional acceptance still requires the owner's
+combined test and its exact tested revision/result; the version alone does not
+certify it.
+
+The managed-node proof reporter uses the same live PowerShell query from a
+**Windows Demo Proof** desktop shortcut and the **Show Managed Windows Demo
+Proof** AAP template. It reads current internal WSUS policy and reachability,
+local Windows Update history, installed build/hotfixes against April 2026,
+installed Chocolatey/binary versions and retained baseline-to-upgrade evidence.
+The desktop shortcut starts Windows PowerShell with `-NoExit`; no execution
+policy override is used. Missing history is reported as unproven, and a later
+OS build is distinguished from the exact April cutoff.
+The report recognizes multiline Chocolatey log entries, separates an April
+minimum from an exact cutoff, and shows server/controller times explicitly.
+
+`report_managed_windows_demo.yml` queries both `windows_managed` nodes over
+WinRM and prints their combined result after collection. It installs no
+updates or packages. `deploy_managed_windows_demo_report.yml` deploys the local
+script and public desktop shortcut. Future baseline/upgrade stages also install
+the reporter and retain machine-bound receipts only after live package-version
+verification; existing nodes are queried from their actual retained history.
+Live validation passed on both managed servers, including eleven native evidence
+checks per server and normal PowerShell file execution. Both desktop launchers
+were verified to use `-NoExit`. During that validation, the servers had September
+OS builds, so the report correctly warned that they were newer than April; successful
+local Chocolatey logs prove both baseline-to-upgrade application sequences.
+See the [report guide](docs/managed-windows-proof-report.md) for the demonstration
+and the limits of each piece of evidence.
+
+## Naming conventions
+
+Use descriptive `snake_case` variables and action-and-purpose `.yml` names for
+new playbooks and task files, such as `configure_windows_server_basics.yml`.
+Keep domain prefixes consistent: `vm_`, `windows_`, `wsus_`, `chocolatey_`,
+`nexus_` and `ad_`/`active_directory`. Name plays, blocks and tasks with concise
+imperative actions; put any dynamic task-name suffix at the end. Supporting
+assets retain their existing hyphenated names and normal language conventions.
+
+Existing entry points such as `01-win-vm-setup.yml`, `destroy-win-vms.yml`,
+human-readable AAP names and published AD resource keys are compatibility
+exceptions. Avoid cosmetic renames that break templates, links or consumers.
+The CoP naming chapter recommends hyphenated filenames while its coding-style
+chapter recommends snake_case; this project follows the latter for new YAML
+files and preserves existing interfaces. New names should make purpose clear
+without introducing a separate naming framework.
+
+## Active Directory extension
+
+Start with the [five-minute AD-controlled access demo](docs/active-directory-demo-quickstart.md):
+find the Windows AD user, follow its nested groups, show the AAP mapping and
+compare strict country resources with EU-approved resources shared by Denmark,
+Norway and Hungary, while New Zealand remains separate.
+
+For a beginner-friendly presenter script, see
+[`docs/active-directory-demo-guide.md`](docs/active-directory-demo-guide.md).
+It follows one user from AD through nested groups and AAP mappings to actual
+regional access, with VNC/browser clicks, suggested narration, role contrasts,
+rehearsal checks and a separate Ansible setup reference.
+
+The AD extension uses a separate Windows Server 2025 VM and a separate test AAP
+for regional identity and permission validation. The current model has twelve
+users: reader, executor and admin for Denmark (DK), Norway (NO), New Zealand
+(NZ) and Hungary (HU). Five country-owned resource sets separate ownership from
+clearance:
+
+| Readable resource label | Current AAP/Ansible key | Permitted identity groups |
+| --- | --- | --- |
+| DK-local | `DKlocal` | DK only |
+| NO-local | `NOlocal` | NO only |
+| DK-EU-approved | `DKEUapproved` | DK, NO and HU |
+| NO-EU-approved | `NOEUapproved` | DK, NO and HU |
+| NZ-local | `NZlocal` | NZ only |
+
+Both presenter guides use the hyphenated labels and include the current-name
+lookup for UI searches and Ansible inputs. Their new-user exercise shows AD
+account creation, group membership and automatic first-login AAP access. One
+mapped AD group can select several permissions through its AAP team. The
+identity reconciler maintains the twelve generated users and their declared
+memberships while preserving additional users and nested groups added by AD
+administrators. Additional people can remain in the mapped groups across setup
+reruns. The verifier exercises the twelve generated demo identities.
+
+Each row has its own inventory, synthetic credential, two inert job templates
+and AAP Project. EU approval permits access to the two approved country sets;
+there is no EU-owned inventory, EU-only user or Hungarian resource set. Each
+user retains their reader/executor/admin level across allowed sets. This is
+identity-based regional clearance; AAP does not detect the user's physical
+location or IP geography. Both presenter guides contain the full twelve-user
+access matrix.
+
+Live validation of this five-set model passed: 75 scoped grants, twelve LDAP
+logins, 360 primary resource-read/launch checks and 36 completed mock jobs.
+It also passed 108 admin-only description PATCH checks, 48 exact resource-list
+checks and 24 gateway/controller team-membership checks. All three retired
+EU-only accounts are absent from both services. The detailed guide contains the
+complete AD-group → AAP-team → resource-set → permission table and exact object
+role names. The presenter matrices use private-prefix username patterns and four short
+country tables with full permission labels.
+These AD results are historical targeted evidence, preceding the present review
+iteration. The attempted combined run did not reach AD creation. They do not
+prove a fresh combined workflow.
+At that earlier validation, the test guest had Server build 26100.33650,
+with no pending reboot. Windows Update still reoffers KB5007651 after successful
+installer runs. Microsoft's [applicability documentation](https://support.microsoft.com/en-us/servicing/os/windows/2021/10/windows-security-app-update)
+lists that Security app package for Windows 11 only. The Server-2025-guarded
+preparation now reports this exact unsupported UI offer separately and requires
+zero remaining applicable Server updates. It does not hide the offer in Windows
+Update or exclude Defender antivirus/platform/security-intelligence packages.
+That live preparation passed with zero applicable Server updates remaining, no
+required reboot and one Windows 11-only offer reported separately. AD identity,
+LDAPS and forest-root clock verification also passed. These infrastructure
+results precede the revised regional access model and do not establish its
+effective permissions.
+The focused update-policy regression check preserves Server cumulative, .NET,
+Defender platform and security-intelligence updates; the separate offer count
+is also checked through actual Ansible template rendering.
+`start_active_directory_test_platform.yml` starts only an explicitly approved,
+existing test AAP VM and waits for SSH. Supply `ad_start_test_platform_approved`,
+`ad_test_vm_name` and `ad_test_aap_address` through protected configuration.
+It accepts running or shut-off domains and refuses unexpected states.
+
+`report_hypervisor_memory.yml` reads memory and KSM counters and samples actual
+swap-in/out activity for five seconds. Detailed results stay in authenticated
+AAP job artifacts. Available RAM already includes KSM's benefit; do not add KSM
+savings again. Gross deduplication savings and kernel-reported net savings are
+reported separately. Missing kernel counters are reported as unavailable.
+
+`prepare_active_directory_guest.yml` targets exactly one guest in a dedicated
+inventory, verifies Server 2025 and disk space, sets its protected hostname and
+installs every applicable Server software update category, including optional
+updates, directly from Microsoft. It completes update reboots and requires zero
+remaining applicable Server updates. The Windows 11-only UI offer described
+above remains explicitly reported. This does not change update sources on the
+disconnected demo's other hosts.
+The encrypted profile supplies its hostname and connection identities; pass
+`ad_direct_microsoft_updates_approved` as a protected input. Reruns can reconnect
+before or after domain promotion using the existing protected identities.
+Windows Update does not provide third-party application or driver updates
+through this module.
+
+`initialize_active_directory_profile.yml` creates the initial identities,
+passwords and dedicated LDAPS CA/certificate from protected seed inputs. It
+requires the existing Python `cryptography` package and Ansible Vault. It refuses
+to replace an existing encrypted profile, and removes its temporary plaintext.
+Keep the profile and its issuing private key encrypted and reuse it on reruns.
+
+`deploy_active_directory.yml` installs AD DS/DNS, promotes the selected patched
+guest and creates the regional directory. Forest creation and its required
+reboot use `microsoft.ad.domain`; the owned identity reconciliation uses the
+documented Windows-native AD cmdlets through `ansible.windows.win_powershell`.
+The encrypted `vars/active_directory_vault.yml` supplies deployed identities.
+For an existing controller, `ad_identities_only: true` configures identities
+without reinstalling features, promoting the forest, changing DNS or resynchronizing
+time. With the scoped demo policy enabled, `ad_reset_demo_user_passwords: true`
+explicitly applies the Vault-supplied passwords to the twelve owned regional
+users. Ordinary reruns preserve existing
+passwords. New accounts always receive their protected profile passwords.
+Set `ad_verify_additional_members: true` together with `ad_identities_only: true`
+to run the opt-in Windows preservation test. It creates a temporary additional
+user and global group, adds them to existing country/access groups, reconciles
+twice, verifies direct and nested membership, and removes its own test objects
+in an always-cleanup block. It leaves other manually added members intact and
+does not reset passwords or extend the generated-user password-policy exception.
+The native Windows test passed both reconciliations, including an unchanged
+second run and verified cleanup. The subsequent full AAP regression passed all
+twelve logins, 75 grants, 360 access checks and 36 inert job executions again.
+Fresh directory-profile initialization keeps the domain Administrator password
+equal to the protected original image password; other service and certificate
+secrets are generated independently.
+The protected profile can enable `allow_simple_demo_passwords`. This creates an
+owned fine-grained policy applied directly to exactly those twelve users, allowing
+the approved demo passwords while preserving every other domain password-policy
+setting. New demo accounts are created disabled, assigned the policy, given their
+password and then enabled. The built-in administrator and LDAP bind account are
+excluded, and policy scope and the unchanged domain defaults are verified.
+The earlier live identity-only update and independent LDAP policy inspection
+passed. The redesigned cohort membership and effective AAP permissions require
+their own verification after reconfiguration.
+Promotion waits for AD Web Services and SYSVOL before creating identities.
+The forest-root controller uses its existing configured NTP peer as its manual
+time source, keeps Windows Time running, and requires synchronization within
+two minutes of the automation runtime before configuring identities. This
+prevents an inherited virtual hardware clock from becoming the domain's time
+authority. The playbook preserves the existing peer and correction limits.
+The live verification measured a four-second offset after synchronization.
+The native AD action manages promotion reboots before subsequent tasks select
+the domain administrator. The declared bootstrap and future domain-administrator
+passwords match; the review must verify the actual credential transition during
+fresh promotion. After an interrupted earlier promotion,
+`ad_complete_promotion_reboot: true` completes a
+controlled recovery restart on the verified domain controller before continuing.
+The management connection resets after selecting the administrator password,
+so subsequent role installation uses the current credential.
+Directory cmdlets receive an explicit protected credential for local AD access
+over WinRM, without requiring delegated management credentials.
+Regional global groups (`GG`) contain people; domain-local groups (`DL`) express
+the access roles consumed by the AAP mappings. DK and NO global groups nest into
+their own country DL group and the matching-role EU DL group. HU global groups
+nest only into EU DL groups; NZ groups nest only into NZ DL groups. EU DL groups
+grant both `DKEUapproved` and `NOEUapproved` access through one corresponding
+`EUapproved` AAP team. There is no HU DL group or standalone EU user. The `GG`
+and `DL` prefixes are naming conventions for real AD group scopes; the resource
+permission definitions remain in AAP. Existing unrelated directory objects are
+refused. Focused model checks cover the effective graph, country isolation and
+privilege boundaries.
+
+`configure_aap_ad_regions.yml` creates a separate test organization with five
+inventories, five independent synthetic credentials, ten inert job templates,
+five AAP Projects and twelve access teams. Project names are exactly `DKlocal`,
+`NOlocal`, `DKEUapproved`, `NOEUapproved` and `NZlocal`. Other names follow the
+same readable key: for example, `DKlocal Inventory`, `DKlocal Credential`,
+`DKlocal Read` and `DKlocal Simulate Change`. The teams use the protected prefix
+and access scopes `DKlocal`, `NOlocal`, `EUapproved` and `NZlocal`, each with
+reader, executor and admin roles. Together they have 75 object-scoped grants.
+Reader teams have view-only roles; executors have inventory/credential Use,
+job-template Execute and view-only Project access; admins manage their scoped
+resources. A regional admin is neither a platform admin nor a domain admin.
+Each Project points to the same public demo source: its object visibility shows
+AAP RBAC, not confidentiality of that public Git repository. Mock templates have
+fixed inventories, credentials and variables and contact no external hosts.
+Static inventories contain an enabled local mock host. Their **Disabled** list
+status means no inventory synchronization source is configured; jobs remain
+usable. Organization separation isolates the demo's resources and permissions;
+it is a design choice, not a requirement for LDAP authentication.
+The optional LDAP stage requires verified LDAPS and gateway trust inputs before
+it creates ordered login, organization and nested-group team maps with revocation.
+Group identifiers in the maps use lowercase distinguished names, as required by
+the gateway's group trigger matching.
+LDAP object creation is enabled so permitted AD identities can receive an AAP
+user on first login. The organization, scoped teams and grants are created by
+Ansible before activation, and the allow map restricts login to the owned groups.
+Local authentication remains available. Project requirements pin the collection
+versions used by these jobs.
+Existing owned mock objects are renamed while preserving their IDs and grants.
+Team migration resolves the readable access-scope labels used by its inspection
+plan before updating native team records.
+A read-only migration inspection rejects ambiguous names, foreign objects and
+unexpected template links. It checks all remaining references before retiring
+the former shared Project and verifies LDAP ownership before removing obsolete
+EU-only AAP accounts. Surveys and launch-input prompts are explicitly disabled
+so a mock job keeps its assigned country and access scope.
+For focused development retries, `ad_configuration_diagnostics: true` exposes
+scoped-grant API results, and `ad_time_diagnostics: true` exposes time-service
+results. Native password/token fields remain masked, identity and LDAP secret
+tasks remain protected, and both diagnostic options default to disabled.
+The access verifier exposes its structured failure reason without logging the
+command input containing test-user and API credentials.
+After resources have converged, `ad_aap_authentication_only: true` resumes only
+LDAP configuration. It first independently verifies all twelve teams, all 75
+scoped grants and the fixed mock inputs; missing or changed resources stop the
+resume. Normal fresh deployment still configures every resource. Configuration
+API calls use a 60-second timeout, configurable with `ad_aap_request_timeout`.
+Idempotent grant assignments retry a transient API connection-manager startup
+failure with a bounded delay. If all five resources and their fixed links
+already exist, `ad_aap_resume_resource_sets` can select only failed resource
+sets. A complete owned-object inspection must pass before this mode skips
+successful Project/team preparation; cleanup and authentication still run.
+
+`configure_active_directory_address.yml` adds the dedicated clone's exact live
+and persistent DHCP reservation after checking clone ownership, NIC topology,
+subnet membership and conflicting reservations. It changes no other DHCP host
+entries. The protected profile records the MAC and address reused by deployment.
+The same guarded step publishes the exact LDAPS DNS name, rejects conflicting
+DNS records and live DHCP leases, and preserves unrelated network records.
+If interrupted promotion prevents guest authentication before its required
+restart, its existing-VM mode also supports the explicit recovery option
+`ad_promotion_recovery_acpi_reboot: true`. After the same ownership and NIC
+checks, it requests a graceful ACPI restart and verifies that the management
+listener stops and returns. Fresh reservations never take this recovery path.
+Set `ad_promotion_recovery_reboot_mode: agent` to use an existing QEMU guest
+agent instead of ACPI. Neither path resets power forcibly. Recovery command
+mode `shutdown_start` requests ACPI shutdown, waits for the domain to be fully
+shut off and then starts it; it never destroys a running domain. Recovery command
+diagnostics can be enabled with `ad_recovery_diagnostics: true`; the normal
+default remains protected. Guest inspection verifies the selected management
+identity before collecting protected metadata so connection failures are clear.
+The graceful shutdown-and-start path passed live promotion recovery. The test
+guest has no configured QEMU agent, so the agent mode was unavailable there.
+
+`inspect_active_directory_guest.yml` reads OS, servicing, license, network and
+certificate metadata and parses the directory PowerShell asset without executing
+it. It also records installed execution-environment collection versions without
+installing dependencies. Detailed evidence remains protected in authenticated
+job artifacts.
+UTC time, the Windows time zone, time source and time-service status are also
+read so domain-controller clock health can be assessed independently of local
+timestamp formatting.
+
+For a selected recovery instance, AD preparation pairs the VM's UTC hardware
+clock with the Windows UTC time zone and corrects drift greater than two minutes
+against automation UTC before reading its license. Its protected prerequisite
+artifact retains the actual clock and license result even when licensing stops
+the job. This does not activate Windows or accept terms; an invalid license still
+prevents updates. Legacy runs without the selected runtime keep their clock setup.
+
+During a long update run, the inspector also reads free system disk space,
+servicing-process counters, available download counters and the latest servicing
+log metadata. It does not start a second update run or change servicing state.
+Set `ad_inspect_update_scan: true` to query all offered Microsoft software update
+categories without installing updates or rebooting.
+The AD Windows plays use a 120-second WinRM operation timeout to tolerate
+servicing and domain-controller startup. A focused preparation rerun scans and
+installs the remaining updates when an earlier management connection stalls.
+The inspector also reads Windows Update installation/error events from the
+System log. Set `ad_update_diagnostics: true` on a focused preparation retry to
+show the update module's results; connection credentials and profile tasks stay
+protected, and normal runs keep update diagnostics hidden.
+The inspector records the agent's busy/restart state when readable and the
+states of Ansible scheduled tasks. After a failed update operation has stopped,
+`ad_reboot_update_recovery: true` requests a controlled reboot before a focused
+retry; ordinary preparation does not enable this recovery option.
+Security-platform inspection records installed service/app versions and platform
+registration, helping distinguish an actual missing update from a repeated
+Windows Update offer.
+Nested version metadata is serialized explicitly for inspection rather than
+being reduced to PowerShell object descriptions.
+The earlier cached Windows Security UI installer diagnostic did not resolve the
+Server's repeated offer. That unsupported manual repair path has been removed;
+the Server update check uses Microsoft's documented product applicability.
+
+`configure_active_directory_ldaps.yml` imports the dedicated public CA and the
+leaf certificate's nonexportable machine key, removes staged PFX files, performs
+a controlled reboot after certificate changes and verifies the selected LDAPS
+certificate with normal hostname and chain validation. The issuing private key
+stays in the encrypted profile and is excluded from guest task payloads.
+
+`configure_aap_ad_trust.yml` uses the target's previously verified SSH host key,
+adds the public CA to host trust and the gateway's existing bind-mounted trust
+bundle, and verifies trust inside the actual gateway container. Optional LDAPS
+verification also checks DNS resolution, the chain and hostname from that runtime.
+It preserves the other CA certificates and requires the expected mount layout.
+Reapply this configuration after an installer upgrade that replaces generated
+trust files. A different AAP target can supply its URL, API password and trusted
+CA through the explicit `ad_aap_target_*` inputs.
+
+Hypervisor statistics are reported in the active operator chat every 30 minutes,
+including KSM full-scan count. An AAP schedule was briefly created and removed
+after the operator clarified that chat reporting was intended; no recurring
+memory-report job or template remains deployed.
+
+`verify_aap_ad_regions.yml` independently reads every team grant and verifies
+exact object scope, view-only reader permissions and fixed mock launch inputs.
+Set `ad_verify_ldap_logins: true` after LDAP is enabled to authenticate all twelve
+directory identities, check allowed and denied regional access, exercise admin
+authorization with unchanged descriptions, and run only the permitted inert
+mock jobs for both template operations. The five-set matrix expects 360 primary
+read/launch checks and 36 successful mock executions; description PATCH and
+resource-list checks are additional. It finishes and verifies each accepted mock
+before launching another, retaining only one unfinished mock at a time. Failed
+executions stop further launches; cleanup still drains any already accepted work,
+including an unexpectedly accepted forbidden launch. Previously completed job IDs
+remain protected against reuse.
+The existing `job_wait_timeout` defaults to one shared 1200-second verification
+window, followed by a separate 1200-second cleanup reserve. API reads, login and
+permission convergence, polls and sleeps share those absolute deadlines; request
+timeouts are capped by the remaining phase budget. A late accepted launch is
+retained for cleanup. These windows fit the existing 3600-second parent template
+with room for normal Ansible setup and reporting. They do not grant each of the
+36 mocks a fresh 1200 seconds. Budget exhaustion is a failed verification, never
+an incomplete success.
+It reads the signed-in identity on both gateway and controller before checking
+resource permissions, initializing the service identity as a browser session
+does and verifying that neither service substituted a privileged account.
+For a newly provisioned identity it allows up to 60 seconds for expected
+controller access to follow gateway team membership. Unexpected cross-region
+access remains an immediate failure; the wait does not grant permissions.
+Final job statistics must prove that each permitted mock executed its tasks on
+`localhost`; a successful status with no host work is insufficient. If a later
+access check fails, the verifier still waits for every job it already launched
+and checks its result. Offline verifier acceptance tests use a simulated API:
+
+```bash
+python3 -m unittest discover -s tests -p 'test_active_directory_verifier.py' -v
+```
+
+These tests cover the full expected matrix and failure paths without contacting
+AAP. All 21 focused verifier checks pass locally and in the cached Core 2.20.10
+execution image, including serial admission, shared API/sleep budgets and cleanup
+after deadline expiry. Live LDAP verification remains a separate deployment check.
+
+`configure_windows_ad_workflow.yml` adds a separate eight-stage AD branch to the
+existing Windows workflow and verifies that its other nodes and edges are
+preserved. Fresh deployment reserves the address before cloning, creates the
+Server 2025 VM, patches it, promotes the directory, verifies LDAPS and gateway
+trust, configures regional access, and exercises the actual LDAP permissions.
+The provisioner refuses an existing VM or clone disk. Run the individual stages
+to recover a partial deployment; a complete workflow launch provisions fresh VMs.
+
+The `Windows AD AAP Target` credential supplies target API and SSH authentication
+through protected environment variables. Explicit `ad_aap_target_*` inputs take
+precedence; the encrypted validation profile is the fallback for local testing.
+The Windows CaC importer prepares this credential for the platform receiving
+the import, using public trust read through its existing installer connection.
+This keeps runtime passwords out of Job Template variables and prevents a fresh
+import from configuring an earlier test platform. Credential injector expressions
+remain literal until AAP launches a job. LDAP readiness comes from the preceding
+verification stages; configuration import alone does not enable LDAP.
+Managed workflow stages require the attached target credential and stop if its
+fields are missing, so they cannot silently fall back to the validation target.
+The target CA bundle is injected as a private file because a complete trust
+bundle can exceed the operating system's limit for one environment variable.
+Two workflow tests check reachability, cycles and the required patching and TLS
+barriers before LDAP activation.
+`collections/requirements.yml` pins the guest and AAP configuration collections.
+The configuration subset is also listed in
+`collections/ad-configuration-requirements.yml`. These configuration pins match
+the reviewed PAH catalog and the versions used for local API validation.
+Regional mock templates default to the CaC-owned
+`Disconnected Windows Execution Environment`, so they follow its selected runtime
+instead of the platform's default EE. `ad_mock_execution_environment` remains an
+explicit override for a separately selected runtime.
+Before syncing its projects, the regional organization reuses the selected
+target's three existing PAH credential associations. It rejects missing or
+unexpected Hub sources and copies no tokens. `ad_galaxy_source_organization`
+selects the existing source organization when its name differs from `Default`.
+
+AD group membership selects AAP teams at login. Resource permissions remain AAP
+role assignments maintained by Ansible; AAP does not import Windows directory
+ACLs as resource permissions. Removing directory membership revokes the mapped
+membership on the user's next authentication. Creating another AD group alone
+does not make it an AAP team: its intended mapping and resource grants must also
+be declared in Ansible.
+
+## Interactive demo
+
+For a live presenter walkthrough on the real Windows desktops, see the
+[Windows upgrade demo guide](docs/windows-upgrade-demo-guide.md). It covers VNC
+access, internal WSUS configuration, installed patch evidence, exact application
+versions and functional checks before and after the Chocolatey upgrade.
+
+[`demo/`](demo/README.md) contains a presenter-paced browser walkthrough with
+Next/Previous controls, a workflow that grows after each action, and a datacenter
+architecture that gains servers, services and content. Directional animations
+show Microsoft downloads, internal-initiated HTTP pulls over the management
+connection, export data returning from external IIS, and internal delivery.
+Workflow items expose in-page illustrative Ansible previews and links to the
+real playbooks. This is a visual walkthrough; it does not execute AAP jobs or
+represent live environment state. Clear blue and cyan accents, amber export
+details and text enlarged by 20% improve presentation readability.
+The GitHub Actions Pages workflow publishes
+only the page and its public assets. See the demo README for local use and checks.
+
+[`demo-with-aap/`](demo-with-aap/README.md) is a separate architecture edition at
+the `/demo-with-aap/` Pages URL. It adds connected AAP and a clearly labelled,
+proposed Linux execution node in the secure network. Before every internal action,
+an inside-out arrow highlights the node-initiated mesh connection, followed by
+job dispatch and local execution. Later actions reuse the established mesh; the
+repeated arrow is a visual reminder rather than a new connection or task poll. The
+deployment arrows show external AAP creating the external repository and internal
+execution creating the internal repository and two managed Windows VMs. The
+existing demo URL and assets remain independent. Both editions are illustrative;
+the new execution node has not been deployed in this lab.
+
+## VM deployment
+
+`01-win-vm-setup.yml` creates one VM per launch on the inventory's `hypervisor`
+target. This may be a host alias or a group; activation requires the target to
+resolve to exactly one hypervisor.
+The hypervisor needs libvirt, `virsh`, `virt-install`, `qemu-img`, the selected
+libvirt network, suitable firmware, and osinfo IDs `win2k22` / `win2k25`.
+The AAP execution environment needs `ansible-core`; attach a machine credential
+for SSH and privilege escalation to the hypervisor.
+
+Base images on the hypervisor:
+
+- `/opt/images/windows-server-2022.qcow2`: 40 GiB virtual capacity.
+- `/opt/images/windows-server-2025.qcow2`: 64 GiB virtual capacity.
+
+Boot mode is selected from the verified base image layout: BIOS for the 2022
+image (MBR/NTFS), UEFI for the 2025 image (EFI System Partition). This mapping
+is specific to these images, not a Windows-version requirement. OVMF firmware
+and both Windows osinfo IDs must be available on the hypervisor. If the base images change,
+review `windows_boot_modes` in `vars/main.yml`.
+
+Cloning uses `qemu-img convert -S 4k` to create independent sparse qcow2 disks.
+There are no backing-file dependencies or disk resizing. Every VM receives
+2 vCPUs; `managed` gets 4096 MiB RAM and `wsus` gets 8192 MiB.
+An existing VM or destination disk causes the launch to stop rather than overwrite it.
+
+For existing managed VMs with a 2 GiB maximum, change both the persistent
+maximum and current memory allocation to 4 GiB with libvirt. Use a clean,
+coordinated Windows shutdown or a Windows-requested reboot boundary, confirm the
+VM is off, then start it again. Never interrupt active servicing. An ordinary
+Windows reboot does not restart QEMU and therefore
+does not apply this persistent memory change. Verify the running allocation
+and the memory visible inside Windows after startup.
+
+## AAP survey / extra variables
+
+Set the Job Template playbook to `disconnected-windows-patching/01-win-vm-setup.yml`
+when using the parent project, or `01-win-vm-setup.yml` with this repository directly.
+`assets/deploy-vm-survey.json` contains a survey specification to apply to that
+Job Template. Enable the survey; alternatively enable launch-time extra variables.
+The demo controller has the deployment template and workflow configured.
+
+Required inputs:
+
+| Variable | Values |
+|---|---|
+| `vm_role` | `managed`, `wsus` |
+| `windows_version` | `2022`, `2025` (string or integer) |
+| `vm_name` | Unique VM name; letters, numbers and hyphens, starting with a letter |
+| `vm_network` | Primary existing libvirt network; default `windows-isolated` |
+| `vm_management_network` | Optional second libvirt network, allowed for `wsus` only; default empty |
+
+For the four-VM demo, launch the template four times (or chain these launches in
+an AAP workflow), supplying the appropriate networks:
+
+| VM purpose | Deployment role | Windows version | Primary NIC | Second NIC |
+|---|---|---|---|---|
+| External repository server | `wsus` | `2022` | `internal` | None |
+| Internal repository server | `wsus` | `2022` | `windows-isolated` | `internal` |
+| `win2022-managed` | `managed` | `2022` | `windows-isolated` | None |
+| `win2025-managed` | `managed` | `2025` | `windows-isolated` | None |
+
+The Server 2022 WSUS choice is intended to serve both client versions. Select
+Windows Server 2025 products during WSUS configuration and validate actual
+synchronization and client scanning before the demo.
+
+Example CLI launch:
+
+```bash
+ansible-playbook -i inventory.ini 01-win-vm-setup.yml \
+  -e vm_role=managed -e windows_version=2022 \
+  -e vm_name=win2022-managed -e vm_network=windows-isolated
+```
+
+The initial hardware uses Q35, SATA storage and an emulated e1000e NIC to avoid
+requiring VirtIO drivers at first boot. Validate these devices with the actual
+images. A local VNC console supports initial Windows setup. The role input
+selects sizing; it does not install WSUS or configure Windows credentials,
+hostnames, WinRM, or SSH. The base images must already contain working credentials
+and WinRM; guest configuration is handled by the separate configuration playbooks.
+
+Both versions use this same parameterized creation playbook. After Windows
+basics establishes permanent management access, `activate_windows_evaluations.yml`
+checks each clone's license. An unlicensed evaluation retains its isolated
+primary adapter, temporarily gains a connected adapter, activates its installed
+evaluation license, verifies licensed state, and loses the temporary adapter
+again. It verifies the original guest routes, addresses, DNS and live/persistent
+libvirt NIC topology before deployment continues. Already-licensed clones skip
+activation and connectivity changes; repository servers keep their permanent NICs.
+
+Microsoft requires Internet activation within ten days even for the 180-day
+evaluation. Activating a base image does not guarantee activation after cloning
+and generalization. The new stage uses the Hypervisor SSH and Vault credentials;
+Windows login and topology inputs are in `vars/windows_activation_vault.yml`.
+Automatic Windows updates are disabled before an unlicensed clone gains access;
+managed clones are first assigned their protected internal WSUS source, with
+conflicting existing sources rejected before connectivity changes.
+Ansible cleans up on failure, and a hypervisor deadline removes the temporary
+adapter if the controller is lost. See
+[per-clone activation and workflow configuration](docs/windows-evaluation-activation.md).
+
+The activation template and workflow handoff are deployed. Live Check job 2283
+and normal job 2286 passed on all four existing, already-licensed clones without
+host changes, verifying the normal licensed skip path as well as inspection.
+Twenty regression tests cover the activation guards and cleanup paths. Fresh
+workflow 2303 subsequently verified the unlicensed path: Server 2025 activated
+and returned to its original topology before repository preparation.
+
+`wait_for_dhcp` defaults to `false` because initial setup or the network layout
+may prevent immediate DHCP. Enable it to wait up to five minutes and discover
+IPv4 by MAC on a libvirt network providing DHCP. A lease does not establish that
+Windows is ready for AAP management. Configure management connectivity and
+isolation separately; this playbook does not create networks or firewall rules.
+
+## Layout and validation
+
+Decision explanations and implementation commit IDs are recorded in
+[design_decisions_history.md](design_decisions_history.md). Pending reviews,
+including Microsoft-required and recommended reboots, are tracked in
+[TODO.md](TODO.md). Nexus onboarding is
+part of `setup_chocolatey.yml`: existing acceptance is retained, and initial EULA
+acceptance requires encrypted approval for the pinned distribution. External
+package synchronization, export, internal import, baseline installation and
+upgrades have passed live execution on both Windows endnodes. Baseline packages
+were 7-Zip `26.3.0` and Git `2.55.0.5`; verified upgrades were 7-Zip `26.4.0`
+and Git `2.56.0.2`, using only the selected internal feed.
+Application completion honors installer reboot codes/flags and Windows CBS/WU
+reboot markers, and verifies those markers clear before reporting success.
+On 2026-10-07, workflow 1252 passed all 17 nodes after guarded teardown and
+verification of the four Windows clones. This validates the complete fresh
+environment deployment and both content pipelines, including application
+upgrades. Windows update installation on the endnodes is a separate step.
+
+The new [fresh end-to-end test](docs/end-to-end-test-2026-10-20.md) runs the
+expanded 21-stage workflow through April OS patching before application baseline
+installation and upgrade. Workflow 2303 passed all 21 stages in 3h48m50s,
+finishing on 2026-10-21 at 01:01 UTC. Preservation checks passed before and after
+redeployment: seven unrelated VM definitions/states and both base images were
+unchanged. Both managed guests were created with 4096 MiB and verified from Windows.
+Follow-up application job 2346 finished a later Server 2025 reboot requirement;
+final assessment 2349 confirmed both April builds with no pending reboot, and
+Check job 2351 found zero applicable updates on Server 2025 after that reboot.
+The test report records these corrections separately from the original workflow.
+
+On 2026-10-20, live publication verified the internal April 2026 ceiling with
+both OS and .NET baselines ready. A client Check run using the lighter validation
+passed internal policy and Server 2022 source checks, then stopped because the
+Server 2025 endnode was unreachable. A subsequent read-only WinRM audit reached
+both endnodes and confirmed their existing internal WSUS source policies. It
+identified expired evaluation activation grace as the Server 2025 shutdown cause.
+After authorized temporary connectivity, its existing evaluation activated
+automatically with 180 days remaining. The temporary adapter was removed,
+isolation was restored and both clients retained their internal WSUS policies.
+The subsequent client Check run exposed a remote-incompatible Windows Update
+reboot-status API call. Searches now read the same Windows Update/CBS registry
+markers as the existing client inspection, preserving remote security controls.
+The install pass preserves integer retry arguments and exact-title matching
+through the pinned native module's title-plus-KB filtering representation.
+Normal installation has now upgraded Server 2022 to April build `20348.5020`
+and Server 2025 to `26100.32690`, including their applicable .NET updates.
+Both passed the final internal-source, baseline, empty-update and pending-reboot
+guards. Server 2022's initial verified result took about 39m49s; its settled
+verification run took 2m00s. Server 2025 took 1h38m52s including the IIS download
+retry/recovery period. System event order confirms two patch restarts for Server
+2022 and four for Server 2025. Both now have 4 GiB allocated, confirmed in
+libvirt and Windows after clean full VM restarts at safe servicing boundaries.
+See the [live verification details](docs/windows-os-patching.md#references-and-verification).
+
+- `01-win-vm-setup.yml`: VM deployment playbook.
+- `activate_windows_evaluations.yml`: verify or activate each clone and restore its exact original topology.
+- `configure_windows_activation_template.yml`: add the activation template between Windows basics and repository preparation.
+- `configure_windows_end_to_end_workflow.yml`: join both imports, enforce April 2026, patch hosts independently, then install baseline applications and upgrade them.
+- `configure_windows_server_basics.yml`: static networking, DNS, hostnames and reboots.
+- `setup_wsus.yml`: WSUS installation, initialization and client update policies.
+- `setup_chocolatey.yml`: Nexus services, hosted feeds, and Chocolatey clients.
+- `synchronize_external_chocolatey_repo.yml`: four pinned offline packages (two 7-Zip and two Git versions).
+- `export_external_chocolatey_repo.yml`: verified ZIP export served through external Nexus HTTP.
+- `replicate_and_import_chocolatey.yml`: internal-server pull/import into baseline and current feeds.
+- `deploy_baseline_applications.yml`: install older pinned versions on endnodes.
+- `upgrade_applications.yml`: switch feeds and upgrade to newer pinned versions.
+- `prepare_repository_servers.yml`: feature/MSI installation and reboot barrier before parallel setup.
+- `check_wsus_prerequisites.yml`: read-only external WSUS readiness and PowerShell syntax checks. Its timestamped report separates the last completed synchronization result from the current synchronization status, phase and processed/total items, and reports downloaded/total content bytes. A completed metadata phase does not prove payload downloads or client applicability.
+  It also preserves protected internal WSUS worker metadata and the last sixteen lines of at most two existing import logs. The AD inspector likewise retains update-service/process metadata, native update pipe names and a bounded existing reporting-log tail. It never opens a worker pipe, starts a scan or changes a live operation. Detached `win_updates` workers can outlive their ephemeral scheduled-task definitions; an empty scheduled-task list does not prove completion.
+  The same external check now preserves protected WSUS/IIS/SQL process counters
+  (at most twelve matching workers) and known `SoftwareDistribution.log` metadata
+  in `windows_wsus_external_inspection`. It reads no log lines, command lines or
+  environment dump. Optional process exits, inaccessible fields and log rotation
+  produce unavailable markers; missing logs remain distinct, and existing
+  readiness gates are unchanged. Compare observations without treating cumulative
+  CPU, shared SQL/IIS activity or log timestamps as completed synchronization.
+- `assess_windows_patch_level.yml`: read-only installed OS build and hotfix evidence on managed endnodes.
+- `set_internal_wsus_patch_month.yml`: prepare a named monthly baseline and enforce its internal WSUS ceiling.
+- `configure_wsus_patch_ceiling_template.yml`: reproduce the ceiling Job Template and month-name survey with Ansible.
+- `update_managed_windows.yml`: install the current internal WSUS baseline with guarded install, reboot and rescan passes.
+- `configure_windows_patching_template.yml`: reproduce update and read-only assessment Job Templates with their existing Windows credentials.
+- `sync_external_wsus.yml`: Microsoft metadata synchronization and selected file downloads.
+- `export_external_wsus.yml`: WSUS metadata export and management-only IIS publication.
+- `replicate_and_import.yml`: direct external-to-internal HTTP transfer and offline WSUS import.
+- `docs/wsus-data-flow.md`: inputs, workflow, integrity checks, module use and live validation status.
+- [WSUS vs Satellite](docs/wsus-vs-satellite.md): patching, repository management, Content Views and staged content promotion.
+- [Monthly Windows patching](docs/windows-os-patching.md): named-month selection, content preparation, approval policy and repeatable Job Template configuration.
+
+For concurrent OS patching, launch the Update Managed Windows Job Template once
+per managed server. Include that server and `wsus_internal` in each launch limit
+so the shared read-only preflight runs, for example `HOST_A:wsus_internal` and
+`HOST_B:wsus_internal`. Simultaneous launches are enabled; the playbook retains
+sequential client processing within a launch. Keep managed-host targets disjoint
+and the internal WSUS ceiling stable until both jobs finish. Measured historical
+runtimes are recorded in the patching guide.
+
+- `collections/requirements.yml`: pinned Ansible collection dependencies.
+- `docs/application-deployment.md`: application architecture, inputs, and remaining work.
+- `windows-remote-access.md`: suggested Linux-laptop console access over SSH/VNC, demo evidence, and proposed staged OS patch levels.
+- `vars/main.yml`: base images and sizing configuration.
+- `assets/deploy-vm-survey.json`: AAP survey specification.
+
+The internal WSUS role comes from the protected inventory. Its autonomous,
+locally stored content and manual-import policy are enforced independently of
+the upstream-selection flag retained by the existing offline setup.
+WSUS export atomically publishes `current.json` and retains the previous pointer
+as `current.previous.json` when replacing an existing manifest.
+Selected update identities use canonical ordering on Windows PowerShell 5.1 so
+policy drift comparisons remain stable between reads.
+Monthly ceiling selection and client patching use WSUS readiness, policy,
+identities, file existence and lengths without hashing update payloads.
+Integrity checks stay at the transfer boundary: export records SHA256 hashes;
+internal preparation checks existing files once and only missing/mismatched files
+go through the verified downloader. Metadata import does not rehash payloads.
+When the internal baseline files are already present, the monthly cutoff job
+skips external preparation, export and transfer and only reconciles internal policy.
+
+Install `ansible-core` in the execution environment. Validate without deployment:
+
+```bash
+ansible-playbook -i 'hypervisor,' 01-win-vm-setup.yml --syntax-check
+```
+
+Use standard Ansible YAML formatting (two-space indentation). VM creation, Windows
+basics, WSUS configuration, the Nexus/Chocolatey pipeline and managed OS patching
+have been exercised against the demo guests. Client OS update installation uses
+its separate normal Job Template; code tests and Check mode do not prove installation.
+
+## Network prerequisites
+
+Create `windows-isolated` separately with an isolated subnet, no forwarding
+or NAT, and DHCP. Keep actual subnet values in AAP inventory or Vault. This playbook verifies that selected networks exist and are
+active; it never creates or changes networks. Use `vm_network=internal` for external WSUS, and
+`vm_management_network=internal` for internal WSUS. The existing `internal`
+network is the existing management LAN. DHCP discovery uses the primary NIC.
+
+The second NIC alone does not enforce isolation. Internal WSUS still needs
+guest configuration with no default gateway, routing disabled, and firewall
+rules allowing the intended AAP and external WSUS traffic. Windows NIC addresses
+and these rules are separate from this VM deployment playbook.
+
+## Modular Windows configuration
+
+Run these job templates independently or through the deployment workflow:
+
+| Stage | Playbook | AAP job template |
+| --- | --- | --- |
+| Windows basics | `configure_windows_server_basics.yml` | Disconnected Windows Patching - Configure Windows Server Basics |
+| Evaluation activation and topology verification | `activate_windows_evaluations.yml` | Disconnected Windows Patching - Activate Windows Evaluations |
+| Preparation and reboots | `prepare_repository_servers.yml` | Disconnected Windows Patching - Prepare Repository Servers |
+| WSUS | `setup_wsus.yml` | Disconnected Windows Patching - Setup WSUS |
+| Application repositories and clients | `setup_chocolatey.yml` | Disconnected Windows Patching - Setup Chocolatey |
+
+The existing **Deploy Windows + WSUS environment** workflow creates four VMs in
+parallel and waits for all four to succeed before Windows basics. Evaluation
+activation and topology verification then run before the preparation stage
+completes feature/MSI installation and reboots. WSUS setup and Chocolatey/Nexus
+setup then run in parallel. The Chocolatey branch proceeds through external package
+synchronization, HTTP export and internal import.
+The WSUS branch continues through prerequisite checks,
+synchronization, export, and replication/import. Both imports converge before the
+April 2026 internal ceiling. Two disjoint host-limited patch jobs run in parallel;
+both must succeed before baseline application installation and the subsequent
+upgrade. Each transition requires success. Reproduce this handoff with
+`configure_windows_end_to_end_workflow.yml`, supplying protected workflow/template
+references and two exact `HOST:wsus_internal` limits. Managed clones default to
+4096 MiB RAM; deployment and guest inspection verify the actual allocation.
+See [WSUS data flow](docs/wsus-data-flow.md) for the full graph and inputs.
+Use an individual configuration template to reconfigure existing VMs; rerunning
+the deployment workflow attempts creation and its existing-VM guard will stop it.
+
+Guest configuration templates use WinRM and a Windows Machine credential.
+The activation template instead combines Hypervisor SSH and Vault credentials,
+with existing encrypted Windows credentials for its in-memory WinRM connections.
+Their execution environment needs `pywinrm` and the pinned Ansible collections.
+Required disjoint inventory groups are `wsus_external`, `wsus_internal`, and
+`windows_managed`. Keep environment assignments protected and out of plaintext Git.
+
+### Assess installed Windows patch levels
+
+Run `assess_windows_patch_level.yml` against `windows_managed` before and after
+OS patching. The **Disconnected Windows Patching - Assess Windows Patch Level**
+Job Template uses this playbook; select the existing Windows Machine credential
+at launch. It reads the OS build, installed hotfix identifiers and Windows Update
+and component-servicing pending-reboot indicators. It does not perform an update
+scan, approve updates, install packages or reboot.
+
+The default comparison is the April 2026 monthly OS cumulative update:
+
+| OS | KB | Expected OS build |
+| --- | --- | --- |
+| Server 2022 | KB5082142 | 20348.5020 |
+| Server 2025 | KB5082063 | 26100.32690 |
+
+Live read-only AAP runs exercised the assessment and artifact collection on both
+Windows versions, with no host changes. This validates the assessment, not OS
+patch installation.
+
+Apply `configure_windows_patching_template.yml` with the existing Windows Machine
+and Vault credential references to configure both the update and standalone
+assessment templates. An assessment template without its Windows credential
+cannot authenticate even when WinRM is healthy. Diagnostic logging remains
+protected by default.
+
+Sources: [Server 2022 release](https://support.microsoft.com/en-us/servicing/os/windows-server/2026/04/april-14-2026-kb5082142-os-build-20348-5020)
+and [Server 2025 release](https://support.microsoft.com/en-us/servicing/os/windows-server/2026/04/april-14-2026-kb5082063-os-build-26100-32690).
+Override `windows_patch_baseline_name` and `windows_patch_baselines` together
+through launch-time variables for another explicitly pinned baseline.
+
+`below`, `at` and `above` compare the installed revision within the configured
+OS build. An exact KB may disappear from the installed-hotfix list after
+supersedence, so use the build comparison for the OS patch level. The report
+also lists exact April .NET KB matches: Server 2022 installs the applicable
+component KB5082427 or KB5082425 under the WSUS bundle KB5084071; Server 2025
+uses KB5082417. Missing exact .NET identifiers do not establish whether a newer
+.NET update superseded them. This assessment does not certify an entire
+date-stamped security baseline or include later April out-of-band releases.
+
+Detailed evidence is protected by `windows_patch_no_log: true` by default and
+saved under `windows_patch_assessments` in authenticated AAP job artifacts. A
+short summary shows the build comparison. Store exported artifacts outside Git.
+A powered-off or unreachable node fails the assessment rather than reporting
+it as compliant. No VM is started by this playbook.
+
+For local use with an existing protected inventory and credential configuration:
+
+```bash
+ansible-playbook -i YOUR_PROTECTED_INVENTORY assess_windows_patch_level.yml
+```
+
+`configure_windows_server_basics.yml` owns permanent NIC settings, DNS, forwarding,
+hostnames and their reboots. It validates MAC assignments before changes, uses an
+one-shot Windows scheduled task, and reconnects at each host's permanent address.
+Supply `windows_network_interfaces`, `windows_connection_address` and optional
+`windows_hostname` through protected per-host inventory variables. This playbook
+has no WSUS URL dependency and performs no WSUS or Chocolatey installation.
+
+`setup_wsus.yml` installs WSUS with Windows Internal Database on the two repository
+servers, initializes local content storage, configures manual synchronization and
+internal client firewall access, and configures Windows Update policies on managed
+servers. It verifies the internal client web service from both managed servers.
+It does not change Windows networking or hostnames. `wsus_internal_url` and
+`wsus_client_sources` are loaded from `vars/wsus_environment_vault.yml`; attach the
+matching Vault credential to this template. Optional `wsus_content_path` defaults
+to `C:\WSUS`. Existing initialized content locations are protected against moves.
+
+Setup also adds Microsoft's required server-level IIS MIME mappings for UUP:
+`.msu` as `application/octet-stream` and `.wim` as `application/x-ms-wim`.
+Without these mappings, an update file can exist on disk while IIS returns
+HTTP 404 and newer Windows clients remain at zero download progress.
+Run the Setup WSUS Job Template with the `wsus_uup_mime` job tag to repair
+only these inherited mappings on existing repository servers, without rerunning
+installation, synchronization or client policy tasks. See
+[Microsoft's WSUS deployment requirements](https://learn.microsoft.com/en-us/windows-server/administration/windows-server-update-services/plan/plan-your-wsus-deployment#manually-add-the-required-mime-types-for-uup).
+
+Both WSUS servers are standalone and synchronization is manual. Managed guests
+use internal WSUS with Internet update locations blocked and automatic updating
+disabled, leaving patch installation to AAP. Product selection, synchronization, download-only
+approvals, metadata export/import and update binary transfer are implemented in
+the separate [WSUS population playbooks](docs/wsus-data-flow.md). Internal client
+approvals and patch installation use the separate monthly-ceiling and managed-update
+Job Templates documented above.
+
+Validate without executing against Windows:
+
+```bash
+ansible-playbook -i inventory.ini configure_windows_server_basics.yml --syntax-check
+ansible-playbook -i inventory.ini setup_wsus.yml --syntax-check --vault-password-file /path/to/vault-password
+ansible-playbook -i inventory.ini setup_chocolatey.yml --syntax-check --vault-password-file /path/to/vault-password
+```
+
+## Application repositories and Chocolatey
+
+The expanded demo co-hosts Nexus Repository Community Edition on external and
+internal WSUS. External Nexus provides a staging feed; internal Nexus provides a
+baseline and current feeds containing older and newer offline-ready application packages. Managed Windows
+servers use Chocolatey CLI, invoked by AAP over WinRM, to install selected versions.
+
+`setup_chocolatey.yml` deploys both Nexus Windows services and hosted feeds,
+and bootstraps the Chocolatey clients from an offline MSI. See
+[application deployment](docs/application-deployment.md) for installer inputs,
+credentials, resource requirements, package promotion, and pending live validation.
+
+After correcting the encrypted per-server `allowed_sources`, launch the existing
+Setup Chocolatey template with job tag `nexus_firewall` to reapply only its scoped
+Windows firewall rule. The existing runtime selection, input checks and Windows
+connection wait still run; installer copies, onboarding and feed creation do not.
+Include the AAP execution host's actual routed source address, which can differ
+from its secondary Windows-network address. This tag does not broaden the saved
+allowlist or change hypervisor policy. The rule task protects its rendered source
+addresses in job output.
+The runtime include applies its `always` tag to its child tasks as well, so a
+tagged run decrypts and validates the selected private profile before checking
+repository inputs. A failed input check stops before any rule change.
+
+The clients have only an isolated NIC. AAP needs an execution node on that
+network or a restricted management route. Internal WSUS's second NIC does not
+provide a WinRM jump host automatically. The demo execution-node connectivity has been verified over WinRM; this playbook does not change network isolation or VM sizing.
+
+## Implementation status
+
+Fresh workflow 2303 passed VM creation, networking, evaluation activation,
+repository preparation, WSUS and Nexus/Chocolatey setup, both external population
+pipelines and internal imports, the April ceiling, both managed OS patch jobs,
+baseline applications and upgrades. Installers download automatically with pinned
+checksums; administrator and package-reader credentials remain in the encrypted vault.
+
+AAP-controlled application synchronization, export, internal import, baseline
+installation and upgrade are implemented as separate playbooks/job templates.
+The targeted content is 7-Zip and Git with two pinned versions each. Native modules
+handle normal configuration and installation; small helpers build deterministic
+packages/exports, inspect archive integrity and upload binary packages on Windows.
+The complete fresh run verified the application versions and sole internal source
+on both endnodes. Networking uses the scheduled-task/reconnection correction
+for the earlier SYSTEM process-token launch failure. See
+[application deployment](docs/application-deployment.md) and the
+[end-to-end evidence](docs/end-to-end-test-2026-10-20.md).
+
+AAP execution-node access to the isolated endnodes is required. Installer downloads
+and vaulted application credentials are configured for deployment. See the detailed
+[remaining application work](docs/application-deployment.md#remaining-work).
+
+### Permanent Windows NIC configuration
+
+Provide `windows_network_interfaces` and `windows_connection_address` as protected
+per-host inventory variables. Each interface entry requires `mac`, `name`,
+`ipv4_address`, `prefix_length`, `gateway` (empty string for none), and `dns_servers`
+(an empty list for none). Supply every demo NIC, including both internal WSUS NICs.
+The connection address must match one configured NIC. Use actual deployed MACs;
+fixed MAC inputs are supported by the VM deployment playbook.
+
+Initially, inventory `ansible_host` must be the discovered DHCP address. Do not
+supply `ansible_host` through launch extra variables: they would override the
+playbook's switch to the permanent address. The bootstrap script validates all
+MAC matches before applying changes, runs through Task Scheduler independently of the connection
+interruption, and verifies its exit code and JSON result after reconnecting. It owns the configured
+NICs' IPv4 addresses and replaces other IPv4 assignments on those NICs.
+
+Only external WSUS may have an IPv4 gateway or DNS servers. Internal WSUS has
+forwarding disabled as well. The script changes neither WinRM security settings
+nor PowerShell execution policy. Existing WinRM firewall/certificate configuration
+must permit connections at the permanent address from the AAP execution node.
+
+`ansible_host` is updated for the current job, not persisted to the AAP database.
+Update the AAP host's inventory variables to the permanent address after a
+successful bootstrap, before future jobs. The vaulted umbrella network record is
+reference data and is not automatically loaded or converted into these host vars.
+Windows network switching was verified with the modular template on Windows
+Server 2025 after changing its launcher to Task Scheduler. Console access is
+needed to recover a misconfigured NIC.
+
+### Repository server identities
+
+The external and internal repository servers each host both WSUS and Nexus for
+Chocolatey packages. Their planned VM names and Windows hostnames are recorded in
+the umbrella project's vaulted network inventory. Use those values for `vm_name`
+at deployment and `windows_hostname` during guest configuration.
+
+The existing `wsus` deployment role and `wsus_external` / `wsus_internal` inventory
+groups remain compatible with the playbooks; they identify WSUS-capable repository
+servers, not dedicated WSUS-only guests. AAP workflow launch inputs use the
+repository-server identities recorded in the vaulted inventory.
+
+## Destroy a Windows demo clone
+
+`destroy-win-vms.yml` tears down one VM per launch. Supply `vm_name` and the exact
+`windows_demo_vm_names` allowlist through AAP or protected variables. Wildcards
+are not accepted as authorization. Both repository servers and managed Windows
+VMs belong in that list; actual VM names stay in the vaulted network mapping.
+
+New deployment disks use `/opt/vms/win-<vm-name>-clone.disk.qcow2`, and new domain
+definitions carry the `aap-disconnected-windows-clone` description marker. Teardown
+checks the exact domain name, marker, sole writable disk, absence of references
+from other domains, regular nonsymlink file, and standard per-domain NVRAM location
+before proceeding. It force-stops the validated domain, checks standalone qcow2
+format, undefines the domain (removing UEFI NVRAM when present), and deletes only
+its expected clone disk. Base images and shared networks are preserved.
+
+Older unmarked VMs or disks using the earlier naming scheme are refused and need
+manual review. A missing domain also fails rather than deleting an orphan disk.
+Additional writable disks, unusual NVRAM paths, snapshots that prevent undefining,
+or other libvirt errors stop teardown. File checks inspect metadata without
+hashing the entire VM disk; content hashes do not establish deletion ownership.
+Check mode performs inspection and does not stop, undefine, or delete anything.
+Guarded teardown and independent preservation verification passed before the
+2026-10-07 fresh deployment; the new end-to-end test repeats them.
+
+```bash
+ansible-playbook -i inventory.ini destroy-win-vms.yml --syntax-check
+```
+
+Optional deployment variables `vm_mac` and `vm_management_mac` assign explicit
+primary/secondary NIC MACs. Supply actual assignments from the vaulted mapping
+through AAP workflow variables. The secondary MAC requires a secondary network.
+If omitted, libvirt generates the MAC. Omit `vm_mac` to request automatic
+assignment; do not send an explicit empty `vm_mac` extra variable. Ansible extra
+variables take precedence over the discovered value, so that input fails the
+post-creation MAC assertion. The supplied workflow uses explicit valid MACs.
+Separating the observed MAC into its own variable is a possible later cleanup;
+the unsupported empty-extra-variable case is a bounded review limitation.
+
+### Networking modules and remaining PowerShell
+
+DNS configuration uses `ansible.windows.win_dns_client`, the internal repository
+server's router registry flag uses `ansible.windows.win_regedit`, and hostnames
+use `ansible.windows.win_hostname`. These modules compare existing state before
+applying changes.
+
+`assets/configure-static-network.ps1` covers MAC-based NIC matching, NIC renaming,
+DHCP disabling, static IPv4 addresses, per-interface default routes, and forwarding.
+It validates every NIC before applying changes, skips matching settings, and reports
+changes through `$Ansible.Changed`. Validation and check mode make no changes.
+The installed `win_route` module cannot select an interface or manage DHCP default
+routes in active and persistent stores, so these routes remain in the script.
+DNS and registry configuration are outside the asynchronous network script.
+
+### Configuration logging surveys
+
+The Windows basics job template prompts for `windows_no_log`: `true` (default) hides
+network task arguments and results, while `false` exposes them in AAP job output
+for troubleshooting. An external boolean variable is also accepted. If omitted,
+the playbook defaults to protection enabled. The survey definition is stored in
+`assets/windows-basics-survey.json` for reuse on another controller. The WSUS
+template has its own `wsus_no_log` survey for content-path diagnostics, also
+defaulting to `true`, in `assets/wsus-setup-survey.json`.
+
+The Windows basics toggle applies to network validation, asynchronous configuration/status,
+connection-address switching and DNS tasks. Disabling it may reveal environment
+IPs, MACs, adapter names and error details to users who can read the job output.
+It does not disable logging protection in other playbooks, or print the Machine
+or Vault credential values. A completed job's hidden results cannot be recovered
+by changing the toggle; launch a new run to obtain diagnostic output.
+
+The network task uses `community.windows.win_scheduled_task` with the built-in
+`SYSTEM` service account and a delayed registration trigger. This avoids the
+`runas` process-token creation failure observed on Windows Server 2025 (error 367),
+and keeps the task independent of the WinRM login profile. Native task inspection
+checks completion and exit code. Status polling explicitly reconnects after a
+WinRM transport interruption while another NIC is still being changed; a
+bounded 36-attempt loop still fails on persistent connection loss or task errors.
+A small local runner records script errors and
+change status in an atomic JSON result. Its working directory is restricted to
+administrators and SYSTEM. The task and files are removed after success; failures
+retain the result for diagnostics. Windows security and execution policies are
+unchanged. The basics JT accepts a host limit for targeted troubleshooting.
+
+### Teardown verification
+
+Use the existing jobs; no cleanup workflow or additional job is required.
+
+1. Before provisioning, run **Capture Windows Teardown Baseline** with the selected
+   private runtime profile. Its selected clones and clone disks must be absent.
+   Retain the protected `teardown_baseline` artifact containing the original core
+   VM XML/states, golden-image metadata and pre-existing dedicated AD object IDs.
+2. Before reset, run that same capture job with the original `teardown_baseline`.
+   It checks the original core, permits only the declared Windows AAP NIC, and
+   appends actual five-clone UUID/disk/NIC and AD cleanup identities. It never
+   replaces the original core/image snapshot. Retain its two protected artifacts:
+   `teardown_baseline` and `windows_decommission_preview`.
+3. Run **Configure AD Gateway Trust** with those artifacts,
+   `ad_trust_state: absent` and Boolean `windows_decommission_apply: true`.
+   This removes the owned LDAP maps, then only the captured LDAP-exclusive test
+   users, then their authenticator and AD CA. The API requires user removal
+   before authenticator deletion; unknown users, foreign grants and original
+   baseline identities stop cleanup. No user is moved to local authentication.
+4. Run **Configure AD AAP Regions** with those artifacts,
+   `ad_aap_state: absent` and Boolean `windows_decommission_apply: true`.
+   It removes only the captured dedicated mock resources, any remaining test users, teams and
+   reader roles. Pre-existing objects, foreign memberships/grants, shared PAH
+   credentials and reusable deployment Job Templates are preserved or cause refusal.
+   Synthetic credential deletion supplies the native module's required
+   `credential_type: Machine` as well as its captured ID and owned organization.
+   The ownership reader accepts AAP's managed Organization Member/Team Member
+   assignments only when their exact built-in permissions and already-verified
+   owned membership IDs match. Direct resource, custom, elevated or foreign
+   assignments still stop cleanup.
+5. Run **Destroy VM** once per selected guest, including AD, passing
+   `windows_decommission_preview` and choosing the exact `vm_name` in its survey.
+   Registered guests use the existing typed Windows retirement role to remove
+   their exact reservations, permissions and shared inventory ownership. An
+   unconfigured clone requires absent managed records/permissions and exact
+   native ownership. Fully absent retries are allowed; an orphan disk without its
+   owned domain stops for investigation. No Windows computer identity is invented.
+   The post-undefine inode/link guard uses `Path.lstat()` for the hypervisor's
+   Python 3.9, preserving non-following metadata checks before unlink.
+6. Run **Verify Windows Teardown** with both artifacts. It checks core/image
+   preservation, all five domain/disk absences, reservations, managed ownership,
+   permissions and dedicated AD cleanup, then removes the owned AAP NIC and RHEL
+   connection last. The Windows project inventories/groups and reusable CaC/JTs
+   remain available for the next demo run.
+
+The destroy and verification jobs use existing source API, Git writer and CaC
+Vault credentials for shared retirement. Capture adds only the existing AD target
+credential for its read-only API snapshot. Existing Machine and distinct Vault
+credentials retain their identities. All API calls validate HTTPS and native
+operations use the selected hypervisor's pinned SSH identity. Keep artifacts
+outside plaintext Git. Golden-image verification compares metadata, not complete
+disk-content checksums.
+
+The selected live reset passed on 2026-11-07 using the original baseline and
+append capture 404. Trust cleanup 412 and regional cleanup 417 passed. Guest
+retirements 425/427/429/431/433 completed, and final verification 435 passed in
+98.979 seconds on `b4305b5` (1.1.11): all five clone domains/disks, reservations,
+managed ownership, permissions and dedicated AD objects were absent. The four
+core guest definitions/states and two golden-image metadata records were
+preserved; only the owned supplemental AAP NIC and OS connection were removed.
+Reusable Windows inventories/groups, CaC and Job Templates remain available.
+
+This was a repaired, staged reset. First retirement 420 undefined its guest
+before the Python 3.9 stat error; the user separately approved one guarded unlink
+of that exact leftover disk before normal continuation. Job 422 later stopped
+after reservation deletion; its precise initiating exception was not recovered.
+Normal continuation 425 and all four fresh subsequent retirements passed.
+The orphan refusal remains intact. Do not present this result as an unattended
+first-run reset or proof of a fresh complete provisioning workflow.
+
+`inspect_windows_network.yml` provides a read-only diagnostic JT for the saved
+bootstrap result, scheduled-task status, current interfaces and protected shutdown
+evidence. It accepts a host limit and uses the existing Windows Machine credential.
+Diagnostic output stays in AAP, outside Git. It also
+records the installed build, boot/reboot state and two update-worker/service/pipe
+metadata samples ten seconds apart. Use an exact host limit after a disconnected
+update run. Pipe names
+are never opened; this inspection starts no scan, installation or reboot. The
+evidence remains protected and does not equate an empty ephemeral task list with
+completed updates.
+
+The original baseline keeps AD API input and authentication output protected.
+If its ownership read fails, a separate assertion reports only the reader's safe
+failure reason, including certificate-validation errors, before any provisioning.
+No credentials or transport exception details are printed.
+
+
+The existing read-only AD guest inspection includes installed-license reason
+codes and up to twelve local Security-SPP activation events. This evidence stays
+under the inspector's protected result and artifact handling; it does not attempt
+activation, change keys, reset evaluation time or alter networking. Use it to
+establish an activation failure's actual cause before a focused retry.

@@ -1,5 +1,5 @@
 // Execute the real UI handlers with a small DOM fixture; no browser package is required.
-// Scope and limitations: ../../tests/README.md#javascript-walkthrough-tests
+// Scope: real app handlers on a small standard-Node DOM fixture; no browser.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

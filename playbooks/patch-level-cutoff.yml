@@ -1,0 +1,16 @@
+---
+# Stage 5: set the patch level on the internal WSUS. Only the configured
+# patch month (and the updates it requires) is approved; nothing newer is
+# offered to the managed servers.
+
+- name: Approve the patch month on the internal WSUS
+  hosts: wsus_internal
+  gather_facts: false
+  become: true
+  become_method: ansible.builtin.runas
+  become_user: SYSTEM
+  tasks:
+    - name: Approve the patch month
+      ansible.builtin.include_tasks: tasks/wsus-month-approve.yml
+      vars:
+        wsus_ready_retries: "{{ wsus_import_ready_retries }}"

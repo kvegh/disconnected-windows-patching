@@ -1,0 +1,332 @@
+---
+# Stage 2, last step: one sequential repository setup.
+#   1. AAP downloads the pinned installers (Nexus, Chocolatey CLI).
+#   2. Windows features (repository servers) and the Chocolatey CLI (managed
+#      servers), then the single reboot (also completes the host name change).
+#   3. WSUS on both repository servers: database and content folder, IIS MIME
+#      types, update languages and manual synchronization, firewall.
+#   4. Nexus on both repository servers: service, admin password, EULA,
+#      anonymous read on repo-int only, one hosted Chocolatey (NuGet) feed.
+#   5. Managed servers: the internal feed as the only Chocolatey source; check
+#      that WSUS and the feed answer.
+# Credentials: the Windows machine credential and the "Nexus admin" credential
+# (nexus_admin_password).
+
+- name: Download the pinned installers
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Download the Nexus and Chocolatey installers
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "/tmp/{{ item.url | basename }}"
+        checksum: "sha256:{{ item.sha256 }}"
+        mode: "0644"
+      loop:
+        - {url: "{{ nexus_download_url }}", sha256: "{{ nexus_download_sha256 }}"}
+        - {url: "{{ chocolatey_msi_url }}", sha256: "{{ chocolatey_msi_sha256 }}"}
+      loop_control:
+        label: "{{ item.url | basename }}"
+      register: setup_download
+      retries: 3
+      until: setup_download is succeeded
+
+- name: Install the Windows features and the Chocolatey CLI
+  hosts: windows
+  gather_facts: false
+  tasks:
+    - name: Install WSUS and IIS static content
+      ansible.windows.win_feature:
+        name:
+          - UpdateServices-Services
+          - UpdateServices-WidDB
+          - Web-Static-Content
+          - Web-Scripting-Tools
+        include_management_tools: true
+      when: inventory_hostname in groups['wsus_external'] + groups['wsus_internal']
+
+    - name: Create the staging folder
+      ansible.windows.win_file:
+        path: "{{ windows_staging_dir }}"
+        state: directory
+
+    # No Internet on the managed servers: the offline MSI instead of the
+    # community install script of win_chocolatey.
+    - name: Copy the Chocolatey CLI installer
+      ansible.windows.win_copy:
+        src: "/tmp/{{ chocolatey_msi_url | basename }}"
+        dest: "{{ windows_staging_dir }}\\{{ chocolatey_msi_url | basename }}"
+      when: inventory_hostname in groups['windows_managed']
+
+    - name: Install the Chocolatey CLI
+      ansible.windows.win_package:
+        path: "{{ windows_staging_dir }}\\{{ chocolatey_msi_url | basename }}"
+        checksum: "{{ chocolatey_msi_sha256 }}"
+        checksum_algorithm: sha256
+        creates_path: 'C:\ProgramData\chocolatey\bin\choco.exe'
+      when: inventory_hostname in groups['windows_managed']
+
+    # Host name, features or MSI: one reboot for all of them.
+    - name: Read whether a reboot is pending
+      ansible.windows.win_reboot_info:
+      register: setup_reboot_info
+
+    - name: Reboot
+      ansible.windows.win_reboot:
+        reboot_timeout: 1800
+      when: setup_reboot_info.reboot_required
+
+- name: Set up WSUS on the repository servers
+  hosts: wsus_external:wsus_internal
+  gather_facts: false
+  tasks:
+    - name: Create the WSUS content folder
+      ansible.windows.win_file:
+        path: "{{ wsus_content_dir }}"
+        state: directory
+
+    - name: Initialize the WSUS database and content folder
+      ansible.windows.win_command:
+        argv:
+          - 'C:\Program Files\Update Services\Tools\WsusUtil.exe'
+          - postinstall
+          - "CONTENT_DIR={{ wsus_content_dir }}"
+        creates: "{{ wsus_content_dir }}\\WsusContent"
+
+    # No module manages IIS MIME maps. .msu/.wim: UUP update files of the
+    # Server 2025 clients; .gz: the WSUS metadata export (repo-int pulls it).
+    - name: Add the IIS MIME types for update files and the export
+      ansible.windows.win_powershell:
+        script: |
+          $Ansible.Changed = $false
+          $types = @{ '.msu' = 'application/octet-stream'; '.wim' = 'application/x-ms-wim'; '.gz' = 'application/x-gzip' }
+          foreach ($extension in $types.Keys) {
+              $filter = "system.webServer/staticContent/mimeMap[@fileExtension='$extension']"
+              if (-not (Get-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter $filter -Name '.')) {
+                  Add-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter 'system.webServer/staticContent' `
+                      -Name '.' -Value @{ fileExtension = $extension; mimeType = $types[$extension] }
+                  $Ansible.Changed = $true
+              }
+          }
+
+    # No module for the WSUS server API. Both servers: local files, downloaded
+    # only once approved, no express files, configured languages, no
+    # automatic synchronization. repo-int never synchronizes; it only imports.
+    - name: Configure update storage, languages and manual synchronization
+      ansible.windows.win_powershell:
+        parameters:
+          Languages: "{{ wsus_languages }}"
+        script: |
+          param([string[]]$Languages)
+          $server = Get-WsusServer
+          $config = $server.GetConfiguration()
+          $config.HostBinariesOnMicrosoftUpdate = $false
+          $config.DownloadExpressPackages = $false
+          $config.DownloadUpdateBinariesAsNeeded = $true
+          $config.AllUpdateLanguagesEnabled = $false
+          $config.SetEnabledUpdateLanguages($Languages)
+          $config.Save()
+          $subscription = $server.GetSubscription()
+          $subscription.SynchronizeAutomatically = $false
+          $subscription.Save()
+      become: true
+      become_method: ansible.builtin.runas
+      become_user: SYSTEM
+
+    - name: Allow WSUS and Nexus through the firewall
+      community.windows.win_firewall_rule:
+        name: Demo repositories (WSUS, Nexus)
+        direction: in
+        action: allow
+        protocol: tcp
+        localport: "{{ wsus_port }},{{ nexus_port }}"
+        remoteip: "{{ repository_firewall_remote_addresses | join(',') }}"
+        profiles: domain,private,public
+
+- name: Set up Nexus on the repository servers
+  hosts: wsus_external:wsus_internal
+  gather_facts: false
+  vars:
+    nexus_api: "http://localhost:{{ nexus_port }}/service/rest/v1"
+    nexus_install_path: "{{ nexus_install_dir }}\\{{ nexus_version }}"
+  tasks:
+    - name: Create the Nexus folders
+      ansible.windows.win_file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ nexus_install_dir }}"
+        - "{{ nexus_data_dir }}"
+
+    - name: Copy the Nexus distribution
+      ansible.windows.win_copy:
+        src: "/tmp/{{ nexus_download_url | basename }}"
+        dest: "{{ windows_staging_dir }}\\{{ nexus_download_url | basename }}"
+
+    - name: Unpack Nexus with its bundled Java
+      community.windows.win_unzip:
+        src: "{{ windows_staging_dir }}\\{{ nexus_download_url | basename }}"
+        dest: "{{ nexus_install_dir }}"
+        creates: "{{ nexus_install_path }}\\bin"
+
+    - name: Read the Nexus service
+      ansible.windows.win_service_info:
+        name: "{{ nexus_service_name }}"
+      register: nexus_service
+
+    - name: Register the Nexus service with the vendor script
+      ansible.windows.win_command:
+        argv:
+          - cmd.exe
+          - /c
+          - "{{ nexus_install_path }}\\bin\\install-nexus-service.bat"
+          - "{{ nexus_data_dir }}"
+        chdir: "{{ nexus_install_path }}\\bin"
+      when: not nexus_service.exists
+
+    - name: Start Nexus with the server
+      ansible.windows.win_service:
+        name: "{{ nexus_service_name }}"
+        start_mode: auto
+        state: started
+
+    - name: Wait for the Nexus API
+      ansible.windows.win_uri:
+        url: "{{ nexus_api }}/status"
+        status_code: [200, 503]
+      register: nexus_status
+      until: nexus_status.status_code == 200
+      retries: 120
+      delay: 10
+
+    # First start: Nexus writes a generated admin password to a file; replace
+    # it with the configured one, then delete the file.
+    - name: Look for the generated admin password
+      ansible.windows.win_stat:
+        path: "{{ nexus_data_dir }}\\admin.password"
+      register: nexus_generated_password_file
+
+    - name: Read the generated admin password
+      ansible.builtin.slurp:
+        src: "{{ nexus_data_dir }}\\admin.password"
+      register: nexus_generated_password
+      when: nexus_generated_password_file.stat.exists
+      no_log: true
+
+    - name: Set the configured admin password
+      ansible.windows.win_uri:
+        url: "{{ nexus_api }}/security/users/admin/change-password"
+        url_method: PUT
+        url_username: admin
+        url_password: "{{ nexus_generated_password.content | b64decode | trim }}"
+        force_basic_auth: true
+        content_type: text/plain
+        body: "{{ nexus_admin_password }}"
+        status_code: 204
+      when: nexus_generated_password_file.stat.exists
+      no_log: true
+
+    - name: Delete the generated admin password file
+      ansible.windows.win_file:
+        path: "{{ nexus_data_dir }}\\admin.password"
+        state: absent
+
+    # Community Edition: the EULA must be accepted before uploads and
+    # downloads. Accepted only for the version the user approved.
+    - name: Read the EULA state
+      ansible.windows.win_uri:
+        url: "{{ nexus_api }}/system/eula"
+        url_username: admin
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        return_content: true
+      register: nexus_eula
+      no_log: true
+
+    - name: Accept the EULA with the server's disclaimer
+      ansible.windows.win_uri:
+        url: "{{ nexus_api }}/system/eula"
+        url_method: POST
+        url_username: admin
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        content_type: application/json
+        body: "{{ {'accepted': true, 'disclaimer': nexus_eula.json.disclaimer} | to_json }}"
+        status_code: 204
+      when:
+        - not nexus_eula.json.accepted
+        - nexus_eula_accepted_version == nexus_version
+      no_log: true
+
+    # Anonymous read on repo-int: the managed servers need only the feed URL.
+    # repo-ext requires a login.
+    - name: Set anonymous read access
+      ansible.windows.win_uri:
+        url: "{{ nexus_api }}/security/anonymous"
+        url_method: PUT
+        url_username: admin
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        content_type: application/json
+        body: "{{ {'enabled': inventory_hostname in groups['wsus_internal'], 'userId': 'anonymous', 'realmName': 'NexusAuthorizingRealm'} | to_json }}"
+        status_code: [200, 204]
+      no_log: true
+
+    - name: Read the Chocolatey feed
+      ansible.windows.win_uri:
+        url: "{{ nexus_api }}/repositories/nuget/hosted/{{ nexus_feed_name }}"
+        url_username: admin
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        status_code: [200, 404]
+      register: nexus_feed
+      no_log: true
+
+    # ALLOW_ONCE: a published package version can never change.
+    - name: Create the Chocolatey feed
+      ansible.windows.win_uri:
+        url: "{{ nexus_api }}/repositories/nuget/hosted"
+        url_method: POST
+        url_username: admin
+        url_password: "{{ nexus_admin_password }}"
+        force_basic_auth: true
+        content_type: application/json
+        body: "{{ nexus_feed_definition | to_json }}"
+        status_code: 201
+      vars:
+        nexus_feed_definition:
+          name: "{{ nexus_feed_name }}"
+          online: true
+          storage:
+            blobStoreName: default
+            strictContentTypeValidation: true
+            writePolicy: ALLOW_ONCE
+      when: nexus_feed.status_code == 404
+      no_log: true
+
+- name: Point the managed servers at the internal repositories
+  hosts: windows_managed
+  gather_facts: false
+  vars:
+    managed_repo_int: "{{ hostvars[groups['wsus_internal'][0]].ansible_host }}"
+    managed_feed_url: "http://{{ managed_repo_int }}:{{ nexus_port }}/repository/{{ nexus_feed_name }}/"
+  tasks:
+    - name: Remove the public Chocolatey source
+      chocolatey.chocolatey.win_chocolatey_source:
+        name: chocolatey
+        state: absent
+
+    - name: Add the internal Chocolatey feed
+      chocolatey.chocolatey.win_chocolatey_source:
+        name: "{{ chocolatey_source_name }}"
+        source: "{{ managed_feed_url }}"
+        priority: 1
+
+    - name: Check that the internal WSUS answers
+      ansible.windows.win_uri:
+        url: "http://{{ managed_repo_int }}:{{ wsus_port }}/ClientWebService/client.asmx"
+
+    - name: Check that the internal Chocolatey feed answers
+      ansible.windows.win_uri:
+        url: "{{ managed_feed_url }}"
