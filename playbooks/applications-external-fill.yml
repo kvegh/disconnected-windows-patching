@@ -55,7 +55,7 @@
       loop_control:
         label: "{{ item.item.id }} {{ item.item.version }}"
       when: item.json['items'] | length == 0
-      no_log: true
+      no_log: false  # TEMPORARY debug of HTTP 500 (Job 87); restore true
 
 - name: Export the pinned packages from the external feed
   hosts: wsus_external
