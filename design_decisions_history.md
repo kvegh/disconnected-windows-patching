@@ -126,3 +126,15 @@ address is found. Still one Windows use case per hypervisor: the Windows VM
 names, the isolated network and the AAP VM's isolated NIC MAC and address are
 fixed. Syntax check passes (ansible-core 2.16.19); not run.
 Commit: `21867e4` (v2.1.0).
+
+## take_snapshots read as a boolean — 2026-11-23
+
+Found in the first v32 test run (Workflow 47, take_snapshots=no): Job 48
+and Job 62 — Disconnected Windows - Snapshot VMs shut the VMs down and took
+snapshots. AAP passes extra vars tagged `!unsafe`, and ansible-core 2.20
+loads `!unsafe 'no'` as the boolean false, so `take_snapshots == 'no'` never
+matched (reproduced locally with ansible-core 2.20.11). Agent choice
+(routine fix): the skip condition reads `take_snapshots | bool`; the survey
+keeps its yes/no choices.
+
+Implementation commit: `b6e2cee` (2.1.1).
