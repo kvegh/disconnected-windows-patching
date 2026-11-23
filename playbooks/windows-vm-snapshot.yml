@@ -28,11 +28,13 @@
     # NVRAM file as windows_nvram_file.
     snapshot_nvram_vms: "{{ groups['windows_uefi'] | default([]) }}"
   tasks:
+    # | bool: AAP passes extra vars tagged !unsafe, and ansible-core 2.20
+    # loads !unsafe 'no' as the boolean false, not as the string.
     - name: Skip the snapshot when the workflow runs without snapshots
       ansible.builtin.meta: end_play
       when:
         - snapshot_action == 'create'
-        - take_snapshots | default('yes') == 'no'
+        - not take_snapshots | default(true) | bool
 
     - name: Shut the Windows VMs down
       ansible.builtin.command:
