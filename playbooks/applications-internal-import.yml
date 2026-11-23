@@ -11,7 +11,6 @@
     import_repo_ext: "{{ groups['wsus_external'][0] }}"
     import_archive_url: "http://{{ hostvars[import_repo_ext].ansible_host }}:{{ wsus_port }}/export/applications.zip"
     import_package_dir: "{{ repository_import_dir }}\\applications"
-    import_nexus_api: "http://localhost:{{ nexus_port }}/service/rest/v1"
   tasks:
     - name: Read the checksum of the archive on repo-ext
       ansible.windows.win_stat:
@@ -39,36 +38,7 @@
         dest: "{{ import_package_dir }}"
         creates: "{{ import_package_dir }}"
 
-    - name: Look for the packages in the internal feed
-      ansible.windows.win_uri:
-        url: "{{ import_nexus_api }}/search?repository={{ nexus_feed_name }}&name={{ item.id }}&version={{ item.version }}"
-        return_content: true
-      loop: "{{ chocolatey_packages }}"
-      loop_control:
-        label: "{{ item.id }} {{ item.version }}"
-      register: import_search
-
-    # Gap: win_uri cannot send multipart bodies and Windows PowerShell 5.1 has
-    # no -Form, so the Nexus Components API upload uses .NET HttpClient.
-    - name: Upload the missing packages to the internal feed
-      ansible.windows.win_powershell:
-        parameters:
-          Url: "{{ import_nexus_api }}/components?repository={{ nexus_feed_name }}"
-          Path: "{{ import_package_dir }}\\{{ item.item.id }}.{{ item.item.version }}.nupkg"
-          Password: "{{ nexus_admin_password }}"
-        script: |
-          param([string]$Url, [string]$Path, [string]$Password)
-          Add-Type -AssemblyName System.Net.Http
-          $client = New-Object System.Net.Http.HttpClient
-          $login = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("admin:$Password"))
-          $client.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue('Basic', $login)
-          $form = New-Object System.Net.Http.MultipartFormDataContent
-          $file = New-Object System.Net.Http.StreamContent([IO.File]::OpenRead($Path))
-          $form.Add($file, 'nuget.asset', [IO.Path]::GetFileName($Path))
-          $response = $client.PostAsync($Url, $form).Result
-          if ([int]$response.StatusCode -ne 204) { throw "Upload of $Path failed: $([int]$response.StatusCode)" }
-      loop: "{{ import_search.results }}"
-      loop_control:
-        label: "{{ item.item.id }} {{ item.item.version }}"
-      when: item.json['items'] | length == 0
-      no_log: true
+    - name: Import the packages into the internal feed
+      ansible.builtin.include_tasks: tasks/nexus-packages-upload.yml
+      vars:
+        upload_package_dir: "{{ import_package_dir }}"
