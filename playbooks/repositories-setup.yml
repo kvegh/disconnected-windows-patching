@@ -6,7 +6,7 @@
 #   3. WSUS on both repository servers: database and content folder, IIS MIME
 #      types, update languages and manual synchronization, firewall.
 #   4. Nexus on both repository servers: service, admin password, EULA,
-#      anonymous read on repo-int only, one hosted Chocolatey (NuGet) feed.
+#      anonymous read, one hosted Chocolatey (NuGet) feed.
 #   5. Managed servers: the internal feed as the only Chocolatey source; check
 #      that WSUS and the feed answer.
 # Credentials: the Windows machine credential and the "Nexus admin" credential
@@ -259,8 +259,8 @@
         - nexus_eula_accepted_version == nexus_version
       no_log: true
 
-    # Anonymous read on repo-int: the managed servers need only the feed URL.
-    # repo-ext requires a login.
+    # Anonymous read on both servers: the managed servers and the export need
+    # only the feed URL; writing still needs the admin login.
     - name: Set anonymous read access
       ansible.windows.win_uri:
         url: "{{ nexus_api }}/security/anonymous"
@@ -269,7 +269,7 @@
         url_password: "{{ nexus_admin_password }}"
         force_basic_auth: true
         content_type: application/json
-        body: "{{ {'enabled': inventory_hostname in groups['wsus_internal'], 'userId': 'anonymous', 'realmName': 'NexusAuthorizingRealm'} | to_json }}"
+        body: "{{ {'enabled': true, 'userId': 'anonymous', 'realmName': 'NexusAuthorizingRealm'} | to_json }}"
         status_code: [200, 204]
       no_log: true
 

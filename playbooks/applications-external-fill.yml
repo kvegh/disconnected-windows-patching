@@ -32,14 +32,10 @@
     - name: Look for the packages in the external feed
       ansible.builtin.uri:
         url: "{{ fill_nexus_api }}/search?repository={{ nexus_feed_name }}&name={{ item.id }}&version={{ item.version }}"
-        url_username: admin
-        url_password: "{{ nexus_admin_password }}"
-        force_basic_auth: true
       loop: "{{ chocolatey_packages }}"
       loop_control:
         label: "{{ item.id }} {{ item.version }}"
       register: fill_search
-      no_log: true
 
     # Components API, the documented Nexus upload; one multipart field.
     - name: Upload the missing packages to the external feed
@@ -80,13 +76,9 @@
         dest: "{{ fill_package_dir }}\\{{ item.id }}.{{ item.version }}.nupkg"
         checksum: "{{ item.sha512 }}"
         checksum_algorithm: sha512
-        url_username: admin
-        url_password: "{{ nexus_admin_password }}"
-        force_basic_auth: true
       loop: "{{ chocolatey_packages }}"
       loop_control:
         label: "{{ item.id }} {{ item.version }}"
-      no_log: true
 
     - name: Pack the export archive
       community.windows.win_zip:

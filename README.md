@@ -79,7 +79,8 @@ Applications are the public Chocolatey community packages as published
 (7-Zip and Git, two pinned versions each, plus their dependency), checked
 against pinned SHA512 values, uploaded to repo-ext's feed, exported as one
 archive, pulled by repo-int and imported into its feed. The managed servers
-install from repo-int only (anonymous read).
+install from repo-int only. Both Nexus servers allow anonymous read; writing needs
+the admin login.
 
 ## Using the demo
 

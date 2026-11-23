@@ -98,3 +98,11 @@ Implementation: public `60829ee` (this repository, 2.0.0), private
 Listed in `TODO.md` and in the README (execution environment contents of the
 deployer, Nexus 3.98 service script and asset download, IIS export reads,
 WsusUtil import, UEFI NVRAM path, repo server disk space).
+
+## Anonymous read on repo-ext as well — 2026-11-23
+
+User decision (20:41 CET): repo-ext's Nexus also allows anonymous read. The
+export reads (search and the pinned package download into the export folder) no
+longer log in, which removes the unverified login-across-redirect risk of the
+asset download. Writing (uploads to repo-ext) still uses the admin login. Supersedes
+"anonymous read on the repo-int Nexus" (14:37). Commit: see Git log (v2.0.1).
