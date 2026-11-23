@@ -1,6 +1,6 @@
 # Disconnected Windows patching with AAP
 
-Version 2.0.0. Ansible Automation Platform (AAP) patches Windows servers in a
+Version 2.0.2. Ansible Automation Platform (AAP) patches Windows servers in a
 network without Internet access: Microsoft updates and application packages
 are fetched on the connected side, exported, pulled into the isolated side and
 installed from there only. Windows updates go through WSUS, applications
@@ -11,6 +11,9 @@ value (addresses, MACs, names, versions, checksums) and every secret lives in
 the private repository `disconnected-windows-patching-secrets`.
 
 The old implementation (1.x) is kept unchanged in `archive/` as reference.
+
+The Active Directory part moved to its own use case `kvegh/AAP-ActiveDirectory`
+(2026-11-23); `archive/` keeps the old AD code as reference.
 
 ## Topology
 

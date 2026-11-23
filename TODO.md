@@ -12,5 +12,5 @@
   packages by `name`/`version`, IIS anonymous reads of `/export` on the WSUS
   site, WsusUtil import of the `.xml.gz` export, NVRAM file path of the UEFI VM,
   repo server disk space for the patch month (free-disk check in stage 3).
-- **Active Directory extension**: reviewed separately after the patching use
-  case (the old AD code is in `archive/`).
+- **Active Directory extension**: moved to `kvegh/AAP-ActiveDirectory`
+  (2026-11-23); the old AD code stays in `archive/` as reference.
