@@ -1,6 +1,6 @@
 # Disconnected Windows patching with AAP
 
-Version 2.1.6. Ansible Automation Platform (AAP) patches Windows servers in a
+Version 2.1.7. Ansible Automation Platform (AAP) patches Windows servers in a
 network without Internet access: Microsoft updates and application packages
 are fetched on the connected side, exported, pulled into the isolated side and
 installed from there only. Windows updates go through WSUS, applications
@@ -163,6 +163,13 @@ addresses (several AAPs can share the hypervisor), so the playbook reads it
 from the VM's DHCP lease on the hypervisor (`community.libvirt.virt`,
 `get_ifaddresses`) by the name `usecase_target_aap`.
 It is rerunnable and leaves existing networks, entries, NICs and VMs alone.
+
+Every VM created in the run gets its evaluation rearmed (`slmgr.vbs /rearm`,
+then a reboot) right after the first WinRM wait, so each fresh clone starts a
+full evaluation period; a 2022 clone would otherwise inherit the base image's
+fixed expiry (user decision 2026-11-24). VMs that already existed are skipped,
+because the rearm count is limited (6 left on the 2022 image, 1 on the 2025
+image). The activation stays in stage 2.
 
 It needs from the deployer's execution environment (to verify at the first
 deploy): `ansible.windows` (WinRM connection, facts), `redhat.rhel_system_roles`

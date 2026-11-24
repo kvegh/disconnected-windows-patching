@@ -225,3 +225,25 @@ credentials reference the AutoDeploy names.
 
 Implementation commit: `eed8108` (2.1.6); private `7707bec` (1.1.2),
 AutoDeploy private `4b1c9ed` (0.4.2). Not deployed.
+
+## Evaluation rearm of every fresh clone — 2026-11-24
+
+User decision (24 November 2026, CET): rearm every Windows clone right after
+cloning, so each fresh clone gets a full evaluation period. Live facts (Ad
+hoc 310 on v32): the base images are ServerDatacenterEval, TIMEBASED_EVAL;
+2022 clones inherit a fixed expiry from the base image (about 131 days left,
+rearm count 6); 2025 clones showed 180 days, rearm count 1. The infra
+playbook runs `cscript //nologo C:\Windows\System32\slmgr.vbs /rearm`
+(`ansible.windows.win_command`) and `ansible.windows.win_reboot` after the
+first WinRM wait and before the OS check, only on VMs created in this run
+(not in the hypervisor's `virsh list --all` before creation): the rearm count
+is limited, a rerun must not use it up. The activation after the rearm is
+left to the existing stage-2 activation (activation NIC for the managed
+servers, internet through `internal` for the repository servers), not
+duplicated.
+
+To verify at the next deploy: the license status after the rearm (evaluation
+period reset, or a grace state waiting for activation), and that the stage-2
+activation succeeds on the rearmed clones.
+
+Implementation commit: `ee6a53d` (2.1.7). Not deployed.
