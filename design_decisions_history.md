@@ -194,3 +194,16 @@ Snapshot VMs) and confirmed on the running VMs with ad hoc diagnostics:
   (one win_command) would keep the virtual display on.
 
 Implementation commit: `1441a3d` (2.1.4).
+
+## Community feed download timeout — 2026-11-24
+
+Found in the v32 snapshot run (Job 250 — Disconnected Windows - Fill
+External Applications): the downloads of the older pinned versions
+(7zip.install 26.3.0, git.install 2.55.0.5) failed with read timeouts after
+get_url's default 10 s, three times each; the newer versions downloaded at
+once. Measured: community.chocolatey.org answered 7zip.install 26.3.0 after
+99 s, a repeated request in under a second (the feed serves an older version
+slowly when it has not served it recently). Agent choice (routine fix): the
+download task gets `timeout: 180`.
+
+Implementation commit: `06a801b` (2.1.5).
