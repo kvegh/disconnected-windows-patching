@@ -114,6 +114,10 @@ VM disk, a reverted snapshot shows exactly the history up to its stage.
 
 ### Prerequisites
 
+- One instance per hypervisor: several AAPs may run on the hypervisor (for
+  example for AD or other tests), but only one of them deploys and runs this
+  use case at a time. VM names, the isolated network and the AAP VM's second
+  NIC are fixed (user decision 2026-11-23).
 - KVM hypervisor with libvirt 9.9 or newer (revert of external snapshots),
   the management network, the base images of Windows Server 2022 (BIOS) and
   2025 (UEFI), downloaded and checked by the hypervisor build.
