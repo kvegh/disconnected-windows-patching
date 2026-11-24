@@ -8,11 +8,15 @@
 #   ansible-playbook --vault-id cac@/dev/stdin \
 #     -e usecase_target_aap=<AAP VM name> \
 #     -e usecase_secrets_dir=<absolute path of the -secrets checkout> \
+#     -e autodeploy_secrets_dir=<absolute path of the AutoDeploy private checkout> \
 #     playbooks/aap-infra.yml
 #
 # It builds its own targets from the -secrets checkout: plain configuration
 # from aap-infra/*.yml, secrets from env_variables.yml (vault ID cac), and the
-# AAP VM's address from its DHCP lease on the hypervisor. Then:
+# AAP VM's address from its DHCP lease on the hypervisor. The SSH key of the
+# automation account and the base images' Administrator password come from
+# the AutoDeploy vault, the shared storage of values several use cases need
+# (user decision 2026-11-24; no copy in this use case). Then:
 #   1. hypervisor: the isolated Windows network (no forwarding, no DNS, DHCP
 #      host entries MAC -> fixed address) and the DHCP host entries of the
 #      repository servers on the management network;
@@ -42,6 +46,11 @@
          | map(attribute='addrs') | flatten | selectattr('type', 'equalto', 0)
          | map(attribute='addr') | first | default('') }}
   tasks:
+    - name: Require the AutoDeploy private checkout from the deployer
+      ansible.builtin.assert:
+        that: autodeploy_secrets_dir is defined and autodeploy_secrets_dir is directory
+        fail_msg: The deployer must pass autodeploy_secrets_dir (AutoDeploy v0.5.0 or later, see README).
+
     - name: Load the infra configuration
       ansible.builtin.include_vars:
         dir: "{{ usecase_secrets_dir }}/aap-infra"
@@ -50,6 +59,14 @@
     - name: Load the use case secrets
       ansible.builtin.include_vars:
         file: "{{ usecase_secrets_dir }}/env_variables.yml"
+      no_log: true
+
+    # Same vault password (vault ID cac). Under one name, so none of its
+    # values mixes with this use case's variables.
+    - name: Load the AutoDeploy vault (SSH key, base image password)
+      ansible.builtin.include_vars:
+        file: "{{ autodeploy_secrets_dir }}/{{ windows_infra_autodeploy_vault }}"
+        name: autodeploy_vault
       no_log: true
 
     # SSH needs the private key as a file; it lives only in this run's
@@ -62,7 +79,7 @@
 
     - name: Write the SSH private key
       ansible.builtin.copy:
-        content: "{{ vaulted_windows_hypervisor_ssh_key_data }}"
+        content: "{{ autodeploy_vault.vaulted_controller_credentials_hactar_ng_ansible_ngng_ssh_key_data }}"
         dest: "{{ windows_infra_ssh_key.path }}"
         mode: "0600"
       no_log: true
@@ -121,7 +138,7 @@
         ansible_winrm_transport: ntlm
         ansible_winrm_server_cert_validation: ignore
         ansible_user: "{{ windows_infra_admin_user }}"
-        ansible_password: "{{ vaulted_windows_managed_hosts_password }}"
+        ansible_password: "{{ autodeploy_vault.vaulted_windows_base_image_admin_password }}"
         windows_version: "{{ item.version }}"
       loop: "{{ windows_infra_vms }}"
       loop_control:
