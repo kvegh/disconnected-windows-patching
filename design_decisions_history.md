@@ -189,5 +189,8 @@ Snapshot VMs) and confirmed on the running VMs with ad hoc diagnostics:
   any guest setting): the wait loop of the snapshot playbook presses the
   power button again (`virsh shutdown`) until virsh reports the VM as not
   running, instead of only polling `virsh domstate`.
+  User (2026-11-24): the workaround is accepted as long as it is documented.
+  Untested alternative inside the guest: `powercfg /change monitor-timeout-ac 0`
+  (one win_command) would keep the virtual display on.
 
 Implementation commit: `1441a3d` (2.1.4).
