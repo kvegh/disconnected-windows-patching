@@ -1,0 +1,81 @@
+---
+# Switch the hypervisor between the Windows patching demo and the AAP Active
+# Directory demo: both do not fit into the hypervisor's RAM at once. Shuts the
+# VMs of the other demo down, then starts the VMs of the chosen one. The VMs
+# start with their last state: plain start, no snapshot revert, no recreation.
+#
+# Variables (job template survey):
+#   demo   patching: start the four Windows VMs (group windows)
+#          ad:       start the AD demo VMs (demo_switch_ad_vms)
+#
+# VMs already in the target state are skipped. Every VM of both demos must be
+# defined on the hypervisor; this playbook creates none.
+
+- name: Switch between the patching demo and the AD demo
+  hosts: hypervisor
+  gather_facts: false
+  become: true
+  vars:
+    demo_vms:
+      patching: "{{ groups['windows'] }}"
+      ad: "{{ demo_switch_ad_vms }}"
+    demo_start_vms: "{{ demo_vms[demo] }}"
+    demo_stop_vms: "{{ demo_vms['ad' if demo == 'patching' else 'patching'] }}"
+    demo_vm_states: "{{ demo_state.results | items2dict(key_name='item', value_name='stdout') }}"
+  tasks:
+    - name: Check the chosen demo
+      ansible.builtin.assert:
+        that: demo | default('') in ['patching', 'ad']
+        fail_msg: "demo must be patching or ad, got '{{ demo | default('') }}'"
+
+    - name: Read the state of every VM of both demos
+      ansible.builtin.command:
+        argv: [virsh, domstate, "{{ item }}"]
+      loop: "{{ demo_stop_vms + demo_start_vms }}"
+      register: demo_state
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if a VM is not defined on the hypervisor
+      ansible.builtin.fail:
+        msg: "VM {{ item.item }} is not defined on the hypervisor: {{ item.stderr }}"
+      loop: "{{ demo_state.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.rc != 0
+
+    # Windows only wakes the display on a power button press while the
+    # display is off (idle for 10 minutes), so the button is pressed again
+    # until virsh reports the VM as not running. A RHEL VM shuts down on the
+    # first press.
+    - name: Shut the VMs of the other demo down
+      ansible.builtin.command:
+        argv: [virsh, shutdown, "{{ item }}"]
+      loop: "{{ demo_stop_vms }}"
+      register: demo_shutdown
+      until: "'is not running' in demo_shutdown.stderr"
+      retries: "{{ snapshot_shutdown_retries }}"
+      delay: 10
+      changed_when: true
+      failed_when: demo_shutdown.rc != 0 and 'is not running' not in demo_shutdown.stderr
+      when: demo_vm_states[item] != 'shut off'
+
+    - name: Start the VMs of the chosen demo
+      ansible.builtin.command:
+        argv: [virsh, start, "{{ item }}"]
+      loop: "{{ demo_start_vms }}"
+      changed_when: true
+      when: demo_vm_states[item] == 'shut off'
+
+    # The job runs on AAP, which reaches every Windows host; a port check needs
+    # no Windows credential in this hypervisor job. The AD demo VMs are not in
+    # this inventory.
+    - name: Wait for WinRM on the Windows VMs
+      ansible.builtin.wait_for:
+        host: "{{ hostvars[item].ansible_host }}"
+        port: 5986
+        timeout: "{{ windows_wait_timeout }}"
+      loop: "{{ demo_start_vms }}"
+      delegate_to: localhost
+      become: false
+      when: demo == 'patching'
