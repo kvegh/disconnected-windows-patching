@@ -56,7 +56,9 @@ a real disconnected site:
 
 The workflow runs the stages in order. After each stage all four VMs are shut
 down and get a cold, disk-only snapshot with the same name; a demo starts by
-reverting to one of them.
+reverting to one of them. The shutdown presses the ACPI power button until
+each VM is off: Windows only wakes the display on the first press when the
+display has been idle-off (after 10 minutes).
 
 | Stage | Work | Playbooks | Snapshot |
 |---|---|---|---|
@@ -99,8 +101,10 @@ In AAP (all objects come from the -secrets repository):
 
 The proof report appends one line per run to
 `C:\ProgramData\WindowsDemoProof\proof-log.csv` on each managed server: UTC
-time, host, stage, OS build (`CurrentBuild.UBR`), newest installed cumulative
-update (KB), installed version of each application. Because the file is on the
+time, host, stage, OS build (`CurrentBuild.UBR`), installed cumulative update
+(KB, from the installed `Package_for_RollupFix` servicing package; the Windows
+Update history stays empty on Server 2022), installed version of each
+application. Because the file is on the
 VM disk, a reverted snapshot shows exactly the history up to its stage.
 
 `demo-with-aap/` is a browser walkthrough of the stages

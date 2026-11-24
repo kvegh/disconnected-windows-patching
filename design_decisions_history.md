@@ -164,3 +164,30 @@ content folder size (win_stat) to the free space, so a rerun passes and a
 first run checks exactly as before.
 
 Implementation commit: `9b3a878` (2.1.3).
+
+## Proof KB from the rollup package; power button pressed until off — 2026-11-24
+
+Found in the v32 test run (Workflow 138, Job 62 — Disconnected Windows -
+Snapshot VMs) and confirmed on the running VMs with ad hoc diagnostics:
+
+- Proof report `newest_kb` showed `-` on win2022-managed although KB5082142
+  was installed: the Windows Update history there is empty
+  (`GetTotalHistoryCount` 0; win2025-managed lists its entries), so the
+  title filter never had a match. Agent choice (routine fix): read the KB
+  from the installed `Package_for_RollupFix` servicing package
+  (`Get-WindowsPackage`, description "Fix for KB..."); verified on both
+  managed servers (KB5082142, KB5082063). The SYSTEM become is no longer
+  needed.
+- The managed servers ignored the ACPI shutdown for 10 minutes. Not the
+  activation NIC: their displays were idle-off (10-minute timeout) and the
+  power button press only woke them (Kernel-Power 566, reason PowerButton,
+  at the exact press time); the repository servers had rebooted less than
+  10 minutes earlier. Reproduced: one `virsh shutdown` on an idle server
+  woke the display, a second shut it off. A display-timeout policy value
+  under `HKLM:\SOFTWARE\Policies\Microsoft\Power` did not take effect
+  (tested). Agent choice (routine fix, hypervisor side, covers stage 1 and
+  any guest setting): the wait loop of the snapshot playbook presses the
+  power button again (`virsh shutdown`) until virsh reports the VM as not
+  running, instead of only polling `virsh domstate`.
+
+Implementation commit: `1441a3d` (2.1.4).
