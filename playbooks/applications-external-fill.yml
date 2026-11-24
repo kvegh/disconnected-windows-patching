@@ -15,12 +15,15 @@
   connection: local
   gather_facts: false
   tasks:
+    # timeout: the feed can take about 100 s to answer for an older version
+    # it has not served recently (measured); the default is 10 s.
     - name: Download the pinned community packages
       ansible.builtin.get_url:
         url: "{{ chocolatey_community_feed_url }}/package/{{ item.id }}/{{ item.version }}"
         dest: "/tmp/{{ item.id }}.{{ item.version }}.nupkg"
         checksum: "sha512:{{ item.sha512 }}"
         mode: "0644"
+        timeout: 180
       loop: "{{ chocolatey_packages }}"
       loop_control:
         label: "{{ item.id }} {{ item.version }}"
