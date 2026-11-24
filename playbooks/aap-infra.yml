@@ -25,7 +25,8 @@
 #      hosts directly, see README);
 #   3. hypervisor: hot-plug of that NIC into the AAP VM, then the four Windows
 #      VMs, all started at once (parallel first boot);
-#   4. Windows: wait for WinRM on all four, check the installed OS version.
+#   4. Windows: wait for WinRM on all four, rearm the evaluation of the VMs
+#      created in this run (with a reboot), check the installed OS version.
 #
 # Rerunnable: an existing network, host entry, NIC or VM is left as it is.
 # Destroy and snapshots are job templates of the use case, not part of this.
@@ -338,6 +339,21 @@
     - name: Wait for WinRM
       ansible.builtin.wait_for_connection:
         timeout: "{{ hostvars['localhost'].windows_infra_wait_timeout }}"
+
+    # Every fresh clone gets a full evaluation period (user decision
+    # 2026-11-24): a 2022 clone inherits the base image's fixed expiry, and
+    # the rearm count is limited (6 left on the 2022 image, 1 on the 2025
+    # image), so only VMs created in this run are rearmed. The rearm needs a
+    # reboot; activation stays in stage 2.
+    - name: Rearm the evaluation of a VM created in this run
+      ansible.windows.win_command: cscript //nologo C:\Windows\System32\slmgr.vbs /rearm
+      when: inventory_hostname not in hostvars['hypervisor'].defined_vms.stdout_lines
+      changed_when: true
+      register: windows_rearm
+
+    - name: Reboot after the rearm
+      ansible.windows.win_reboot:
+      when: windows_rearm is changed
 
     - name: Read the installed OS
       ansible.builtin.setup:
