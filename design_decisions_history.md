@@ -247,3 +247,28 @@ period reset, or a grace state waiting for activation), and that the stage-2
 activation succeeds on the rearmed clones.
 
 Implementation commit: `ee6a53d` (2.1.7). Not deployed.
+
+## Demo switch between the patching demo and the AD demo — 2026-11-24
+
+User request (24 November 2026, CET): "the windows disconnected usecase needs
+an additional playbook and JT and CaC of that too. It needs to switch between
+the Windows-Patching Demo and the AAP-AD demo ... VM shutdowns and other
+startups, and vice versa". Both demos do not fit into the 62 GiB hypervisor
+at once; the AAP running this use case stays on. User clarification: the VMs
+start with their last state, plain start, never a snapshot revert or a
+recreation.
+
+`playbooks/demo-switch.yml` (hosts `hypervisor`, `virsh` through
+`ansible.builtin.command` like the snapshot and destroy playbooks): reads
+every VM's `virsh domstate`, fails on an undefined VM, presses the ACPI power
+button on the other demo's running VMs until they are off (same loop and
+`snapshot_shutdown_retries` as the snapshots), then `virsh start` on the
+chosen demo's shut-off VMs; for `patching` it waits for WinRM. The four
+Windows VMs are the inventory group `windows`; the AD demo VMs are the
+private inventory variable `demo_switch_ad_vms` (`aap27-v33`, `win-ad`). Job
+template "Disconnected Windows - Switch Demo" (survey `demo`: patching / ad,
+required, no default), not part of the workflow.
+
+Implementation commit: `bf0e3f3` (2.2.0); private `cde006e` (1.2.0). Tested
+locally against a stand-in `virsh` (both directions, rerun skips, undefined
+VM, missing demo); not run on the hypervisor.
