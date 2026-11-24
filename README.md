@@ -1,6 +1,6 @@
 # Disconnected Windows patching with AAP
 
-Version 2.1.5. Ansible Automation Platform (AAP) patches Windows servers in a
+Version 2.1.6. Ansible Automation Platform (AAP) patches Windows servers in a
 network without Internet access: Microsoft updates and application packages
 are fetched on the connected side, exported, pulled into the isolated side and
 installed from there only. Windows updates go through WSUS, applications
@@ -121,7 +121,8 @@ VM disk, a reverted snapshot shows exactly the history up to its stage.
 - KVM hypervisor with libvirt 9.9 or newer (revert of external snapshots),
   the management network, the base images of Windows Server 2022 (BIOS) and
   2025 (UEFI), downloaded and checked by the hypervisor build.
-- Base images with the local Administrator password of the -secrets vault and
+- Base images with the local Administrator password
+  `vaulted_windows_base_image_admin_password` of the AutoDeploy vault and
   WinRM over HTTPS (port 5986, self-signed certificate) allowed from the AAP
   VM's addresses in both networks (manual image preparation).
 - An AAP deployed by AutoDeploy, with the use case deployer.
@@ -137,8 +138,22 @@ The AutoDeploy use case deployer (infra node, catalog keys
 ansible-playbook --vault-id cac@/dev/stdin \
   -e usecase_target_aap=<AAP VM name> \
   -e usecase_secrets_dir=<absolute path of the -secrets checkout> \
+  -e autodeploy_secrets_dir=<absolute path of the AutoDeploy private checkout> \
   playbooks/aap-infra.yml
 ```
+
+The AutoDeploy private repository is the shared storage for values several
+use cases need (user decision 2026-11-24, don't copy); the use case keeps no
+copies. From its vault (`usecases/autodeploy/env_variables.yml`, same vault
+password, path in the -secrets `aap-infra/windows-infra.yml`) come the SSH
+key of the automation account
+(`vaulted_controller_credentials_hactar_ng_ansible_ngng_ssh_key_data`) and the
+base images' local Administrator password
+(`vaulted_windows_base_image_admin_password`): the infra playbook reads them
+from the checkout `autodeploy_secrets_dir` (AutoDeploy v0.5.0 or later), the
+AAP credentials "Disconnected Windows Hypervisor SSH" and "Disconnected
+Windows Managed Hosts" reference them by name (the deployer's config and
+content nodes load the AutoDeploy vault before the use case tree).
 
 Localhost is the only inventory; the playbook loads `aap-infra/*.yml` and
 `env_variables.yml` from the -secrets checkout and adds the hypervisor, the

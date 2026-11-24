@@ -207,3 +207,21 @@ slowly when it has not served it recently). Agent choice (routine fix): the
 download task gets `timeout: 180`.
 
 Implementation commit: `06a801b` (2.1.5).
+
+## No copied secrets: SSH key and base image password from AutoDeploy — 2026-11-24
+
+User decision (24 November 2026, CET): "don't copy". The AutoDeploy private
+repository is the shared storage for values several use cases need. The
+infra playbook requires `autodeploy_secrets_dir` from the deployer
+(AutoDeploy `944a138`, v0.5.0), loads the AutoDeploy vault as
+`autodeploy_vault` and takes from it the automation account's SSH key
+(`vaulted_controller_credentials_hactar_ng_ansible_ngng_ssh_key_data`) and
+the base images' local Administrator password
+(`vaulted_windows_base_image_admin_password`, moved to the AutoDeploy vault
+as a property of the images AutoDeploy downloads). The private vault copies
+`vaulted_windows_hypervisor_ssh_key_data` and
+`vaulted_windows_managed_hosts_password` are removed; the two AAP
+credentials reference the AutoDeploy names.
+
+Implementation commit: `eed8108` (2.1.6); private `7707bec` (1.1.2),
+AutoDeploy private `4b1c9ed` (0.4.2). Not deployed.
