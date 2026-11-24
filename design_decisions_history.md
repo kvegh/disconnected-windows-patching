@@ -303,3 +303,14 @@ again on a later workflow run (libvirt would refuse the existing name).
 README: Switch Stage replaces the manual Snapshot VMs revert in "Using the
 demo", with the eight stage states and the next live step. Version 2.2.1.
 Not run.
+
+## Switch job templates split and renamed — 2026-11-24
+
+User request (2026-11-24, CET): the demo switch is two job templates without survey
+("switch demo to AD-AAP", "switch demo to Windows Patching"), the stage switch is
+"switch patching stage" with a dropdown of the 8 stages; all labelled webinar. No playbook
+change (`playbooks/demo-switch.yml`, `playbooks/windows-vm-snapshot.yml`). CaC: private
+`2dd100b` (v1.4.0), applied on test AAP v32 by Job 335. Live test before the split, all
+successful: Job 323 (to patching), Job 325 (stage-5 revert), Job 327 (proof: pre-patching
+builds), Job 329 (stage-8 revert), Job 331 (proof: April builds, upgraded apps), Job 333
+(to AD). README updated (v2.2.2).

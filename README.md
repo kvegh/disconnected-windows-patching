@@ -1,6 +1,6 @@
 # Disconnected Windows patching with AAP
 
-Version 2.2.1. Ansible Automation Platform (AAP) patches Windows servers in a
+Version 2.2.2. Ansible Automation Platform (AAP) patches Windows servers in a
 network without Internet access: Microsoft updates and application packages
 are fetched on the connected side, exported, pulled into the isolated side and
 installed from there only. Windows updates go through WSUS, applications
@@ -91,7 +91,7 @@ the admin login.
 
 In AAP (all objects come from the -secrets repository):
 
-1. Run **Disconnected Windows - Switch Stage** with the stage to start from,
+1. Run **Disconnected Windows - switch patching stage** with the stage to start from,
    for example `stage-5-patch-level-cutoff-set`.
 2. Run the job templates of the following stages by hand, or show their
    earlier job output.
@@ -99,7 +99,7 @@ In AAP (all objects come from the -secrets repository):
    the history; on a managed server the desktop shortcut "Patch and
    application proof" shows the same file in colour.
 
-**Disconnected Windows - Switch Stage** runs `playbooks/windows-vm-snapshot.yml`
+**Disconnected Windows - switch patching stage** runs `playbooks/windows-vm-snapshot.yml`
 with `snapshot_action: revert` (fixed in the job template) and the survey's
 `snapshot_stage`: power off all four VMs, revert them to the stage snapshot,
 restore the UEFI VM's NVRAM copy, start, wait for WinRM. It never creates a
@@ -134,11 +134,13 @@ VM disk, a reverted snapshot shows exactly the history up to its stage.
 
 The hypervisor (62 GiB RAM) cannot run this demo's four Windows VMs and the
 AAP Active Directory demo's VMs (its AAP VM and domain controller) at once.
-**Disconnected Windows - Switch Demo** (`playbooks/demo-switch.yml`) switches:
+Two job templates on `playbooks/demo-switch.yml` switch between them:
 
-- `demo: ad` shuts the four Windows VMs down and starts the AD demo VMs;
-- `demo: patching` shuts the AD demo VMs down and starts the four Windows
-  VMs, then waits for WinRM.
+- **Disconnected Windows - switch demo to AD-AAP** (`demo: ad`) shuts the four
+  Windows VMs down and starts the AD demo VMs;
+- **Disconnected Windows - switch demo to Windows Patching** (`demo: patching`)
+  shuts the AD demo VMs down and starts the four Windows VMs, then waits for
+  WinRM.
 
 The VMs start with their last state: plain start, never a snapshot revert or
 a recreation. Shutdown presses the ACPI power button until each VM is off
