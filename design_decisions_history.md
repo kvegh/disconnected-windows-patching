@@ -272,3 +272,34 @@ required, no default), not part of the workflow.
 Implementation commit: `bf0e3f3` (2.2.0); private `cde006e` (1.2.0). Tested
 locally against a stand-in `virsh` (both directions, rerun skips, undefined
 VM, missing demo); not run on the hypervisor.
+
+## Stage switch job template — 2026-11-24
+
+User request (24 November 2026, CET): a job template whose survey offers the
+eight stage snapshots (required, no default) and boots the four Windows VMs
+safely into that state. Reuses `playbooks/windows-vm-snapshot.yml` with
+`snapshot_action: revert` fixed in the job template "Disconnected Windows -
+Switch Stage" (private `7ac6892`, v1.3.0); no new playbook.
+
+The revert path had never run live; it was read against the libvirt 11.10
+source (`src/qemu/qemu_snapshot.c`, v11.10.0): the snapshot's saved domain
+XML points at the image that became read-only when the snapshot was taken
+(`qemuSnapshotCreateAlignDisks` captures it before the overlay switch); the
+inactive revert (`qemuSnapshotRevertInactive`) creates a new overlay on it
+with `qemu-img` and deletes the overlay the VM ran on (the previous revert's
+overlay, or the leaf snapshot's own overlay); a snapshot with children keeps
+its disks and records the new overlay as revert disks. The snapshot images
+stay read-only, so each revert gives the pristine stage. The playbook's
+order (power off, revert, restore the NVRAM copy, start) fits: the NVRAM is
+not part of an offline external snapshot and the copy is only read. No code
+change needed.
+
+Side effect to know: a revert to the last snapshot taken
+(`stage-8-apps-upgraded`) deletes that stage's overlay file
+`win-<vm>-stage-8-apps-upgraded.qcow2` (libvirt replaces it); the create
+path's `creates:` guard on that file would then take the stage-8 snapshot
+again on a later workflow run (libvirt would refuse the existing name).
+
+README: Switch Stage replaces the manual Snapshot VMs revert in "Using the
+demo", with the eight stage states and the next live step. Version 2.2.1.
+Not run.

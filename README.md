@@ -1,6 +1,6 @@
 # Disconnected Windows patching with AAP
 
-Version 2.2.0. Ansible Automation Platform (AAP) patches Windows servers in a
+Version 2.2.1. Ansible Automation Platform (AAP) patches Windows servers in a
 network without Internet access: Microsoft updates and application packages
 are fetched on the connected side, exported, pulled into the isolated side and
 installed from there only. Windows updates go through WSUS, applications
@@ -91,13 +91,36 @@ the admin login.
 
 In AAP (all objects come from the -secrets repository):
 
-1. Run **Disconnected Windows - Snapshot VMs** with `snapshot_action: revert`
-   and the stage to start from, for example `stage-5-patch-level-cutoff-set`.
+1. Run **Disconnected Windows - Switch Stage** with the stage to start from,
+   for example `stage-5-patch-level-cutoff-set`.
 2. Run the job templates of the following stages by hand, or show their
    earlier job output.
 3. Run **Disconnected Windows - Proof Report** (any `proof_stage` text) to show
    the history; on a managed server the desktop shortcut "Patch and
    application proof" shows the same file in colour.
+
+**Disconnected Windows - Switch Stage** runs `playbooks/windows-vm-snapshot.yml`
+with `snapshot_action: revert` (fixed in the job template) and the survey's
+`snapshot_stage`: power off all four VMs, revert them to the stage snapshot,
+restore the UEFI VM's NVRAM copy, start, wait for WinRM. It never creates a
+snapshot. libvirt (9.9 or newer) reverts an external snapshot by putting a
+new, empty overlay on the image that was read-only at the snapshot, and
+deletes the overlay the VM ran on until then (if no later snapshot builds on
+it); the snapshot images stay unchanged, so every revert starts from the
+same state.
+
+A stage snapshot holds the state after that stage:
+
+| Snapshot | State of the VMs | Next live step (job templates) |
+|---|---|---|
+| `stage-1-OS-install` | Freshly cloned Windows VMs (infra node); isolated network, AAP NIC | Configure Windows Basics, Activation NIC (attach), Activate Windows, Activation NIC (detach), Setup Repositories |
+| `stage-2-basics-repos` | Host names, update policy, activated; WSUS, Nexus and Chocolatey set up, clients pointed at repo-int; repositories empty | Fill External WSUS, Fill External Applications |
+| `stage-3-external-repo-fill` | repo-ext holds the patch month and the packages, both exported | Import Internal WSUS, Import Internal Applications |
+| `stage-4-internal-repo-import` | repo-int holds the imported WSUS content and packages; nothing approved | Set Patch Level, Proof Report (`before-patching`) |
+| `stage-5-patch-level-cutoff-set` | repo-int approves only the patch month; proof `before-patching` | Patch Managed Windows, Proof Report (`os-patched`) |
+| `stage-6-OS-patched` | Managed servers on the patch month's CU; proof `os-patched` | Deploy Baseline Applications, Proof Report (`apps-baseline`) |
+| `stage-7-apps-baseline` | Baseline 7-Zip and Git installed; proof `apps-baseline` | Upgrade Applications, Proof Report (`apps-upgraded`) |
+| `stage-8-apps-upgraded` | Newer 7-Zip and Git installed; proof `apps-upgraded` | none (end state; Proof Report shows the full history) |
 
 The proof report appends one line per run to
 `C:\ProgramData\WindowsDemoProof\proof-log.csv` on each managed server: UTC
