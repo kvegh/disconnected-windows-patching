@@ -8,9 +8,10 @@
 #   take_snapshots    workflow survey: "no" skips create (full test run
 #                     without snapshots); revert ignores it
 #
-# Create: shut every VM down (ACPI), wait until all are off, take an external
-# disk-only snapshot (libvirt writes a new overlay file, the VM continues on
-# it), copy the UEFI VM's NVRAM next to it, start the VMs, wait for WinRM.
+# Create: shut every VM down (ACPI power button, pressed until all are off),
+# take an external disk-only snapshot (libvirt writes a new overlay file, the
+# VM continues on it), copy the UEFI VM's NVRAM next to it, start the VMs,
+# wait for WinRM.
 # libvirt does not capture the NVRAM in an offline external snapshot; the copy
 # keeps firmware variables (Secure Boot updates of later patches) in step with
 # the disk.
@@ -54,15 +55,19 @@
       failed_when: snapshot_destroy.rc != 0 and 'is not running' not in snapshot_destroy.stderr
       when: snapshot_action == 'revert'
 
+    # Windows only wakes the display on a power button press while the
+    # display is off (idle for 10 minutes), so the button is pressed again
+    # until virsh reports the VM as not running.
     - name: Wait until every Windows VM is shut off
       ansible.builtin.command:
-        argv: [virsh, domstate, "{{ item }}"]
+        argv: [virsh, shutdown, "{{ item }}"]
       loop: "{{ windows_vms }}"
       register: snapshot_state
-      until: snapshot_state.stdout | trim == 'shut off'
+      until: "'is not running' in snapshot_state.stderr"
       retries: "{{ snapshot_shutdown_retries }}"
       delay: 10
       changed_when: false
+      failed_when: snapshot_state.rc != 0 and 'is not running' not in snapshot_state.stderr
 
     # sda: the disk is attached on the SATA bus (see aap-infra.yml).
     - name: Take the disk-only snapshot

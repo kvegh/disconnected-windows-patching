@@ -23,21 +23,18 @@
         path: 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
       register: proof_os
 
-    # Gap: no module reads the Windows Update history. As SYSTEM, because the
-    # update session API refuses some calls over a network logon.
-    - name: Read the newest installed cumulative update
+    # Gap: no module reads the installed packages. The cumulative update is
+    # the installed RollupFix servicing package ("Fix for KB..."); the Windows
+    # Update history stays empty on Server 2022 here.
+    - name: Read the installed cumulative update
       ansible.windows.win_powershell:
         script: |
           $Ansible.Changed = $false
-          $searcher = (New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher()
-          $count = $searcher.GetTotalHistoryCount()
-          $newest = @($searcher.QueryHistory(0, [Math]::Max($count, 1)) |
-              Where-Object { $_.ResultCode -eq 2 -and $_.Title -match 'Cumulative Update for Microsoft server' } |
-              Sort-Object Date -Descending)[0]
-          $Ansible.Result = if ($newest -and $newest.Title -match '(KB\d+)') { $Matches[1] } else { '-' }
-      become: true
-      become_method: ansible.builtin.runas
-      become_user: SYSTEM
+          $rollup = Get-WindowsPackage -Online |
+              Where-Object { $_.PackageName -like 'Package_for_RollupFix*' -and $_.PackageState -eq 'Installed' } |
+              Select-Object -First 1
+          $description = if ($rollup) { (Get-WindowsPackage -Online -PackageName $rollup.PackageName).Description }
+          $Ansible.Result = if ($description -match '(KB\d+)') { $Matches[1] } else { '-' }
       register: proof_kb
 
     - name: Read the installed Chocolatey packages
