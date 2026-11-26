@@ -1,0 +1,44 @@
+---
+# Shut a Windows VM down from inside the guest (WinRM, shutdown.exe), then
+# wait until it no longer answers on WinRM. For VMs whose ACPI power button
+# does not reliably shut them down (e.g. the AD domain controller).
+#
+# Variables (job template survey):
+#   shutdown_host   inventory host name (or pattern) of the VM; only hosts of
+#                   the group shutdown_windows are ever targeted
+#
+# The wait runs on the job's localhost: a closed WinRM port needs no second
+# credential (a job template carries one machine credential, here the
+# Windows Administrator). It shows the guest has stopped its services, not
+# that libvirt reports "shut off"; power-off follows within seconds.
+# A VM that is already off fails as unreachable.
+
+- name: Shut the Windows VM down
+  hosts: "{{ shutdown_host }}:&shutdown_windows"
+  gather_facts: false
+  tasks:
+    # Returns at once; Windows shuts down 5 seconds later
+    # (reason p:0:0 = planned, other).
+    - name: Schedule the shutdown
+      ansible.windows.win_command: shutdown.exe /s /t 5 /d p:0:0
+      changed_when: true
+
+- name: Wait until the Windows VM is down
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    shutdown_vms: "{{ query('ansible.builtin.inventory_hostnames', shutdown_host ~ ':&shutdown_windows') }}"
+  tasks:
+    - name: Check that the survey names a Windows VM of this inventory
+      ansible.builtin.assert:
+        that: shutdown_vms | length > 0
+        fail_msg: "'{{ shutdown_host }}' matches no host of the group shutdown_windows"
+
+    - name: Wait until WinRM is closed
+      ansible.builtin.wait_for:
+        host: "{{ hostvars[item].ansible_host }}"
+        port: 5986
+        state: stopped
+        timeout: "{{ shutdown_wait_timeout }}"
+      loop: "{{ shutdown_vms }}"

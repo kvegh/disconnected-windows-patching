@@ -1,0 +1,44 @@
+---
+# Shut a Linux VM down from inside the guest (SSH, shutdown), then wait until
+# it no longer answers on SSH.
+#
+# Variables (job template survey):
+#   shutdown_host   inventory host name (or pattern) of the VM; only hosts of
+#                   the group shutdown_linux are ever targeted (never the
+#                   hypervisor or the AAP running this job)
+#
+# The wait runs on the job's localhost (closed SSH port): it shows the guest
+# has stopped sshd, not that libvirt reports "shut off"; power-off follows
+# within seconds. A VM that is already off fails as unreachable.
+
+- name: Shut the Linux VM down
+  hosts: "{{ shutdown_host }}:&shutdown_linux"
+  gather_facts: false
+  become: true
+  tasks:
+    # In the background: the shutdown closes the SSH connection.
+    - name: Start the shutdown
+      ansible.builtin.command: shutdown -h +0
+      async: 30
+      poll: 0
+      changed_when: true
+
+- name: Wait until the Linux VM is down
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    shutdown_vms: "{{ query('ansible.builtin.inventory_hostnames', shutdown_host ~ ':&shutdown_linux') }}"
+  tasks:
+    - name: Check that the survey names a Linux VM of this inventory
+      ansible.builtin.assert:
+        that: shutdown_vms | length > 0
+        fail_msg: "'{{ shutdown_host }}' matches no host of the group shutdown_linux"
+
+    - name: Wait until SSH is closed
+      ansible.builtin.wait_for:
+        host: "{{ hostvars[item].ansible_host }}"
+        port: "{{ hostvars[item].ansible_port | default(22) }}"
+        state: stopped
+        timeout: "{{ shutdown_wait_timeout }}"
+      loop: "{{ shutdown_vms }}"

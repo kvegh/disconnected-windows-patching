@@ -1,6 +1,6 @@
 # Disconnected Windows patching with AAP
 
-Version 2.2.2. Ansible Automation Platform (AAP) patches Windows servers in a
+Version 2.3.0. Ansible Automation Platform (AAP) patches Windows servers in a
 network without Internet access: Microsoft updates and application packages
 are fetched on the connected side, exported, pulled into the isolated side and
 installed from there only. Windows updates go through WSUS, applications
@@ -148,6 +148,32 @@ a recreation. Shutdown presses the ACPI power button until each VM is off
 that is not defined on the hypervisor fails the run. The AAP running this use
 case stays on. The AD demo VM names are the inventory variable
 `demo_switch_ad_vms` of the -secrets repository.
+
+### Shutting a single VM down
+
+Two job templates shut one VM down from inside the guest, for VMs whose ACPI
+power button is not reliable (the AD domain controller) and for a clean
+shutdown before maintenance. Survey `shutdown_host` (required): the
+inventory host name, which equals the libvirt domain name.
+
+- **Disconnected Windows - Shutdown Windows VM** (`playbooks/shutdown-windows.yml`,
+  credential "Disconnected Windows Managed Hosts"): `shutdown.exe /s /t 5`
+  over WinRM, then waits until WinRM (5986) is closed. Targets the group
+  `shutdown_windows`: the four Windows VMs and win-ad (the domain
+  Administrator has the base image password, AAP-ActiveDirectory 0.1.5).
+- **Disconnected Windows - Shutdown Linux VM** (`playbooks/shutdown-linux.yml`,
+  credential "Disconnected Windows Hypervisor SSH", the automation account
+  with sudo): `shutdown -h +0` in the background over SSH, then waits until
+  SSH is closed. Targets the group `shutdown_linux` (the AD demo's AAP VM,
+  the monitoring VM); never the hypervisor or the AAP running the job.
+
+Each play is limited to its group (`<shutdown_host>:&shutdown_windows`), so a
+mistyped or foreign name shuts nothing down and fails the run. The wait runs
+on the job's localhost against the closed port: a job template carries one
+machine credential, so no hypervisor login is needed for it. A closed port
+means the guest has stopped its services; it is not libvirt's "shut off"
+state, which follows within seconds. A VM that is already off fails as
+unreachable.
 
 `demo-with-aap/` is a browser walkthrough of the stages
 ([published page](https://kvegh.github.io/disconnected-windows-patching/demo-with-aap/)).
@@ -301,3 +327,5 @@ Set in the -secrets repository (AAP inventory variables of
   dependency, `sha512`).
 - Patching and proof: `windows_update_reboot_timeout`,
   `windows_update_failed_retries`, `proof_dir`, `snapshot_shutdown_retries`.
+- Shutdown job templates: `shutdown_wait_timeout`; groups `shutdown_windows`
+  and `shutdown_linux`.
