@@ -314,3 +314,42 @@ change (`playbooks/demo-switch.yml`, `playbooks/windows-vm-snapshot.yml`). CaC: 
 successful: Job 323 (to patching), Job 325 (stage-5 revert), Job 327 (proof: pre-patching
 builds), Job 329 (stage-8 revert), Job 331 (proof: April builds, upgraded apps), Job 333
 (to AD). README updated (v2.2.2).
+
+## 2026-11-26 (CET): shutdown job templates for Windows and Linux VMs, version 2.3.0
+
+User decisions 2026-11-26 (CET), bead bead-wd-0gnz.45.14: two playbooks and
+two job templates, one per OS, each shutting down the VM named in the survey
+(`shutdown_host`) from inside the guest; win-ad's ACPI button is not fixed,
+WinRM shutdown is the method. The AD domain Administrator uses the base
+image password (AAP-ActiveDirectory 0.1.5), so the existing Windows machine
+credential serves win-ad too. Placed in this use case because its AAP (v32)
+is always on and its inventory already reaches the hypervisor's VMs.
+Implementation `d4dc9c8` (2.3.0), private `8fe81c0` (v1.5.0).
+
+- `playbooks/shutdown-windows.yml`: `ansible.windows.win_command`
+  `shutdown.exe /s /t 5 /d p:0:0` (returns before the guest goes down, so
+  no async is needed). `playbooks/shutdown-linux.yml`: `ansible.builtin.command`
+  `shutdown -h +0` with become, `async`/`poll: 0` (the shutdown closes the
+  SSH connection); `community.general.shutdown` avoided (community).
+- Agent choice, wait: a second play on the job's localhost waits with
+  `ansible.builtin.wait_for` `state: stopped` until WinRM (5986) or SSH is
+  closed, instead of `virsh domstate` on the hypervisor. Reason: a job
+  template carries one machine credential (Windows Administrator or the
+  automation key); a hypervisor login for the Windows job would need a
+  custom credential type. Tradeoff: a closed port is not libvirt's
+  "shut off"; power-off follows within seconds.
+- Agent choice, safety: plays target `<shutdown_host>:&shutdown_windows` or
+  `:&shutdown_linux`; the new hosts (win-ad, the AD demo's AAP VM, the
+  monitoring VM) are only in those groups, not in `windows`, so the
+  destroy, snapshot, patching and demo switch jobs never touch them, and
+  the Linux job can never shut down the hypervisor (same credential) or the
+  AAP running it. A name outside the group fails the run without action.
+- Applied on v32 (Job 431 — Deploy UseCase AAP content, project synced to
+  `d4dc9c8` by update 430): JT 65 Shutdown Windows VM, JT 64 Shutdown Linux
+  VM, surveys and labels verified. Not run (all targets off except the
+  monitoring VM, which must stay on).
+- Ad hoc ping (v32 ad hoc 435) to the monitoring VM with the automation key
+  credential: permission denied (publickey). The Linux job cannot shut that
+  VM down until its access is decided. Unverified: the AAP VM of the AD demo
+  (off; AutoDeploy installs the same key on AAP VMs), both shutdown paths
+  end to end.
