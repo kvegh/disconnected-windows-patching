@@ -2,6 +2,18 @@
 
 The history of the 1.x implementation is in `archive/design_decisions_history.md`.
 
+## 2026-11-27 (CET): demo mode instructions in AGENTS.md, version 2.3.2
+
+User decision 2026-11-27 (CET): the demo mode instructions live in this
+repository's `AGENTS.md`, not in the shared development environment
+`AGENTS.md`. Content: switching and screen output, behaviour during the demo
+(fresh requests, audience explanations, code tables with indentation), and
+targets/approval/scope (designated test AAP only, public generic repositories,
+one step per instruction, human approval before content goes into AAP).
+The concrete demo instance is environment-specific and stays out of this
+public file. Agents are told to load project `AGENTS.md` files by a separate
+rule in the shared environment instructions (pending at the time of writing).
+
 ## 2026-11-23 (CET): WF3 review and rewrite, version 2.0.0
 
 Line-by-line review of the 1.x code (task ratings in the workspace analyses
