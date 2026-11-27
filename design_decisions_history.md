@@ -374,6 +374,8 @@ demo_shutdown.stderr"`, the same condition as `until`, so the task fails
 when the VM is still running after `snapshot_shutdown_retries` presses and
 the chosen demo's VMs are not started. No extra task.
 
+Implementation commit: `4f2713a` (2.3.1). Not run on the hypervisor.
+
 Not done: the in-guest shutdown (decision 2026-11-26, `shutdown.exe` over
 WinRM in `playbooks/shutdown-windows.yml`) is not applied to the demo switch:
 its job template carries the hypervisor machine credential, and a job
