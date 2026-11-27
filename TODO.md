@@ -14,3 +14,10 @@
   repo server disk space for the patch month (free-disk check in stage 3).
 - **Active Directory extension**: moved to `kvegh/AAP-ActiveDirectory`
   (2026-11-23); the old AD code stays in `archive/` as reference.
+- **In-guest shutdown in the demo switch** (open decision, 2026-11-27): win-ad
+  ignores the ACPI power button; the demo switch now fails visibly instead of
+  starting the patching VMs. A `shutdown.exe` over WinRM inside
+  `playbooks/demo-switch.yml` needs the Windows credential, but its job
+  template carries the hypervisor machine credential (one machine credential
+  per job template). Until decided: run "Shutdown Windows VM" for win-ad
+  first.

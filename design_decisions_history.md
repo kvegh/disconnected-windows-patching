@@ -353,3 +353,32 @@ Implementation `d4dc9c8` (2.3.0), private `8fe81c0` (v1.5.0).
   VM down until its access is decided. Unverified: the AAP VM of the AD demo
   (off; AutoDeploy installs the same key on AAP VMs), both shutdown paths
   end to end.
+
+## 2026-11-27 (CET): demo switch fails when a VM does not shut down, version 2.3.1
+
+User request (2026-11-27, CET): "Fix the bug anyway". Bug evidence: Job 407
+(Disconnected Windows - switch demo to Windows Patching, v32, 2026-11-25
+about 01:48 CET) reported "changed" for shutting down win-ad, but libvirt's
+log shows win-ad kept running. Cause: the shutdown loop's
+`failed_when: rc != 0 and 'is not running' not in stderr` is false for every
+`virsh shutdown` that returns rc 0. ansible-core marks a task as failed when
+its `until` retries run out, but an explicit `failed_when` result overrides
+that (`executor/task_result.py`, `is_failed` reads `failed_when_result`), so
+the exhausted loop passed silently. Reproduced locally with a stand-in
+`virsh` (always rc 0) on ansible-core 2.16.19 and 2.20.0: old task "changed",
+play continues; new task fails after the last retry; "domain is not running"
+(rc 1) still passes.
+
+Fix (agent choice, routine): `failed_when: "'is not running' not in
+demo_shutdown.stderr"`, the same condition as `until`, so the task fails
+when the VM is still running after `snapshot_shutdown_retries` presses and
+the chosen demo's VMs are not started. No extra task.
+
+Not done: the in-guest shutdown (decision 2026-11-26, `shutdown.exe` over
+WinRM in `playbooks/shutdown-windows.yml`) is not applied to the demo switch:
+its job template carries the hypervisor machine credential, and a job
+template carries one machine credential (2026-11-26 entry). Open decision
+in `TODO.md`. The snapshot playbook's wait loop
+(`playbooks/windows-vm-snapshot.yml`, "Wait until every Windows VM is shut
+off") has the same `failed_when` and the same silent exhaustion; not changed
+(outside the request).

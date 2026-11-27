@@ -47,7 +47,9 @@
     # Windows only wakes the display on a power button press while the
     # display is off (idle for 10 minutes), so the button is pressed again
     # until virsh reports the VM as not running. A RHEL VM shuts down on the
-    # first press.
+    # first press. failed_when names the success condition: a VM still
+    # running after the last retry fails the run (a failed_when that is false
+    # on rc 0 would hide the exhausted retries).
     - name: Shut the VMs of the other demo down
       ansible.builtin.command:
         argv: [virsh, shutdown, "{{ item }}"]
@@ -57,7 +59,7 @@
       retries: "{{ snapshot_shutdown_retries }}"
       delay: 10
       changed_when: true
-      failed_when: demo_shutdown.rc != 0 and 'is not running' not in demo_shutdown.stderr
+      failed_when: "'is not running' not in demo_shutdown.stderr"
       when: demo_vm_states[item] != 'shut off'
 
     - name: Start the VMs of the chosen demo

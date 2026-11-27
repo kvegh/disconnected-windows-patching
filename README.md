@@ -1,6 +1,6 @@
 # Disconnected Windows patching with AAP
 
-Version 2.3.0. Ansible Automation Platform (AAP) patches Windows servers in a
+Version 2.3.1. Ansible Automation Platform (AAP) patches Windows servers in a
 network without Internet access: Microsoft updates and application packages
 are fetched on the connected side, exported, pulled into the isolated side and
 installed from there only. Windows updates go through WSUS, applications
@@ -144,8 +144,10 @@ Two job templates on `playbooks/demo-switch.yml` switch between them:
 
 The VMs start with their last state: plain start, never a snapshot revert or
 a recreation. Shutdown presses the ACPI power button until each VM is off
-(as for the snapshots). VMs already in the target state are skipped; a VM
-that is not defined on the hypervisor fails the run. The AAP running this use
+(as for the snapshots); a VM still running after `snapshot_shutdown_retries`
+presses (10 s apart) fails the run, before any VM is started. VMs already in
+the target state are skipped; a VM that is not defined on the hypervisor fails
+the run. The AAP running this use
 case stays on. The AD demo VM names are the inventory variable
 `demo_switch_ad_vms` of the -secrets repository.
 
